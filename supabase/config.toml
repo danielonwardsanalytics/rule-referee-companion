@@ -1,0 +1,7 @@
+project_id = "kpbknwpmqjlbumjleumn"
+
+[functions.chat]
+verify_jwt = false
+
+[functions.transcribe-audio]
+verify_jwt = false
