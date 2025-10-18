@@ -11,10 +11,14 @@ interface ChatInterfaceProps {
   isOpen: boolean;
   onClose: () => void;
   gameName?: string;
+  houseRule?: {
+    name: string;
+    sections: Array<{ title: string; content: string }>;
+  };
 }
 
-const ChatInterface = ({ isOpen, onClose, gameName }: ChatInterfaceProps) => {
-  const { messages, sendMessage, isLoading, clearMessages } = useRealtimeChat();
+const ChatInterface = ({ isOpen, onClose, gameName, houseRule }: ChatInterfaceProps) => {
+  const { messages, sendMessage, isLoading, clearMessages } = useRealtimeChat(gameName, houseRule);
   const [input, setInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);

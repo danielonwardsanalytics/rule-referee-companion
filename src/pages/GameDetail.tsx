@@ -9,7 +9,9 @@ import {
 } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AskQuestionModal from "@/components/AskQuestionModal";
-import { ArrowLeft, MessageSquare, Bookmark } from "lucide-react";
+import { useHouseRules } from "@/hooks/useHouseRules";
+import HouseRuleCard from "@/components/HouseRuleCard";
+import { ArrowLeft, MessageSquare, Bookmark, Plus } from "lucide-react";
 import { toast } from "sonner";
 import unoCard from "@/assets/uno-card.jpg";
 import phase10Card from "@/assets/phase10-card.jpg";
@@ -68,8 +70,10 @@ const GameDetail = () => {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const { getRulesByGame } = useHouseRules();
 
   const game = gameId ? gameData[gameId] : null;
+  const houseRules = gameId ? getRulesByGame(gameId) : [];
 
   if (!game) {
     return (
@@ -140,9 +144,10 @@ const GameDetail = () => {
       {/* Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="rules" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2 mb-8">
-            <TabsTrigger value="rules">Rules</TabsTrigger>
+          <TabsList className="grid w-full max-w-2xl grid-cols-3 mb-8">
+            <TabsTrigger value="rules">Overview</TabsTrigger>
             <TabsTrigger value="ask">Ask</TabsTrigger>
+            <TabsTrigger value="house-rules">House Rules</TabsTrigger>
           </TabsList>
 
           <TabsContent value="rules" className="space-y-6">
@@ -184,6 +189,35 @@ const GameDetail = () => {
                 </Button>
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="house-rules" className="space-y-6">
+            <div className="mb-6">
+              <Button onClick={() => navigate(`/house-rules/new?gameId=${gameId}`)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create House Rules
+              </Button>
+            </div>
+
+            {houseRules.length === 0 ? (
+              <div className="text-center py-12 bg-card border border-border rounded-xl">
+                <p className="text-muted-foreground mb-2">No house rules yet for {game.title}.</p>
+                <p className="text-sm text-muted-foreground">
+                  Create your first custom rule set to play your way.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {houseRules.map((rule) => (
+                  <HouseRuleCard
+                    key={rule.id}
+                    rule={rule}
+                    gameName={game.title}
+                    onClick={() => navigate(`/house-rules/${gameId}/${rule.id}`)}
+                  />
+                ))}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </main>
