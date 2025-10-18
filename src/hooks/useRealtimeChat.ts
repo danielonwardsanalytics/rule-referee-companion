@@ -3,12 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 
-interface HouseRule {
-  name: string;
-  sections: Array<{ title: string; content: string }>;
-}
-
-export const useRealtimeChat = (gameName?: string, houseRule?: HouseRule) => {
+export const useRealtimeChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -32,8 +27,6 @@ export const useRealtimeChat = (gameName?: string, houseRule?: HouseRule) => {
     try {
       await streamChat({
         messages: [...messages, userMsg],
-        gameName,
-        houseRule,
         onDelta: (chunk) => upsertAssistant(chunk),
         onDone: () => setIsLoading(false),
       });
@@ -41,7 +34,7 @@ export const useRealtimeChat = (gameName?: string, houseRule?: HouseRule) => {
       console.error(e);
       setIsLoading(false);
     }
-  }, [messages, gameName, houseRule]);
+  }, [messages]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
@@ -52,14 +45,10 @@ export const useRealtimeChat = (gameName?: string, houseRule?: HouseRule) => {
 
 async function streamChat({
   messages,
-  gameName,
-  houseRule,
   onDelta,
   onDone,
 }: {
   messages: Message[];
-  gameName?: string;
-  houseRule?: HouseRule;
   onDelta: (deltaText: string) => void;
   onDone: () => void;
 }) {
@@ -71,7 +60,7 @@ async function streamChat({
       'Content-Type': 'application/json',
       Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
     },
-    body: JSON.stringify({ messages, gameName, houseRule }),
+    body: JSON.stringify({ messages }),
   });
 
   if (!resp.ok || !resp.body) throw new Error('Failed to start stream');
