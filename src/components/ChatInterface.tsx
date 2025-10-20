@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mic, MicOff, Send, X, Loader2 } from "lucide-react";
+import { Mic, MicOff, Send, X, Loader2, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRealtimeChat } from "@/hooks/useRealtimeChat";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,9 +17,11 @@ const ChatInterface = ({ isOpen, onClose, gameName }: ChatInterfaceProps) => {
   const { messages, sendMessage, isLoading, clearMessages } = useRealtimeChat();
   const [input, setInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -32,6 +34,30 @@ const ChatInterface = ({ isOpen, onClose, gameName }: ChatInterfaceProps) => {
     const messageText = input;
     setInput("");
     await sendMessage(messageText);
+    await speakResponse(messageText);
+  };
+
+  const speakResponse = async (userMessage: string) => {
+    try {
+      setIsSpeaking(true);
+      const { data, error } = await supabase.functions.invoke("text-to-speech", {
+        body: { text: `Responding to: ${userMessage}` },
+      });
+
+      if (error) throw error;
+
+      const audioBlob = new Blob([data], { type: "audio/mpeg" });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      if (audioRef.current) {
+        audioRef.current.src = audioUrl;
+        await audioRef.current.play();
+      }
+    } catch (error) {
+      console.error("TTS error:", error);
+    } finally {
+      setIsSpeaking(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -108,14 +134,18 @@ const ChatInterface = ({ isOpen, onClose, gameName }: ChatInterfaceProps) => {
 
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <audio ref={audioRef} onEnded={() => setIsSpeaking(false)} />
       <div className="bg-card border border-border rounded-lg shadow-elegant w-full max-w-2xl h-[600px] flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h2 className="text-xl font-semibold text-foreground">
             Ask About {gameName || "Game Rules"}
           </h2>
-          <Button variant="ghost" size="icon" onClick={handleClose}>
-            <X className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {isSpeaking && <Volume2 className="h-5 w-5 text-primary animate-pulse" />}
+            <Button variant="ghost" size="icon" onClick={handleClose}>
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
 
         <ScrollArea className="flex-1 p-4" ref={scrollRef}>
