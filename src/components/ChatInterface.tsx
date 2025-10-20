@@ -11,9 +11,10 @@ interface ChatInterfaceProps {
   isOpen: boolean;
   onClose: () => void;
   gameName?: string;
+  voice?: string;
 }
 
-const ChatInterface = ({ isOpen, onClose, gameName }: ChatInterfaceProps) => {
+const ChatInterface = ({ isOpen, onClose, gameName, voice = "alloy" }: ChatInterfaceProps) => {
   const { messages, sendMessage, isLoading, clearMessages } = useRealtimeChat();
   const [input, setInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -41,7 +42,10 @@ const ChatInterface = ({ isOpen, onClose, gameName }: ChatInterfaceProps) => {
     try {
       setIsSpeaking(true);
       const { data, error } = await supabase.functions.invoke("text-to-speech", {
-        body: { text: `Responding to: ${userMessage}` },
+        body: { 
+          text: `Responding to: ${userMessage}`,
+          voice: voice 
+        },
       });
 
       if (error) throw error;
