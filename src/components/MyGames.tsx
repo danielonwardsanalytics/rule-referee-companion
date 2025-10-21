@@ -14,7 +14,7 @@ const MyGames = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const maxGames = 12;
+  const maxGames = 9;
   const emptySlots = maxGames - selectedGames.length;
 
   const handleAddGame = (game: Game) => {
