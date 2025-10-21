@@ -127,21 +127,16 @@ const ChatInterface = ({ gameName, voice = "alloy" }: ChatInterfaceProps) => {
   };
 
   return (
-    <div className="w-full h-[500px] flex flex-col">
+    <div className="w-full flex flex-col">
       <audio ref={audioRef} onEnded={() => setIsSpeaking(false)} />
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           {isSpeaking && <Volume2 className="h-5 w-5 text-primary animate-pulse" />}
         </div>
       </div>
 
-      <ScrollArea className="flex-1 mb-4" ref={scrollRef}>
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
-            <p className="text-lg mb-2">To start, include the game your playing followed by your questions.</p>
-            <p className="text-sm">Type your question or use voice input</p>
-          </div>
-        ) : (
+      {messages.length > 0 && (
+        <ScrollArea className="h-[300px] mb-4" ref={scrollRef}>
           <div className="space-y-4 p-4">
             {messages.map((msg, idx) => (
               <div
@@ -160,8 +155,8 @@ const ChatInterface = ({ gameName, voice = "alloy" }: ChatInterfaceProps) => {
               </div>
             ))}
           </div>
-        )}
-      </ScrollArea>
+        </ScrollArea>
+      )}
 
       <div className="space-y-2">
           <div className="flex gap-2">
