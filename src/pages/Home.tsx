@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import GameCard from "@/components/GameCard";
 import AskQuestionModal from "@/components/AskQuestionModal";
+import ChatInterface from "@/components/ChatInterface";
 import { Search, MessageSquare } from "lucide-react";
 import heroImage from "@/assets/hero-image.jpg";
 import unoCard from "@/assets/uno-card.jpg";
@@ -88,6 +89,19 @@ const Home = () => {
               <MessageSquare className="mr-2 h-5 w-5" />
               Ask a Question
             </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Quick Fire Question Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-card border border-border rounded-2xl shadow-[var(--shadow-soft)] overflow-hidden">
+          <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-4">
+            <h2 className="text-2xl font-bold text-white">Quick Fire Question</h2>
+            <p className="text-white/90 text-sm mt-1">Get instant answers about any game rule</p>
+          </div>
+          <div className="p-6">
+            <ChatInterface isOpen={true} onClose={() => {}} />
           </div>
         </div>
       </section>
