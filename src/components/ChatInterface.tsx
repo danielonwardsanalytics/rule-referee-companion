@@ -8,13 +8,11 @@ import { useRealtimeChat } from "@/hooks/useRealtimeChat";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ChatInterfaceProps {
-  isOpen: boolean;
-  onClose: () => void;
   gameName?: string;
   voice?: string;
 }
 
-const ChatInterface = ({ isOpen, onClose, gameName, voice = "alloy" }: ChatInterfaceProps) => {
+const ChatInterface = ({ gameName, voice = "alloy" }: ChatInterfaceProps) => {
   const { messages, sendMessage, isLoading, clearMessages } = useRealtimeChat();
   const [input, setInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -128,59 +126,44 @@ const ChatInterface = ({ isOpen, onClose, gameName, voice = "alloy" }: ChatInter
     }
   };
 
-  const handleClose = () => {
-    clearMessages();
-    setInput("");
-    onClose();
-  };
-
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="w-full h-[500px] flex flex-col">
       <audio ref={audioRef} onEnded={() => setIsSpeaking(false)} />
-      <div className="bg-card border border-border rounded-lg shadow-elegant w-full max-w-2xl h-[600px] flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <h2 className="text-xl font-semibold text-foreground">
-            Ask About {gameName || "Game Rules"}
-          </h2>
-          <div className="flex items-center gap-2">
-            {isSpeaking && <Volume2 className="h-5 w-5 text-primary animate-pulse" />}
-            <Button variant="ghost" size="icon" onClick={handleClose}>
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          {isSpeaking && <Volume2 className="h-5 w-5 text-primary animate-pulse" />}
         </div>
+      </div>
 
-        <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-          {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
-              <p className="text-lg mb-2">Ask me anything about {gameName || "game"} rules!</p>
-              <p className="text-sm">Type your question or use voice input</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {messages.map((msg, idx) => (
+      <ScrollArea className="flex-1 mb-4" ref={scrollRef}>
+        {messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
+            <p className="text-lg mb-2">Ask me anything about {gameName || "game"} rules!</p>
+            <p className="text-sm">Type your question or use voice input</p>
+          </div>
+        ) : (
+          <div className="space-y-4 p-4">
+            {messages.map((msg, idx) => (
+              <div
+                key={idx}
+                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+              >
                 <div
-                  key={idx}
-                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                  className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                    msg.role === "user"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground"
+                  }`}
                 >
-                  <div
-                    className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                      msg.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-secondary-foreground"
-                    }`}
-                  >
-                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                  </div>
+                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                 </div>
-              ))}
-            </div>
-          )}
-        </ScrollArea>
+              </div>
+            ))}
+          </div>
+        )}
+      </ScrollArea>
 
-        <div className="p-4 border-t border-border space-y-2">
+      <div className="space-y-2">
           <div className="flex gap-2">
             <Textarea
               value={input}
@@ -204,7 +187,6 @@ const ChatInterface = ({ isOpen, onClose, gameName, voice = "alloy" }: ChatInter
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
-          </div>
         </div>
       </div>
     </div>

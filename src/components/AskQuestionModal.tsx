@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, X } from "lucide-react";
 import ChatInterface from "./ChatInterface";
 
 interface AskQuestionModalProps {
@@ -19,29 +19,30 @@ interface AskQuestionModalProps {
 }
 
 const AskQuestionModal = ({ isOpen, onClose, gameName }: AskQuestionModalProps) => {
-  const [isOpen2, setIsOpen2] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState<string>("alloy");
 
-  const handleAsk = () => {
-    setIsOpen2(true);
-    onClose();
-  };
-
   return (
-    <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-primary">
-              <MessageSquare className="h-5 w-5" />
-              Ask About {gameName || "the Rules"}
-            </DialogTitle>
-            <DialogDescription>
-              Chat with our AI expert or use voice to get instant answers about game rules.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 mt-4">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0">
+        <DialogHeader className="px-6 py-4 border-b border-border">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <DialogTitle className="flex items-center gap-2 text-primary text-2xl">
+                <MessageSquare className="h-6 w-6" />
+                Ask About {gameName || "the Rules"}
+              </DialogTitle>
+              <DialogDescription className="mt-1">
+                Chat with our AI expert or use voice to get instant answers
+              </DialogDescription>
+            </div>
+            <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </DialogHeader>
+        
+        <div className="flex-1 overflow-hidden px-6 pb-6">
+          <div className="space-y-4 mb-4 pt-4">
             <div className="space-y-2">
               <Label htmlFor="voice-select">AI Voice</Label>
               <Select value={selectedVoice} onValueChange={setSelectedVoice}>
@@ -58,19 +59,14 @@ const AskQuestionModal = ({ isOpen, onClose, gameName }: AskQuestionModalProps) 
                 </SelectContent>
               </Select>
             </div>
-            
-            <Button 
-              onClick={handleAsk} 
-              className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-            >
-              Start Chat
-            </Button>
           </div>
-        </DialogContent>
-      </Dialog>
-      
-      <ChatInterface isOpen={isOpen2} onClose={() => setIsOpen2(false)} gameName={gameName} voice={selectedVoice} />
-    </>
+          
+          <div className="h-[calc(100%-100px)]">
+            <ChatInterface gameName={gameName} voice={selectedVoice} />
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

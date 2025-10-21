@@ -101,7 +101,7 @@ const Home = () => {
             <p className="text-white/90 text-sm mt-1">Get instant answers about any game rule</p>
           </div>
           <div className="p-6">
-            <ChatInterface isOpen={true} onClose={() => {}} />
+            <ChatInterface />
           </div>
         </div>
       </section>
