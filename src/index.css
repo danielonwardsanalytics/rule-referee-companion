@@ -11,7 +11,7 @@ All colors MUST be HSL.
     --background: 0 0% 98%;
     --foreground: 220 70% 15%;
     
-    --gradient-background: linear-gradient(135deg, hsl(0 70% 55%), hsl(0 85% 65%));
+    --gradient-background: linear-gradient(135deg, hsl(0 70% 40%), hsl(0 85% 50%));
 
     --card: 0 0% 99%;
     --card-foreground: 220 70% 15%;
@@ -55,7 +55,7 @@ All colors MUST be HSL.
     --background: 0 0% 8%;
     --foreground: 140 20% 95%;
     
-    --gradient-background: linear-gradient(135deg, hsl(0 70% 25%), hsl(0 85% 35%));
+    --gradient-background: linear-gradient(135deg, hsl(0 70% 15%), hsl(0 85% 25%));
 
     --card: 140 25% 12%;
     --card-foreground: 140 20% 95%;
