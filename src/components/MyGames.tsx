@@ -36,20 +36,10 @@ const MyGames = () => {
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="bg-transparent border-2 border-white rounded-2xl p-4 sm:p-6 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl sm:text-3xl font-bold text-white">My Games</h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsEditMode(!isEditMode)}
-            className="text-white hover:bg-white/10 border border-white/50"
-          >
-            {isEditMode ? "Done" : "Edit"}
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2 sm:gap-4">
+      <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4 px-2">My Games</h2>
+      
+      <div className="bg-transparent border-2 border-white rounded-2xl p-4 sm:p-6 shadow-[0_0_20px_rgba(255,255,255,0.1)] relative">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-12">
           {/* Render selected games */}
           {selectedGames.map((game) => (
             <div
@@ -99,6 +89,17 @@ const MyGames = () => {
               )}
             </div>
           ))}
+        </div>
+
+        <div className="absolute bottom-4 right-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsEditMode(!isEditMode)}
+            className="text-white hover:bg-white/10 border border-white/50"
+          >
+            {isEditMode ? "Done" : "Edit"}
+          </Button>
         </div>
       </div>
 
