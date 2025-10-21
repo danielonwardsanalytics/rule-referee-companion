@@ -1,5 +1,6 @@
 import GameCard from "@/components/GameCard";
 import ChatInterface from "@/components/ChatInterface";
+import MyGames from "@/components/MyGames";
 import heroImage from "@/assets/hero-image.jpg";
 import unoCard from "@/assets/uno-card.jpg";
 import phase10Card from "@/assets/phase10-card.jpg";
@@ -74,6 +75,9 @@ const Home = () => {
           </div>
         </div>
       </section>
+
+      {/* My Games Section */}
+      <MyGames />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
