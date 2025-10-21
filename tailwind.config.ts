@@ -119,11 +119,14 @@ export default {
           "0%, 100%": {
             transform: "translateX(0) rotate(0deg)",
           },
-          "10%, 30%, 50%, 70%, 90%": {
-            transform: "translateX(-1px) rotate(-0.5deg)",
+          "25%": {
+            transform: "translateX(-1.5px) rotate(-0.8deg)",
           },
-          "20%, 40%, 60%, 80%": {
-            transform: "translateX(1px) rotate(0.5deg)",
+          "50%": {
+            transform: "translateX(0) rotate(0deg)",
+          },
+          "75%": {
+            transform: "translateX(1.5px) rotate(0.8deg)",
           },
         },
       },
@@ -133,7 +136,7 @@ export default {
         "fade-in": "fade-in 0.5s ease-out",
         "scale-in": "scale-in 0.3s ease-out",
         "float": "float 3s ease-in-out infinite",
-        "shake": "shake 2s ease-in-out infinite",
+        "shake": "shake 4s ease-in-out infinite",
       },
     },
   },
