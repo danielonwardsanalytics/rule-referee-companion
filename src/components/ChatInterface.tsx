@@ -165,7 +165,7 @@ const ChatInterface = ({ gameName, voice = "alloy" }: ChatInterfaceProps) => {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyPress}
               placeholder="Tell me what game you're playing and ask your question."
-              className="resize-none"
+              className="resize-none italic placeholder:italic"
               rows={2}
               disabled={isLoading}
             />
