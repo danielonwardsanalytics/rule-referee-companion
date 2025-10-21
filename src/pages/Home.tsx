@@ -1,10 +1,5 @@
-import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import GameCard from "@/components/GameCard";
-import AskQuestionModal from "@/components/AskQuestionModal";
 import ChatInterface from "@/components/ChatInterface";
-import { Search, MessageSquare } from "lucide-react";
 import heroImage from "@/assets/hero-image.jpg";
 import unoCard from "@/assets/uno-card.jpg";
 import phase10Card from "@/assets/phase10-card.jpg";
@@ -43,13 +38,6 @@ const games = [
 ];
 
 const Home = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const filteredGames = games.filter((game) =>
-    game.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -70,26 +58,6 @@ const Home = () => {
           <p className="text-xl sm:text-2xl text-white/90 mb-8 max-w-2xl animate-fade-in">
             Your personal rule companion for every game. Look up rules, settle disputes, and keep the peace.
           </p>
-          
-          <div className="flex flex-col sm:flex-row gap-3 max-w-2xl animate-scale-in">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input
-                placeholder="Search any game or rule..."
-                className="pl-10 h-12 bg-card/95 backdrop-blur-sm border-border"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <Button
-              size="lg"
-              className="h-12 px-6 bg-accent hover:bg-accent/90 text-accent-foreground font-semibold shadow-[var(--shadow-gold)]"
-              onClick={() => setIsModalOpen(true)}
-            >
-              <MessageSquare className="mr-2 h-5 w-5" />
-              Ask a Question
-            </Button>
-          </div>
         </div>
       </section>
 
@@ -121,18 +89,10 @@ const Home = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {filteredGames.map((game) => (
+            {games.map((game) => (
               <GameCard key={game.id} {...game} />
             ))}
           </div>
-
-          {filteredGames.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">
-                No games found. Try a different search term.
-              </p>
-            </div>
-          )}
         </section>
 
         <section className="bg-gradient-to-r from-secondary to-secondary/50 rounded-2xl p-8 border border-border shadow-[var(--shadow-soft)]">
@@ -143,22 +103,9 @@ const Home = () => {
             <p className="text-muted-foreground mb-6">
               Get instant answers to any rule question. Our AI-powered assistant knows the official rules for hundreds of games and can settle any dispute in seconds.
             </p>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-              onClick={() => setIsModalOpen(true)}
-            >
-              Try it now
-            </Button>
           </div>
         </section>
       </main>
-
-      <AskQuestionModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-      />
     </div>
   );
 };
