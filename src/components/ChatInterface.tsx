@@ -138,7 +138,7 @@ const ChatInterface = ({ gameName, voice = "alloy" }: ChatInterfaceProps) => {
       <ScrollArea className="flex-1 mb-4" ref={scrollRef}>
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
-            <p className="text-lg mb-2">Ask me anything about {gameName || "game"} rules!</p>
+            <p className="text-lg mb-2">To start, include the game your playing followed by your questions.</p>
             <p className="text-sm">Type your question or use voice input</p>
           </div>
         ) : (
