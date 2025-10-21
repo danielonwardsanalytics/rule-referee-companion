@@ -39,8 +39,8 @@ const games = [
 
 const Home = () => {
   return (
-    <div className="min-h-screen bg-background relative">
-      <div className="fixed inset-0 bg-[image:var(--gradient-background)] -z-10" />
+    <div className="min-h-screen relative">
+      <div className="fixed inset-0 -z-10 bg-background" style={{ backgroundImage: 'var(--gradient-background)' }} />
       {/* Hero Section */}
       <section className="relative h-[50vh] min-h-[400px] overflow-hidden">
         <div className="absolute inset-0">
