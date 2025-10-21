@@ -39,7 +39,8 @@ const games = [
 
 const Home = () => {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
+      <div className="fixed inset-0 bg-[image:var(--gradient-background)] -z-10" />
       {/* Hero Section */}
       <section className="relative h-[50vh] min-h-[400px] overflow-hidden">
         <div className="absolute inset-0">
@@ -63,7 +64,7 @@ const Home = () => {
 
       {/* Quick Fire Question Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-card border border-border rounded-2xl shadow-[var(--shadow-soft)] overflow-hidden">
+        <div className="bg-card border border-border rounded-2xl shadow-[var(--shadow-card)] overflow-hidden backdrop-blur-sm">
           <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-4">
             <h2 className="text-2xl font-bold text-white">Quick Fire Question</h2>
             <p className="text-white/90 text-sm mt-1">Get instant answers about any game rule</p>
@@ -95,7 +96,7 @@ const Home = () => {
           </div>
         </section>
 
-        <section className="bg-gradient-to-r from-secondary to-secondary/50 rounded-2xl p-8 border border-border shadow-[var(--shadow-soft)]">
+        <section className="bg-card rounded-2xl p-8 border border-border shadow-[var(--shadow-card)] backdrop-blur-sm">
           <div className="max-w-2xl">
             <h3 className="text-2xl font-bold text-foreground mb-3">
               Never argue about rules again 🤝

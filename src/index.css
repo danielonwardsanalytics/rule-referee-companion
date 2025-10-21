@@ -8,10 +8,12 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 140 25% 97%;
+    --background: 0 0% 98%;
     --foreground: 220 70% 15%;
+    
+    --gradient-background: linear-gradient(135deg, hsl(0 70% 55% / 0.15), hsl(0 85% 65% / 0.1));
 
-    --card: 0 0% 100%;
+    --card: 0 0% 99%;
     --card-foreground: 220 70% 15%;
 
     --popover: 0 0% 100%;
@@ -50,8 +52,10 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 140 30% 8%;
+    --background: 0 0% 8%;
     --foreground: 140 20% 95%;
+    
+    --gradient-background: linear-gradient(135deg, hsl(0 70% 25% / 0.2), hsl(0 85% 35% / 0.15));
 
     --card: 140 25% 12%;
     --card-foreground: 140 20% 95%;
