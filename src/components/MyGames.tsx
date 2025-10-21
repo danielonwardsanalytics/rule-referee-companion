@@ -44,7 +44,9 @@ const MyGames = () => {
           {selectedGames.map((game) => (
             <div
               key={game.id}
-              className="relative aspect-square bg-white/10 backdrop-blur-sm rounded-xl border-2 border-white/50 flex items-center justify-center cursor-pointer transition-all duration-300 hover:scale-105 hover:bg-white/20 group"
+              className={`relative aspect-square bg-white/10 backdrop-blur-sm rounded-xl border-2 border-white/50 flex items-center justify-center cursor-pointer transition-all duration-300 hover:scale-105 hover:bg-white/20 group ${
+                isEditMode ? "animate-[shake_0.5s_ease-in-out_infinite]" : ""
+              }`}
               onClick={() => handleGameClick(game)}
             >
               {isEditMode && (
@@ -74,17 +76,17 @@ const MyGames = () => {
             <div
               key={`empty-${index}`}
               className={`aspect-square rounded-xl border-2 border-dashed border-white/50 flex items-center justify-center transition-all duration-300 ${
-                index === 0 && !isEditMode
+                index === 0
                   ? "cursor-pointer hover:bg-white/10 hover:border-white"
                   : ""
               }`}
               onClick={() => {
-                if (index === 0 && !isEditMode) {
+                if (index === 0) {
                   setIsModalOpen(true);
                 }
               }}
             >
-              {index === 0 && !isEditMode && (
+              {index === 0 && (
                 <Plus className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
               )}
             </div>
