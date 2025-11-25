@@ -3,7 +3,7 @@
 ## Pending Features
 
 ### Payment Integration
-- [ ] **Stripe Payment Integration** - Enable Stripe for premium subscriptions
+- [ ] **Stripe Payment Integration** - Enable Stripe for premium subscriptions (deferred for later implementation)
   - Configure Stripe secret key
   - Create payment flow for premium upgrade
   - Add webhook handlers for subscription events
