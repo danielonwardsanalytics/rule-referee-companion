@@ -2,43 +2,13 @@ import GameCard from "@/components/GameCard";
 import ChatInterface from "@/components/ChatInterface";
 import MyGames from "@/components/MyGames";
 import heroImage from "@/assets/hero-image.jpg";
-import unoCard from "@/assets/uno-card.jpg";
-import phase10Card from "@/assets/phase10-card.jpg";
-import monopolyDealCard from "@/assets/monopoly-deal-card.jpg";
-import skipboCard from "@/assets/skipbo-card.jpg";
-
-const games = [
-  {
-    id: "uno",
-    title: "UNO",
-    image: unoCard,
-    players: "2-10 players",
-    difficulty: "Easy",
-  },
-  {
-    id: "phase-10",
-    title: "Phase 10",
-    image: phase10Card,
-    players: "2-6 players",
-    difficulty: "Medium",
-  },
-  {
-    id: "monopoly-deal",
-    title: "Monopoly Deal",
-    image: monopolyDealCard,
-    players: "2-5 players",
-    difficulty: "Easy",
-  },
-  {
-    id: "skip-bo",
-    title: "Skip-Bo",
-    image: skipboCard,
-    players: "2-6 players",
-    difficulty: "Easy",
-  },
-];
+import { useAllGames } from "@/hooks/useAllGames";
+import { Loader2 } from "lucide-react";
 
 const Home = () => {
+  const { games, isLoading } = useAllGames();
+  const popularGames = games.filter(g => g.image_url).slice(0, 4);
+
   return (
     <div className="min-h-screen relative pb-20">
       <div className="fixed inset-0 -z-10 bg-background" style={{ backgroundImage: 'var(--gradient-background)' }} />
@@ -93,11 +63,24 @@ const Home = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {games.map((game) => (
-              <GameCard key={game.id} {...game} />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {popularGames.map((game) => (
+                <GameCard 
+                  key={game.id} 
+                  id={game.slug}
+                  title={game.name}
+                  image={game.image_url || ""}
+                  players="Various"
+                  difficulty="Various"
+                />
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="bg-card rounded-2xl p-8 border border-border shadow-[var(--shadow-card)] backdrop-blur-sm">
