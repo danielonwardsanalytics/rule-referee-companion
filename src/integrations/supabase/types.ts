@@ -304,6 +304,8 @@ export type Database = {
           display_name: string
           email: string | null
           id: string
+          invite_expires_at: string | null
+          invited_at: string | null
           joined_at: string | null
           losses: number | null
           points: number | null
@@ -317,6 +319,8 @@ export type Database = {
           display_name: string
           email?: string | null
           id?: string
+          invite_expires_at?: string | null
+          invited_at?: string | null
           joined_at?: string | null
           losses?: number | null
           points?: number | null
@@ -332,6 +336,8 @@ export type Database = {
           display_name?: string
           email?: string | null
           id?: string
+          invite_expires_at?: string | null
+          invited_at?: string | null
           joined_at?: string | null
           losses?: number | null
           points?: number | null
@@ -459,6 +465,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      auto_accept_tournament_invitations: {
+        Args: { _email: string; _user_id: string }
+        Returns: undefined
+      }
+      cleanup_expired_tournament_invitations: {
+        Args: never
+        Returns: undefined
+      }
+      get_pending_invitations_for_email: {
+        Args: { _email: string }
+        Returns: {
+          expires_at: string
+          game_name: string
+          invited_at: string
+          tournament_id: string
+          tournament_name: string
+        }[]
+      }
       get_premium_status: {
         Args: { _user_id: string }
         Returns: {

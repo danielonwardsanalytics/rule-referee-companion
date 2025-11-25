@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useTournamentPlayers } from "@/hooks/useTournamentPlayers";
 import { useFriends } from "@/hooks/useFriends";
-import { Loader2, Users, UserPlus } from "lucide-react";
+import { Loader2, Users, UserPlus, Mail, Info } from "lucide-react";
 
 interface AddPlayerModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ interface AddPlayerModalProps {
 
 export const AddPlayerModal = ({ isOpen, onClose, tournamentId }: AddPlayerModalProps) => {
   const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
   const { addPlayer, isAddingPlayer } = useTournamentPlayers(tournamentId);
   const { friends, isLoading: friendsLoading } = useFriends();
 
@@ -28,6 +30,21 @@ export const AddPlayerModal = ({ isOpen, onClose, tournamentId }: AddPlayerModal
       {
         onSuccess: () => {
           setDisplayName("");
+          onClose();
+        },
+      }
+    );
+  };
+
+  const handleSubmitEmail = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+
+    addPlayer(
+      { tournamentId, email: email.trim() },
+      {
+        onSuccess: () => {
+          setEmail("");
           onClose();
         },
       }
@@ -47,13 +64,16 @@ export const AddPlayerModal = ({ isOpen, onClose, tournamentId }: AddPlayerModal
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Add Player</DialogTitle>
+          <DialogDescription>
+            Add a player by name, select from friends, or invite by email
+          </DialogDescription>
         </DialogHeader>
         
         <Tabs defaultValue="name" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="name">
               <UserPlus className="h-4 w-4 mr-2" />
               By Name
@@ -61,6 +81,10 @@ export const AddPlayerModal = ({ isOpen, onClose, tournamentId }: AddPlayerModal
             <TabsTrigger value="friends">
               <Users className="h-4 w-4 mr-2" />
               Friends
+            </TabsTrigger>
+            <TabsTrigger value="email">
+              <Mail className="h-4 w-4 mr-2" />
+              Email Invite
             </TabsTrigger>
           </TabsList>
           
@@ -137,6 +161,37 @@ export const AddPlayerModal = ({ isOpen, onClose, tournamentId }: AddPlayerModal
                 </div>
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="email">
+            <form onSubmit={handleSubmitEmail} className="space-y-4">
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  Send an email invitation. The player will be added to the tournament when they sign up or log in with this email. Invitation expires in 7 days.
+                </AlertDescription>
+              </Alert>
+              <div className="space-y-2">
+                <Label htmlFor="playerEmail">Email Address</Label>
+                <Input
+                  id="playerEmail"
+                  type="email"
+                  placeholder="Enter email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit" className="flex-1" disabled={isAddingPlayer}>
+                  {isAddingPlayer && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Send Invitation
+                </Button>
+                <Button type="button" variant="outline" onClick={onClose}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
           </TabsContent>
         </Tabs>
       </DialogContent>
