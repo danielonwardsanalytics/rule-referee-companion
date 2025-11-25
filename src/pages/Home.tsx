@@ -8,7 +8,18 @@ import { TrialBanner } from "@/components/premium/TrialBanner";
 
 const Home = () => {
   const { games, isLoading } = useAllGames();
-  const popularGames = games.filter(g => g.image_url).slice(0, 4);
+  // Show 8 games now that all have images - prioritize most popular/recognizable
+  const popularGameSlugs = ['uno', 'monopoly-deal', 'phase10', 'skipbo', 'poker', 'hearts', 'rummy', 'go-fish'];
+  const popularGames = games
+    .filter(g => g.image_url)
+    .sort((a, b) => {
+      const aIndex = popularGameSlugs.indexOf(a.slug);
+      const bIndex = popularGameSlugs.indexOf(b.slug);
+      if (aIndex === -1) return 1;
+      if (bIndex === -1) return -1;
+      return aIndex - bIndex;
+    })
+    .slice(0, 8);
 
   return (
     <div className="min-h-screen relative pb-20">
@@ -60,7 +71,7 @@ const Home = () => {
                 Popular Games
               </h2>
               <p className="text-muted-foreground">
-                Quick access to the most played card games
+                Quick access to your favorite card games
               </p>
             </div>
           </div>
@@ -70,7 +81,7 @@ const Home = () => {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
               {popularGames.map((game) => (
                 <GameCard 
                   key={game.id} 
