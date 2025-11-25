@@ -20,6 +20,7 @@ import HouseRules from "./pages/HouseRules";
 import HouseRuleDetail from "./pages/HouseRuleDetail";
 import PublicHouseRules from "./pages/PublicHouseRules";
 import Friends from "./pages/Friends";
+import GameRequests from "./pages/GameRequests";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -151,6 +152,18 @@ const App = () => {
                 <ProtectedRoute>
                   <>
                     <PublicHouseRules />
+                    <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
+                    <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+                  </>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/game-requests"
+              element={
+                <ProtectedRoute>
+                  <>
+                    <GameRequests />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
                   </>
