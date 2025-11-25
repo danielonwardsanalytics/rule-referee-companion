@@ -46,6 +46,7 @@ All colors MUST be HSL.
     --game-monopoly: 158 64% 52%;
     
     /* Gradients */
+    --gradient-background: linear-gradient(180deg, hsl(210 40% 98%), hsl(220 40% 96%));
     --gradient-hero: linear-gradient(135deg, hsl(220 90% 56%), hsl(220 80% 65%));
     --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(220 30% 98%));
     --gradient-accent: linear-gradient(135deg, hsl(45 90% 60%), hsl(35 90% 65%));
@@ -96,6 +97,7 @@ All colors MUST be HSL.
     --game-monopoly: 158 64% 52%;
     
     /* Gradients */
+    --gradient-background: linear-gradient(180deg, hsl(220 20% 10%), hsl(220 20% 8%));
     --gradient-hero: linear-gradient(135deg, hsl(220 40% 20%), hsl(220 50% 30%));
     --gradient-card: linear-gradient(180deg, hsl(220 20% 14%), hsl(220 20% 12%));
     --gradient-accent: linear-gradient(135deg, hsl(45 90% 60%), hsl(35 90% 65%));
@@ -117,5 +119,11 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .hover-scale {
+    @apply transition-transform duration-200 hover:scale-105;
   }
 }

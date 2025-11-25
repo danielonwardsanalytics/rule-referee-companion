@@ -64,7 +64,7 @@ const Auth = () => {
           </CardTitle>
           <CardDescription className="text-center">
             {isSignUp
-              ? "Start your 14-day free trial"
+              ? "Start your 5-day free trial"
               : "Sign in to continue to Fair Play"}
           </CardDescription>
         </CardHeader>
