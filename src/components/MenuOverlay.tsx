@@ -23,6 +23,7 @@ export const MenuOverlay = ({ isOpen, onClose }: MenuOverlayProps) => {
     { icon: Globe, label: "Public House Rules", path: "/public-house-rules" },
     { icon: Users, label: "Friends", path: "/friends" },
     { icon: Target, label: "Game Requests", path: "/game-requests" },
+    { icon: Crown, label: "Premium Features", path: "/premium" },
   ];
 
   const handleSignOut = async () => {
