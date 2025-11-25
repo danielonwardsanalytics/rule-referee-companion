@@ -26,7 +26,7 @@ const Home = () => {
       <TrialBanner />
       <div className="fixed inset-0 -z-10 bg-background" style={{ backgroundImage: 'var(--gradient-background)' }} />
       {/* Hero Section */}
-      <section className="relative h-[50vh] min-h-[400px] overflow-hidden" aria-label="Hero section">
+      <section className="relative h-[50vh] min-h-[400px] overflow-hidden animate-slide-down" aria-label="Hero section">
         <div className="absolute inset-0">
           <img
             src={heroImage}
@@ -37,19 +37,19 @@ const Home = () => {
         </div>
         
         <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4 animate-fade-in">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4 animate-slide-up">
             Game nights just got fairer. 🎴
           </h1>
-          <p className="text-xl sm:text-2xl text-white/90 mb-8 max-w-2xl animate-fade-in">
+          <p className="text-xl sm:text-2xl text-white/90 mb-8 max-w-2xl animate-slide-up" style={{ animationDelay: '0.1s' }}>
             Your personal rule companion for every game. Look up rules, settle disputes, and keep the peace.
           </p>
         </div>
       </section>
 
       {/* Quick Fire Question Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" aria-label="Quick questions">
-        <div className="bg-card border border-border rounded-2xl shadow-[var(--shadow-card)] overflow-hidden backdrop-blur-sm">
-          <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-4">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up" style={{ animationDelay: '0.2s' }} aria-label="Quick questions">
+        <div className="bg-card border border-border rounded-2xl shadow-[var(--shadow-card)] overflow-hidden backdrop-blur-sm hover-lift">
+          <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-5">
             <h2 className="text-2xl font-bold text-white">Quick Fire Question</h2>
             <p className="text-white/90 text-sm mt-1">Get instant answers about any game rule</p>
           </div>
@@ -64,8 +64,8 @@ const Home = () => {
 
       {/* Main Content */}
       <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <section className="mb-12" aria-label="Popular games">
-          <div className="flex items-center justify-between mb-6">
+        <section className="mb-12 animate-slide-up" style={{ animationDelay: '0.3s' }} aria-label="Popular games">
+          <div className="flex items-center justify-between mb-8">
             <div>
               <h2 className="text-3xl font-bold text-foreground mb-2">
                 Popular Games
@@ -82,26 +82,27 @@ const Home = () => {
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-              {popularGames.map((game) => (
-                <GameCard 
-                  key={game.id} 
-                  id={game.slug}
-                  title={game.name}
-                  image={game.image_url || ""}
-                  players="Various"
-                  difficulty="Various"
-                />
+              {popularGames.map((game, index) => (
+                <div key={game.id} style={{ animationDelay: `${index * 0.05}s` }}>
+                  <GameCard 
+                    id={game.slug}
+                    title={game.name}
+                    image={game.image_url || ""}
+                    players="Various"
+                    difficulty="Various"
+                  />
+                </div>
               ))}
             </div>
           )}
         </section>
 
-        <section className="bg-card rounded-2xl p-8 border border-border shadow-[var(--shadow-card)] backdrop-blur-sm" aria-label="Features">
+        <section className="bg-card rounded-2xl p-8 border border-border shadow-[var(--shadow-card)] backdrop-blur-sm animate-slide-up hover-lift" style={{ animationDelay: '0.4s' }} aria-label="Features">
           <div className="max-w-2xl">
             <h3 className="text-2xl font-bold text-foreground mb-3">
               Never argue about rules again 🤝
             </h3>
-            <p className="text-muted-foreground mb-6">
+            <p className="text-muted-foreground mb-6 leading-relaxed">
               Get instant answers to any rule question. Our AI-powered assistant knows the official rules for hundreds of games and can settle any dispute in seconds.
             </p>
           </div>

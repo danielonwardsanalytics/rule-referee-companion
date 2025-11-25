@@ -46,7 +46,7 @@ const HouseRules = () => {
       <PremiumGate feature="House Rules">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between animate-slide-down">
           <div>
             <h1 className="text-3xl font-bold">My House Rules</h1>
             <p className="text-muted-foreground mt-1">
@@ -54,59 +54,63 @@ const HouseRules = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate("/public-house-rules")}>
+            <Button variant="outline" onClick={() => navigate("/public-house-rules")} className="button-press hidden sm:flex">
               <BookOpen className="h-4 w-4 mr-2" />
               Browse Public Rules
             </Button>
-            <Button onClick={() => setIsCreateModalOpen(true)}>
+            <Button onClick={() => setIsCreateModalOpen(true)} className="button-press">
               <Plus className="h-4 w-4 mr-2" />
-              New Rule Set
+              <span className="hidden sm:inline">New Rule Set</span>
+              <span className="sm:hidden">New</span>
             </Button>
           </div>
         </div>
 
         {/* Rule Sets by Game */}
-        {ruleSets.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground mb-4">
-                You haven't created any house rule sets yet
-              </p>
-              <Button onClick={() => setIsCreateModalOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Your First Rule Set
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-8">
-            {Object.entries(ruleSetsByGame).map(([gameId, sets]) => {
-              const game = games.find((g) => g.id === gameId);
-              if (!game) return null;
+        <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
+          {ruleSets.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <p className="text-muted-foreground mb-4">
+                  You haven't created any house rule sets yet
+                </p>
+                <Button onClick={() => setIsCreateModalOpen(true)} className="button-press">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First Rule Set
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-8">
+              {Object.entries(ruleSetsByGame).map(([gameId, sets]) => {
+                const game = games.find((g) => g.id === gameId);
+                if (!game) return null;
 
-              return (
-                <div key={gameId}>
-                  <div className="flex items-center gap-3 mb-4">
-                    <div
-                      className="w-1 h-8 rounded-full"
-                      style={{ backgroundColor: game.accent_color }}
-                    />
-                    <h2 className="text-2xl font-bold">{game.name}</h2>
-                  </div>
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {sets.map((ruleSet) => (
-                      <RuleSetCard
-                        key={ruleSet.id}
-                        ruleSet={ruleSet}
-                        onClick={() => navigate(`/house-rules/${ruleSet.id}`)}
+                return (
+                  <div key={gameId} className="animate-slide-in-left">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div
+                        className="w-1 h-8 rounded-full"
+                        style={{ backgroundColor: game.accent_color }}
                       />
-                    ))}
+                      <h2 className="text-2xl font-bold">{game.name}</h2>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {sets.map((ruleSet, index) => (
+                        <div key={ruleSet.id} style={{ animationDelay: `${index * 0.05}s` }}>
+                          <RuleSetCard
+                            ruleSet={ruleSet}
+                            onClick={() => navigate(`/house-rules/${ruleSet.id}`)}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       <CreateRuleSetModal
