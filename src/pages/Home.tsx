@@ -43,20 +43,23 @@ const Home = () => {
 
       {/* Hero Section */}
       <section className="relative h-[50vh] min-h-[400px] overflow-hidden animate-slide-down" aria-label="Hero section">
-        <div className="absolute inset-0">
-          <img
-            src={heroImage}
-            alt="Game night with friends playing cards"
-            className="h-full w-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-primary/80 via-primary/60 to-background" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary via-accent to-primary/60">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.1),transparent_50%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(255,255,255,0.08),transparent_50%)]" />
         </div>
         
-        <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4 animate-slide-up">
+        <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center text-center">
+          <div className="animate-scale-in mb-6">
+            <img 
+              src={logo} 
+              alt="House Rules" 
+              className="h-32 sm:h-40 lg:h-48 w-auto drop-shadow-2xl"
+            />
+          </div>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4 animate-slide-up drop-shadow-lg">
             Game nights just got fairer. 🎴
           </h1>
-          <p className="text-xl sm:text-2xl text-white/90 mb-8 max-w-2xl animate-slide-up" style={{ animationDelay: '0.1s' }}>
+          <p className="text-xl sm:text-2xl text-white/95 mb-8 max-w-2xl animate-slide-up drop-shadow-md" style={{ animationDelay: '0.1s' }}>
             Your personal rule companion for every game. Look up rules, settle disputes, and keep the peace.
           </p>
         </div>
