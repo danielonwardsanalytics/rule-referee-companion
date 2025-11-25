@@ -1,117 +1,72 @@
 import { useState } from "react";
-import { Plus, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import SelectGameModal from "@/components/SelectGameModal";
-
-interface Game {
-  id: string;
-  name: string;
-  icon?: string;
-}
+import { ChevronRight, Plus, Loader2 } from "lucide-react";
+import SelectGameModal from "./SelectGameModal";
+import GameCard from "./GameCard";
+import { useUserGames } from "@/hooks/useUserGames";
 
 const MyGames = () => {
-  const [selectedGames, setSelectedGames] = useState<Game[]>([]);
-  const [isEditMode, setIsEditMode] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const maxGames = 9;
-  const emptySlots = maxGames - selectedGames.length;
-
-  const handleAddGame = (game: Game) => {
-    if (selectedGames.length < maxGames) {
-      setSelectedGames([...selectedGames, game]);
-    }
-  };
-
-  const handleRemoveGame = (gameId: string) => {
-    setSelectedGames(selectedGames.filter(game => game.id !== gameId));
-  };
-
-  const handleGameClick = (game: Game) => {
-    if (!isEditMode) {
-      // Navigate to game template page
-      window.location.href = `/game/${game.id}`;
-    }
-  };
+  const { userGames, isLoading, removeGame } = useUserGames();
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4 px-2">My Games</h2>
-      
-      <div className="bg-transparent border-2 border-white rounded-2xl p-4 sm:p-6 shadow-[0_0_20px_rgba(255,255,255,0.1)] relative">
-        <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-12">
-          {/* Render selected games */}
-          {selectedGames.map((game) => (
-            <div
-              key={game.id}
-              className={`relative aspect-square bg-white/10 backdrop-blur-sm rounded-xl border-2 border-white/50 flex items-center justify-center cursor-pointer transition-all duration-300 hover:scale-105 hover:bg-white/20 group ${
-                isEditMode ? "animate-[shake_0.5s_ease-in-out_infinite]" : ""
-              }`}
-              onClick={() => handleGameClick(game)}
+    <>
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-bold text-foreground">My Games</h2>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="h-8 w-8 rounded-full bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-colors group"
+              aria-label="Add game"
             >
-              {isEditMode && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRemoveGame(game.id);
-                  }}
-                  className="absolute -top-2 -right-2 bg-white text-primary rounded-full p-1 shadow-lg z-10 transition-transform hover:scale-110"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-              
-              {game.icon ? (
-                <img src={game.icon} alt={game.name} className="w-full h-full object-cover rounded-xl" />
-              ) : (
-                <div className="text-center p-4">
-                  <span className="text-white font-bold text-sm sm:text-base">{game.name}</span>
-                </div>
-              )}
-            </div>
-          ))}
-
-          {/* Render empty slots */}
-          {Array.from({ length: emptySlots }).map((_, index) => (
-            <div
-              key={`empty-${index}`}
-              className={`aspect-square rounded-xl border-2 border-dashed border-white/50 flex items-center justify-center transition-all duration-300 ${
-                index === 0
-                  ? "cursor-pointer hover:bg-white/10 hover:border-white"
-                  : ""
-              }`}
-              onClick={() => {
-                if (index === 0) {
-                  setIsModalOpen(true);
-                }
-              }}
-            >
-              {index === 0 && (
-                <Plus className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
-              )}
-            </div>
-          ))}
+              <Plus className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+            </button>
+          </div>
+          {userGames.length > 4 && (
+            <button className="text-primary hover:text-primary/80 flex items-center gap-1 text-sm font-medium transition-colors">
+              View All
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
-        <div className="absolute bottom-4 right-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsEditMode(!isEditMode)}
-            className="text-white hover:bg-white/10 border border-white/50"
-          >
-            {isEditMode ? "Done" : "Edit"}
-          </Button>
-        </div>
-      </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : userGames.length === 0 ? (
+          <div className="text-center py-12 bg-card rounded-xl border border-border">
+            <p className="text-muted-foreground mb-4">No games added yet</p>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="text-primary hover:text-primary/80 font-medium"
+            >
+              Add your first game
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {userGames.slice(0, 4).map((userGame) => (
+              <GameCard
+                key={userGame.games.id}
+                id={userGame.games.slug}
+                title={userGame.games.name}
+                image={userGame.games.image_url || ""}
+                players="Various"
+                difficulty="Various"
+                canRemove={true}
+                onRemove={() => removeGame(userGame.game_id)}
+              />
+            ))}
+          </div>
+        )}
+      </section>
 
       <SelectGameModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSelectGame={handleAddGame}
-        selectedGameIds={selectedGames.map(g => g.id)}
       />
-    </section>
+    </>
   );
 };
 

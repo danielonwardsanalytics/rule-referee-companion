@@ -1,83 +1,92 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-
-interface Game {
-  id: string;
-  name: string;
-  icon?: string;
-}
+import { Search, Loader2, CheckCircle2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { useState } from "react";
+import { useAllGames } from "@/hooks/useAllGames";
+import { useUserGames } from "@/hooks/useUserGames";
 
 interface SelectGameModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectGame: (game: Game) => void;
-  selectedGameIds: string[];
 }
 
-const availableGames: Game[] = [
-  { id: "uno", name: "UNO" },
-  { id: "phase-10", name: "Phase 10" },
-  { id: "monopoly", name: "Monopoly" },
-  { id: "monopoly-deal", name: "Monopoly Deal" },
-  { id: "clue", name: "Clue" },
-  { id: "poker", name: "Poker" },
-  { id: "solitaire", name: "Solitaire" },
-  { id: "exploding-kittens", name: "Exploding Kittens" },
-  { id: "gin-rummy", name: "Gin Rummy" },
-  { id: "crazy-eight", name: "Crazy Eight" },
-  { id: "scrabble", name: "Scrabble" },
-  { id: "trivial-pursuit", name: "Trivial Pursuit" },
-  { id: "battleship", name: "Battleship" },
-  { id: "ticket-to-ride", name: "Ticket to Ride" },
-  { id: "catan", name: "Catan" },
-  { id: "bridge", name: "Bridge" },
-  { id: "pictionary", name: "Pictionary" },
-  { id: "mahjong", name: "Mahjong" },
-  { id: "chess", name: "Chess" },
-  { id: "checkers", name: "Checkers" },
-  { id: "backgammon", name: "Backgammon" },
-  { id: "beer-pong", name: "Beer Pong" },
-  { id: "hearts", name: "Hearts" },
-  { id: "cribbage", name: "Cribbage" },
-  { id: "canasta", name: "Canasta" },
-  { id: "kings-cup", name: "Kings Cup" },
-  { id: "flip-cup", name: "Flip Cup" },
-  { id: "spades", name: "Spades" },
-  { id: "skip-bo", name: "Skip-Bo" },
-];
+const SelectGameModal = ({ isOpen, onClose }: SelectGameModalProps) => {
+  const [search, setSearch] = useState("");
+  const { games, isLoading } = useAllGames();
+  const { userGames, addGame, isAddingGame } = useUserGames();
 
-const SelectGameModal = ({ isOpen, onClose, onSelectGame, selectedGameIds }: SelectGameModalProps) => {
-  const handleGameSelect = (game: Game) => {
-    onSelectGame(game);
-    onClose();
-  };
+  const userGameIds = new Set(userGames.map((ug) => ug.game_id));
 
-  const availableToSelect = availableGames.filter(
-    game => !selectedGameIds.includes(game.id)
+  const filteredGames = games.filter((game) =>
+    game.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleAddGame = (gameId: string) => {
+    addGame(gameId);
+    setTimeout(() => onClose(), 500);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Select a Game</DialogTitle>
+          <DialogTitle>Select a Game</DialogTitle>
         </DialogHeader>
         
-        <ScrollArea className="h-[400px] pr-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {availableToSelect.map((game) => (
-              <button
-                key={game.id}
-                onClick={() => handleGameSelect(game)}
-                className="aspect-square bg-card border-2 border-border rounded-xl flex items-center justify-center p-4 transition-all duration-300 hover:scale-105 hover:border-primary hover:shadow-[var(--shadow-card)]"
-              >
-                <span className="text-foreground font-semibold text-center text-sm">
-                  {game.name}
-                </span>
-              </button>
-            ))}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            placeholder="Search games..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        </ScrollArea>
+        ) : (
+          <div className="grid grid-cols-2 gap-4 max-h-96 overflow-y-auto pr-2">
+            {filteredGames.map((game) => {
+              const isAdded = userGameIds.has(game.id);
+              
+              return (
+                <button
+                  key={game.id}
+                  onClick={() => !isAdded && handleAddGame(game.id)}
+                  disabled={isAdded || isAddingGame}
+                  className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed relative group"
+                >
+                  {game.image_url ? (
+                    <img
+                      src={game.image_url}
+                      alt={game.name}
+                      className="w-12 h-12 rounded object-cover"
+                    />
+                  ) : (
+                    <div 
+                      className="w-12 h-12 rounded flex items-center justify-center text-xs font-medium text-white"
+                      style={{ backgroundColor: game.accent_color }}
+                    >
+                      {game.name.charAt(0)}
+                    </div>
+                  )}
+                  <span className="font-medium flex-1">{game.name}</span>
+                  {isAdded && (
+                    <CheckCircle2 className="h-5 w-5 text-primary absolute top-3 right-3" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
