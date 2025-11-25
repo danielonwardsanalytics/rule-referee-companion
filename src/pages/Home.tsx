@@ -28,7 +28,7 @@ const Home = () => {
       <div className="fixed inset-0 -z-10 bg-background" style={{ backgroundImage: 'var(--gradient-background)' }} />
 
       {/* Hero Section */}
-      <section className="relative h-[50vh] min-h-[400px] overflow-hidden animate-slide-down" aria-label="Hero section">
+      <section className="relative h-[35vh] min-h-[300px] overflow-hidden animate-slide-down" aria-label="Hero section">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 via-green-300 to-teal-400">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.3),transparent_50%)]" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(255,255,255,0.2),transparent_50%)]" />
