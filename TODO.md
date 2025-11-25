@@ -39,3 +39,6 @@
 - ✅ Phase 15: Friends system with requests and QR codes
 - ✅ Phase 16: Tournament player management (reviewed - already implemented)
 - ✅ Phase 17: Public House Rules discovery, search, filter, and save functionality
+- ✅ Phase 18: Game Requests system with friend-to-friend invitations
+- ✅ Phase 19: Premium subscription infrastructure and gates
+- ✅ Phase 20: Voice Rule Editor for creating/editing house rules via voice commands
