@@ -148,6 +148,42 @@ export type Database = {
           },
         ]
       }
+      game_suggestions: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          description: string | null
+          game_name: string
+          id: string
+          reason: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          description?: string | null
+          game_name: string
+          id?: string
+          reason?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          description?: string | null
+          game_name?: string
+          id?: string
+          reason?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       games: {
         Row: {
           accent_color: string | null
