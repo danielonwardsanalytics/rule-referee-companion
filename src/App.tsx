@@ -9,7 +9,6 @@ import { SkipLink } from "./components/SkipLink";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { BottomNav } from "./components/BottomNav";
 import { MenuOverlay } from "./components/MenuOverlay";
-import Header from "./components/Header";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import Settings from "./pages/Settings";
@@ -45,7 +44,6 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <>
-                    <Header />
                     <Home />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
@@ -58,7 +56,6 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <>
-                    <Header />
                     <Settings />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
@@ -71,7 +68,6 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <>
-                    <Header />
                     <Tournaments />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
@@ -84,7 +80,6 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <>
-                    <Header />
                     <CreateTournament />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
@@ -97,7 +92,6 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <>
-                    <Header />
                     <TournamentDetail />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
@@ -110,7 +104,6 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <>
-                    <Header />
                     <GameDetail />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
@@ -123,7 +116,6 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <>
-                    <Header />
                     <HouseRules />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
@@ -136,7 +128,6 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <>
-                    <Header />
                     <HouseRuleDetail />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
@@ -149,7 +140,6 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <>
-                    <Header />
                     <Friends />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
@@ -162,7 +152,6 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <>
-                    <Header />
                     <PublicHouseRules />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
@@ -175,7 +164,6 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <>
-                    <Header />
                     <GameRequests />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
@@ -188,7 +176,6 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <>
-                    <Header />
                     <PremiumFeatures />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
