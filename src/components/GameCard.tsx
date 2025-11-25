@@ -27,7 +27,7 @@ const GameCard = ({ id, title, image, players, difficulty, canRemove, onRemove }
 
   return (
     <Card 
-      className="group cursor-pointer overflow-hidden border-border bg-gradient-to-b from-card to-card/50 shadow-[var(--shadow-soft)] transition-all duration-300 hover:shadow-[var(--shadow-card)] hover:-translate-y-1 relative"
+      className="group cursor-pointer overflow-hidden border-border bg-gradient-to-b from-card to-card/50 shadow-[var(--shadow-soft)] transition-all duration-300 hover:shadow-[var(--shadow-card)] hover:-translate-y-1 relative animate-fade-in"
       onClick={handleClick}
     >
       {canRemove && (

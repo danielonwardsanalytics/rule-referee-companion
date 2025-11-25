@@ -27,7 +27,7 @@ export const TournamentCard = ({ tournament }: TournamentCardProps) => {
 
   return (
     <Card
-      className="group cursor-pointer overflow-hidden border-2 transition-all duration-300 hover:shadow-[var(--shadow-card)] hover:-translate-y-1"
+      className="group cursor-pointer overflow-hidden border-2 transition-all duration-300 hover:shadow-[var(--shadow-card)] hover:-translate-y-1 animate-fade-in"
       style={{ borderColor: tournament.games.accent_color + "40" }}
       onClick={() => navigate(`/tournament/${tournament.id}`)}
     >

@@ -21,6 +21,10 @@ const ChatInterface = ({ gameName, voice = "alloy" }: ChatInterfaceProps) => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  
+  const contextPrompt = gameName 
+    ? `I'm playing ${gameName}. ` 
+    : "";
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -30,7 +34,7 @@ const ChatInterface = ({ gameName, voice = "alloy" }: ChatInterfaceProps) => {
 
   const handleSend = async () => {
     if (!input.trim()) return;
-    const messageText = input;
+    const messageText = contextPrompt + input;
     setInput("");
     await sendMessage(messageText);
     await speakResponse(messageText);
@@ -164,7 +168,11 @@ const ChatInterface = ({ gameName, voice = "alloy" }: ChatInterfaceProps) => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyPress}
-              placeholder="Tell me what game you're playing and ask your question."
+              placeholder={
+                gameName 
+                  ? `Ask about ${gameName} rules...` 
+                  : "Tell me what game you're playing and ask your question."
+              }
               className="resize-none italic placeholder:italic"
               rows={2}
               disabled={isLoading}

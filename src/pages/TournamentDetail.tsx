@@ -113,21 +113,24 @@ const TournamentDetail = () => {
         </div>
 
         {/* Quick Fire Question */}
-        <Card>
+        <Card className="animate-fade-in">
           <CardHeader className="pb-4">
             <CardTitle className="text-xl">Quick Fire Question</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Ask about {tournament.games.name} rules and gameplay
+            </p>
           </CardHeader>
           <CardContent>
-            <ChatInterface />
+            <ChatInterface gameName={tournament.games.name} />
           </CardContent>
         </Card>
 
         {/* Leaderboard */}
-        <Card>
+        <Card className="animate-fade-in">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-xl">Leaderboard</CardTitle>
             {isAdmin && (
-              <Button onClick={() => setIsAddPlayerOpen(true)}>
+              <Button onClick={() => setIsAddPlayerOpen(true)} className="hover-scale">
                 Add Player
               </Button>
             )}
@@ -143,12 +146,12 @@ const TournamentDetail = () => {
 
         {/* Record Game Result */}
         {isAdmin && players.length >= 2 && (
-          <Card>
+          <Card className="animate-fade-in">
             <CardHeader>
               <CardTitle className="text-xl">Record Game Result</CardTitle>
             </CardHeader>
             <CardContent>
-              <Button onClick={() => setIsRecordGameOpen(true)}>
+              <Button onClick={() => setIsRecordGameOpen(true)} className="hover-scale">
                 Record Winner
               </Button>
             </CardContent>
@@ -157,7 +160,7 @@ const TournamentDetail = () => {
 
         {/* Game History */}
         {results.length > 0 && (
-          <Card>
+          <Card className="animate-fade-in">
             <CardHeader>
               <CardTitle className="text-xl">Game History</CardTitle>
             </CardHeader>
