@@ -55,15 +55,18 @@ const Settings = () => {
               Subscription
             </CardTitle>
             <CardDescription>
-              {isPremium && "You're on the Premium plan"}
-              {isTrial && `Free trial - ${daysLeftInTrial} ${daysLeftInTrial === 1 ? 'day' : 'days'} remaining`}
-              {!hasPremiumAccess && "You're on the Free plan"}
+              Manage your premium subscription and billing
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
+            {/* Status Badge */}
+            <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
               <div>
-                <p className="font-medium">Status</p>
+                <p className="font-semibold text-lg">
+                  {isPremium && "Premium"}
+                  {isTrial && "Free Trial"}
+                  {!hasPremiumAccess && "Free Plan"}
+                </p>
                 <p className="text-sm text-muted-foreground">
                   {premiumStatus?.status?.toUpperCase() || 'FREE'}
                 </p>
@@ -71,38 +74,70 @@ const Settings = () => {
               {isPremium ? (
                 <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0">
                   <Crown className="h-3 w-3 mr-1" />
-                  Premium
+                  Active
                 </Badge>
               ) : isTrial ? (
-                <Badge variant="secondary">Trial Active</Badge>
+                <Badge variant="secondary" className="gap-1">
+                  <Calendar className="h-3 w-3" />
+                  {daysLeftInTrial}d left
+                </Badge>
               ) : (
                 <Badge variant="outline">Free</Badge>
               )}
             </div>
 
+            {/* Trial Warning */}
             {isTrial && premiumStatus?.trialEndsAt && (
-              <div className="flex items-start gap-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
-                <Calendar className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-sm">Trial ends {formatDistanceToNow(new Date(premiumStatus.trialEndsAt), { addSuffix: true })}</p>
+              <div className="flex items-start gap-3 p-4 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                <Calendar className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium text-sm">
+                    Trial ends {formatDistanceToNow(new Date(premiumStatus.trialEndsAt), { addSuffix: true })}
+                  </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Upgrade now to keep access to all premium features
+                    Upgrade now to keep unlimited tournaments, custom house rules, and voice features
                   </p>
                 </div>
               </div>
             )}
 
-            {!isPremium && (
-              <div className="pt-2">
+            {/* Premium Features Summary */}
+            {hasPremiumAccess && (
+              <div className="space-y-2 pt-2">
+                <p className="text-sm font-medium">Your Premium Benefits:</p>
+                <ul className="text-sm text-muted-foreground space-y-1 ml-4">
+                  <li>• Unlimited custom house rules</li>
+                  <li>• Multiple tournaments per game</li>
+                  <li>• Full voice chat features</li>
+                  <li>• Advanced player management</li>
+                </ul>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-2">
+              {!isPremium && (
                 <Button 
                   onClick={() => setIsUpgradeModalOpen(true)}
-                  className="w-full"
+                  className="flex-1"
                 >
                   <Crown className="h-4 w-4 mr-2" />
                   {isTrial ? 'Upgrade Now' : 'Start Free Trial'}
                 </Button>
-              </div>
-            )}
+              )}
+              {isPremium && (
+                <Button 
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    // TODO: Implement billing portal
+                    alert("Billing management coming soon!");
+                  }}
+                >
+                  Manage Billing
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
 

@@ -8,3 +8,9 @@ verify_jwt = false
 
 [functions.text-to-speech]
 verify_jwt = false
+
+[functions.check-trial-expiry]
+verify_jwt = false
+
+[functions.parse-rule-command]
+verify_jwt = false
