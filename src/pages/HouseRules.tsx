@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Loader2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Plus, FileText } from "lucide-react";
 import { useHouseRuleSets } from "@/hooks/useHouseRuleSets";
 import { useAllGames } from "@/hooks/useAllGames";
 import { usePremium } from "@/hooks/usePremium";
@@ -10,6 +10,8 @@ import { RuleSetCard } from "@/components/house-rules/RuleSetCard";
 import { CreateRuleSetModal } from "@/components/house-rules/CreateRuleSetModal";
 import { PremiumGate } from "@/components/premium/PremiumGate";
 import { TrialBanner } from "@/components/premium/TrialBanner";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { EmptyState } from "@/components/EmptyState";
 
 const HouseRules = () => {
   const navigate = useNavigate();
@@ -33,7 +35,7 @@ const HouseRules = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background pb-20 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <LoadingSpinner size="lg" text="Loading house rules..." />
       </div>
     );
   }

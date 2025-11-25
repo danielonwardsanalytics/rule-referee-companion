@@ -1,9 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2, Trophy } from "lucide-react";
+import { Plus, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTournaments } from "@/hooks/useTournaments";
 import { TournamentCard } from "@/components/tournaments/TournamentCard";
 import { PendingInvitationsBanner } from "@/components/tournaments/PendingInvitationsBanner";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { EmptyState } from "@/components/EmptyState";
 
 const Tournaments = () => {
   const navigate = useNavigate();
@@ -19,7 +21,7 @@ const Tournaments = () => {
               Track games and standings across your tournaments
             </p>
           </div>
-          <Button onClick={() => navigate("/tournaments/create")}>
+          <Button onClick={() => navigate("/tournaments/create")} aria-label="Create new tournament">
             <Plus className="mr-2 h-4 w-4" />
             New Tournament
           </Button>
@@ -29,23 +31,15 @@ const Tournaments = () => {
         <PendingInvitationsBanner />
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
+          <LoadingSpinner size="lg" text="Loading tournaments..." />
         ) : tournaments.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="bg-card rounded-xl border border-border p-12">
-              <Trophy className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-xl font-semibold mb-2">No tournaments yet</h3>
-              <p className="text-muted-foreground mb-6">
-                Create your first tournament to start tracking games
-              </p>
-              <Button onClick={() => navigate("/tournaments/create")}>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Tournament
-              </Button>
-            </div>
-          </div>
+          <EmptyState
+            icon={Trophy}
+            title="No tournaments yet"
+            description="Create your first tournament to start tracking games"
+            actionLabel="Create Tournament"
+            onAction={() => navigate("/tournaments/create")}
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {tournaments.map((tournament) => (

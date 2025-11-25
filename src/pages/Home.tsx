@@ -15,11 +15,11 @@ const Home = () => {
       <TrialBanner />
       <div className="fixed inset-0 -z-10 bg-background" style={{ backgroundImage: 'var(--gradient-background)' }} />
       {/* Hero Section */}
-      <section className="relative h-[50vh] min-h-[400px] overflow-hidden">
+      <section className="relative h-[50vh] min-h-[400px] overflow-hidden" aria-label="Hero section">
         <div className="absolute inset-0">
           <img
             src={heroImage}
-            alt="Game night"
+            alt="Game night with friends playing cards"
             className="h-full w-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-primary/80 via-primary/60 to-background" />
@@ -36,7 +36,7 @@ const Home = () => {
       </section>
 
       {/* Quick Fire Question Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" aria-label="Quick questions">
         <div className="bg-card border border-border rounded-2xl shadow-[var(--shadow-card)] overflow-hidden backdrop-blur-sm">
           <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-4">
             <h2 className="text-2xl font-bold text-white">Quick Fire Question</h2>
@@ -52,8 +52,8 @@ const Home = () => {
       <MyGames />
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <section className="mb-12">
+      <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <section className="mb-12" aria-label="Popular games">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-3xl font-bold text-foreground mb-2">
@@ -85,7 +85,7 @@ const Home = () => {
           )}
         </section>
 
-        <section className="bg-card rounded-2xl p-8 border border-border shadow-[var(--shadow-card)] backdrop-blur-sm">
+        <section className="bg-card rounded-2xl p-8 border border-border shadow-[var(--shadow-card)] backdrop-blur-sm" aria-label="Features">
           <div className="max-w-2xl">
             <h3 className="text-2xl font-bold text-foreground mb-3">
               Never argue about rules again 🤝
