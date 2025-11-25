@@ -10,9 +10,20 @@ import { supabase } from "@/integrations/supabase/client";
 interface ChatInterfaceProps {
   gameName?: string;
   voice?: string;
+  onVoiceCommand?: (command: string) => Promise<string>;
+  isProcessingCommand?: boolean;
+  contextType?: "game" | "house-rules";
+  contextId?: string;
 }
 
-const ChatInterface = ({ gameName, voice = "alloy" }: ChatInterfaceProps) => {
+const ChatInterface = ({ 
+  gameName, 
+  voice = "alloy",
+  onVoiceCommand,
+  isProcessingCommand = false,
+  contextType = "game",
+  contextId
+}: ChatInterfaceProps) => {
   const { messages, sendMessage, isLoading, clearMessages } = useRealtimeChat();
   const [input, setInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -34,6 +45,17 @@ const ChatInterface = ({ gameName, voice = "alloy" }: ChatInterfaceProps) => {
 
   const handleSend = async () => {
     if (!input.trim()) return;
+    
+    // If this is a house rules context and we have a voice command handler, use it
+    if (contextType === "house-rules" && onVoiceCommand) {
+      const userMessage = input;
+      setInput("");
+      const response = await onVoiceCommand(userMessage);
+      await speakResponse(response);
+      return;
+    }
+    
+    // Otherwise use the normal chat flow
     const messageText = contextPrompt + input;
     setInput("");
     await sendMessage(messageText);
@@ -122,6 +144,13 @@ const ChatInterface = ({ gameName, voice = "alloy" }: ChatInterfaceProps) => {
         if (error) throw error;
         if (data?.text) {
           setInput(data.text);
+          
+          // Auto-send for house rules context
+          if (contextType === "house-rules" && onVoiceCommand) {
+            const response = await onVoiceCommand(data.text);
+            await speakResponse(response);
+            setInput("");
+          }
         }
       };
     } catch (error) {
@@ -175,19 +204,19 @@ const ChatInterface = ({ gameName, voice = "alloy" }: ChatInterfaceProps) => {
               }
               className="resize-none italic placeholder:italic"
               rows={2}
-              disabled={isLoading}
+              disabled={isLoading || isProcessingCommand}
             />
             <div className="flex flex-col gap-2">
               <Button
                 size="icon"
                 variant={isRecording ? "destructive" : "outline"}
                 onClick={isRecording ? stopRecording : startRecording}
-                disabled={isLoading}
+                disabled={isLoading || isProcessingCommand}
               >
                 {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               </Button>
-              <Button size="icon" onClick={handleSend} disabled={isLoading || !input.trim()}>
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              <Button size="icon" onClick={handleSend} disabled={isLoading || isProcessingCommand || !input.trim()}>
+                {(isLoading || isProcessingCommand) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
         </div>

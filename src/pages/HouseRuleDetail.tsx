@@ -20,6 +20,7 @@ import {
 import { useRuleSetDetail, useHouseRuleSets } from "@/hooks/useHouseRuleSets";
 import { useHouseRules } from "@/hooks/useHouseRules";
 import { RuleItem } from "@/components/house-rules/RuleItem";
+import { VoiceRuleEditor } from "@/components/house-rules/VoiceRuleEditor";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -262,6 +263,12 @@ const HouseRuleDetail = () => {
             </form>
           </CardContent>
         </Card>
+        {/* Voice Rule Editor */}
+        <VoiceRuleEditor 
+          ruleSetId={ruleSet.id}
+          gameName={ruleSet.games.name}
+          currentRules={rules}
+        />
       </div>
 
       {/* Delete Confirmation Dialog */}
