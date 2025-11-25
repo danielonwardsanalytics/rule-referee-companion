@@ -22,20 +22,20 @@ interface RuleSetCardProps {
 export const RuleSetCard = ({ ruleSet, onClick }: RuleSetCardProps) => {
   return (
     <Card
-      className="cursor-pointer hover:shadow-lg transition-shadow animate-fade-in hover-scale"
+      className="card-interactive animate-scale-in border-border"
       onClick={onClick}
     >
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <CardTitle className="text-lg">{ruleSet.name}</CardTitle>
+        <div className="flex items-start justify-between gap-2">
+          <CardTitle className="text-lg line-clamp-2 flex-1">{ruleSet.name}</CardTitle>
           {ruleSet.is_active && (
             <Badge
               variant="secondary"
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 shrink-0"
               style={{
                 backgroundColor: `${ruleSet.games.accent_color}20`,
                 color: ruleSet.games.accent_color,
-                borderColor: ruleSet.games.accent_color,
+                borderColor: `${ruleSet.games.accent_color}40`,
               }}
             >
               <Check className="h-3 w-3" />
@@ -44,17 +44,17 @@ export const RuleSetCard = ({ ruleSet, onClick }: RuleSetCardProps) => {
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-3">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Clock className="h-3.5 w-3.5" />
-          <span>
+          <Clock className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">
             Updated {formatDistanceToNow(new Date(ruleSet.updated_at), { addSuffix: true })}
           </span>
         </div>
         {ruleSet.is_public && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Users className="h-3.5 w-3.5" />
-            <span>{ruleSet.save_count} saves</span>
+            <Users className="h-3.5 w-3.5 shrink-0" />
+            <span>{ruleSet.save_count} {ruleSet.save_count === 1 ? 'save' : 'saves'}</span>
           </div>
         )}
       </CardContent>
