@@ -13,6 +13,8 @@ import { LeaderboardTable } from "@/components/tournaments/LeaderboardTable";
 import { AddPlayerModal } from "@/components/tournaments/AddPlayerModal";
 import { RecordGameModal } from "@/components/tournaments/RecordGameModal";
 import { GameHistory } from "@/components/tournaments/GameHistory";
+import { TournamentAnalytics } from "@/components/tournaments/TournamentAnalytics";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const TournamentDetail = () => {
   const { tournamentId } = useParams();
@@ -125,50 +127,67 @@ const TournamentDetail = () => {
           </CardContent>
         </Card>
 
-        {/* Leaderboard */}
-        <Card className="animate-fade-in">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-xl">Leaderboard</CardTitle>
-            {isAdmin && (
-              <Button onClick={() => setIsAddPlayerOpen(true)} className="hover-scale">
-                Add Player
-              </Button>
+        {/* Tournament Tabs */}
+        <Tabs defaultValue="leaderboard" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="leaderboard" className="space-y-6 mt-6">
+            {/* Leaderboard */}
+            <Card className="animate-fade-in">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-xl">Leaderboard</CardTitle>
+                {isAdmin && (
+                  <Button onClick={() => setIsAddPlayerOpen(true)} className="hover-scale">
+                    Add Player
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent>
+                <LeaderboardTable 
+                  players={players} 
+                  isAdmin={isAdmin}
+                  accentColor={tournament.games.accent_color}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Record Game Result */}
+            {isAdmin && players.length >= 2 && (
+              <Card className="animate-fade-in">
+                <CardHeader>
+                  <CardTitle className="text-xl">Record Game Result</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Button onClick={() => setIsRecordGameOpen(true)} className="hover-scale">
+                    Record Winner
+                  </Button>
+                </CardContent>
+              </Card>
             )}
-          </CardHeader>
-          <CardContent>
-            <LeaderboardTable 
-              players={players} 
-              isAdmin={isAdmin}
+
+            {/* Game History */}
+            {results.length > 0 && (
+              <Card className="animate-fade-in">
+                <CardHeader>
+                  <CardTitle className="text-xl">Game History</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <GameHistory results={results} />
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="analytics" className="mt-6">
+            <TournamentAnalytics 
+              tournamentId={tournament.id} 
               accentColor={tournament.games.accent_color}
             />
-          </CardContent>
-        </Card>
-
-        {/* Record Game Result */}
-        {isAdmin && players.length >= 2 && (
-          <Card className="animate-fade-in">
-            <CardHeader>
-              <CardTitle className="text-xl">Record Game Result</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={() => setIsRecordGameOpen(true)} className="hover-scale">
-                Record Winner
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Game History */}
-        {results.length > 0 && (
-          <Card className="animate-fade-in">
-            <CardHeader>
-              <CardTitle className="text-xl">Game History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <GameHistory results={results} />
-            </CardContent>
-          </Card>
-        )}
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Modals */}
