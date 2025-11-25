@@ -57,7 +57,7 @@ const Home = () => {
             />
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4 animate-slide-up drop-shadow-lg">
-            Game nights just got fairer. 🎴
+            Your rules. Your game. No debates.
           </h1>
           <p className="text-xl sm:text-2xl text-white/95 mb-8 max-w-2xl animate-slide-up drop-shadow-md" style={{ animationDelay: '0.1s' }}>
             Your personal rule companion for every game. Look up rules, settle disputes, and keep the peace.
