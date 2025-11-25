@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, FileText } from "lucide-react";
+import { Plus, FileText, BookOpen } from "lucide-react";
 import { useHouseRuleSets } from "@/hooks/useHouseRuleSets";
 import { useAllGames } from "@/hooks/useAllGames";
 import { usePremium } from "@/hooks/usePremium";
@@ -53,10 +53,16 @@ const HouseRules = () => {
               Create and manage custom rule sets for your games
             </p>
           </div>
-          <Button onClick={() => setIsCreateModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Rule Set
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate("/public-house-rules")}>
+              <BookOpen className="h-4 w-4 mr-2" />
+              Browse Public Rules
+            </Button>
+            <Button onClick={() => setIsCreateModalOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Rule Set
+            </Button>
+          </div>
         </div>
 
         {/* Rule Sets by Game */}

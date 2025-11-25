@@ -1,33 +1,33 @@
-import { Loader2, Users, Copy } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BookOpen, Search, Star, Clock } from "lucide-react";
 import { usePublicHouseRuleSets } from "@/hooks/usePublicHouseRuleSets";
 import { useAllGames } from "@/hooks/useAllGames";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { EmptyState } from "@/components/EmptyState";
+import { PublicRuleSetCard } from "@/components/house-rules/PublicRuleSetCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
 
-export default function PublicHouseRules() {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const { data: ruleSets, isLoading } = usePublicHouseRuleSets();
+const PublicHouseRules = () => {
+  const { data: ruleSets = [], isLoading, refetch } = usePublicHouseRuleSets();
   const { games } = useAllGames();
+  const { toast } = useToast();
+  
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedGame, setSelectedGame] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<"popular" | "recent" | "alphabetical">("popular");
+  const [savingRuleSetId, setSavingRuleSetId] = useState<string | null>(null);
 
-  const handleFork = async (ruleSetId: string, ruleSetName: string, gameId: string) => {
-    if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "Please sign in to fork house rules",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleSaveRuleSet = async (ruleSetId: string) => {
+    setSavingRuleSetId(ruleSetId);
     try {
-      // Fetch the original rule set with its rules
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Get the original rule set with rules
       const { data: originalRuleSet, error: fetchError } = await supabase
         .from("house_rule_sets")
         .select(`
@@ -39,20 +39,20 @@ export default function PublicHouseRules() {
 
       if (fetchError) throw fetchError;
 
-      // Create new rule set
-      const { data: newRuleSet, error: createError } = await supabase
+      // Create a copy in user's house rules
+      const { data: newRuleSet, error: ruleSetError } = await supabase
         .from("house_rule_sets")
         .insert({
           user_id: user.id,
-          game_id: gameId,
-          name: `${ruleSetName} (Copy)`,
+          game_id: originalRuleSet.game_id,
+          name: `${originalRuleSet.name} (Copy)`,
           is_public: false,
           is_active: false,
         })
         .select()
         .single();
 
-      if (createError) throw createError;
+      if (ruleSetError) throw ruleSetError;
 
       // Copy all rules
       if (originalRuleSet.house_rules && originalRuleSet.house_rules.length > 0) {
@@ -78,107 +78,177 @@ export default function PublicHouseRules() {
       if (updateError) throw updateError;
 
       toast({
-        title: "House rules forked!",
-        description: "You can now customize your copy",
+        title: "Rule Set Saved",
+        description: "The rule set has been added to your house rules",
       });
 
-      navigate(`/house-rules/${newRuleSet.id}`);
+      refetch();
     } catch (error) {
-      console.error("Error forking house rules:", error);
+      console.error("Error saving rule set:", error);
       toast({
         title: "Error",
-        description: "Failed to fork house rules",
+        description: "Failed to save rule set. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setSavingRuleSetId(null);
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  // Filter and sort rule sets
+  const filteredAndSortedRuleSets = ruleSets
+    .filter((ruleSet: any) => {
+      const matchesSearch = ruleSet.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesGame = selectedGame === "all" || ruleSet.game_id === selectedGame;
+      return matchesSearch && matchesGame;
+    })
+    .sort((a: any, b: any) => {
+      switch (sortBy) {
+        case "popular":
+          return (b.save_count || 0) - (a.save_count || 0);
+        case "recent":
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case "alphabetical":
+          return a.name.localeCompare(b.name);
+        default:
+          return 0;
+      }
+    });
 
-  const ruleSetsByGame = ruleSets?.reduce((acc: any, ruleSet: any) => {
-    const gameId = ruleSet.game_id;
-    if (!acc[gameId]) acc[gameId] = [];
-    acc[gameId].push(ruleSet);
-    return acc;
-  }, {});
+  // Categorize for tabs
+  const popularRuleSets = [...filteredAndSortedRuleSets]
+    .sort((a: any, b: any) => (b.save_count || 0) - (a.save_count || 0))
+    .slice(0, 12);
+
+  const recentRuleSets = [...filteredAndSortedRuleSets]
+    .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 12);
 
   return (
-    <div className="container mx-auto px-4 py-8 pb-24">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Public House Rules</h1>
-        <p className="text-muted-foreground">
-          Browse and fork popular house rules created by the community (50+ saves)
-        </p>
-      </div>
-
-      {!ruleSets || ruleSets.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-lg text-muted-foreground mb-2">No public house rules yet</p>
-            <p className="text-sm text-muted-foreground">
-              Be the first to create and share popular house rules!
+    <div className="min-h-screen bg-background pb-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Public House Rules</h1>
+            <p className="text-muted-foreground mt-1">
+              Discover and save community-created rule sets
             </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-8">
-          {Object.entries(ruleSetsByGame || {}).map(([gameId, sets]: [string, any]) => {
-            const game = games?.find((g) => g.id === gameId);
-            return (
-              <div key={gameId}>
-                <div className="flex items-center gap-3 mb-4">
-                  {game?.image_url && (
-                    <img
-                      src={game.image_url}
-                      alt={game.name}
-                      className="w-12 h-12 rounded-lg object-cover"
-                    />
-                  )}
-                  <h2 className="text-2xl font-semibold">{game?.name || "Unknown Game"}</h2>
-                </div>
+          </div>
+        </div>
 
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {sets.map((ruleSet: any) => (
-                    <Card key={ruleSet.id} className="hover:shadow-lg transition-shadow">
-                      <CardHeader>
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
-                            <CardTitle className="text-lg">{ruleSet.name}</CardTitle>
-                            <CardDescription className="mt-1">
-                              Created {new Date(ruleSet.created_at).toLocaleDateString()}
-                            </CardDescription>
-                          </div>
-                          <Badge variant="secondary" className="gap-1">
-                            <Users className="h-3 w-3" />
-                            {ruleSet.save_count || 0}
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <Button
-                          onClick={() => handleFork(ruleSet.id, ruleSet.name, ruleSet.game_id)}
-                          className="w-full gap-2"
-                          variant="outline"
-                        >
-                          <Copy className="h-4 w-4" />
-                          Fork to My Rules
-                        </Button>
-                      </CardContent>
-                    </Card>
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search rule sets..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Select value={selectedGame} onValueChange={setSelectedGame}>
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="Filter by game" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Games</SelectItem>
+              {games?.map((game) => (
+                <SelectItem key={game.id} value={game.id}>
+                  {game.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="popular">Most Popular</SelectItem>
+              <SelectItem value="recent">Most Recent</SelectItem>
+              <SelectItem value="alphabetical">Alphabetical</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Content */}
+        {isLoading ? (
+          <LoadingSpinner size="lg" text="Loading public rules..." />
+        ) : ruleSets.length === 0 ? (
+          <EmptyState
+            icon={BookOpen}
+            title="No public rules yet"
+            description="Be the first to share your house rules with the community"
+          />
+        ) : (
+          <Tabs defaultValue="all" className="w-full">
+            <TabsList>
+              <TabsTrigger value="all">
+                <BookOpen className="h-4 w-4 mr-2" />
+                All ({filteredAndSortedRuleSets.length})
+              </TabsTrigger>
+              <TabsTrigger value="popular">
+                <Star className="h-4 w-4 mr-2" />
+                Popular
+              </TabsTrigger>
+              <TabsTrigger value="recent">
+                <Clock className="h-4 w-4 mr-2" />
+                Recent
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="all" className="space-y-6">
+              {filteredAndSortedRuleSets.length === 0 ? (
+                <EmptyState
+                  icon={Search}
+                  title="No results found"
+                  description="Try adjusting your search or filters"
+                />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredAndSortedRuleSets.map((ruleSet: any) => (
+                    <PublicRuleSetCard
+                      key={ruleSet.id}
+                      ruleSet={ruleSet}
+                      onSave={handleSaveRuleSet}
+                      isSaving={savingRuleSetId === ruleSet.id}
+                    />
                   ))}
                 </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="popular" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {popularRuleSets.map((ruleSet: any) => (
+                  <PublicRuleSetCard
+                    key={ruleSet.id}
+                    ruleSet={ruleSet}
+                    onSave={handleSaveRuleSet}
+                    isSaving={savingRuleSetId === ruleSet.id}
+                  />
+                ))}
               </div>
-            );
-          })}
-        </div>
-      )}
+            </TabsContent>
+
+            <TabsContent value="recent" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {recentRuleSets.map((ruleSet: any) => (
+                  <PublicRuleSetCard
+                    key={ruleSet.id}
+                    ruleSet={ruleSet}
+                    onSave={handleSaveRuleSet}
+                    isSaving={savingRuleSetId === ruleSet.id}
+                  />
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
+        )}
+      </div>
     </div>
   );
-}
+};
+
+export default PublicHouseRules;

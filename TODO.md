@@ -10,6 +10,12 @@
   - Update subscription status in profiles table
   - Add upgrade UI in Settings and PremiumGate components
 
+### Game Requests Enhancement
+- [ ] Complete Game Requests page with full CRUD
+- [ ] Add accept/decline functionality
+- [ ] Add game scheduling features
+- [ ] Show notifications for incoming requests
+
 ### Premium Features
 - [ ] Add trial expiry notifications
 - [ ] Create premium features showcase page
@@ -25,8 +31,11 @@
 - [ ] Game statistics and player performance tracking
 - [ ] Export tournament results (PDF/CSV)
 - [ ] Custom tournament rules and scoring systems
+- [ ] Dark/light mode toggle improvements
+- [ ] PWA support (offline mode)
 
 ## Completed ✅
 - ✅ Phase 1-14: Core app functionality
 - ✅ Phase 15: Friends system with requests and QR codes
-- ✅ Phase 16: Tournament player management (already implemented)
+- ✅ Phase 16: Tournament player management (reviewed - already implemented)
+- ✅ Phase 17: Public House Rules discovery, search, filter, and save functionality
