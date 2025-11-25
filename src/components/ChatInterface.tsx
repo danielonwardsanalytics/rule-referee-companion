@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mic, MicOff, Send, X, Loader2, Volume2 } from "lucide-react";
+import { Mic, MicOff, Send, X, Loader2, Volume2, AudioWaveform } from "lucide-react";
 import { toast } from "sonner";
 import { useRealtimeChat } from "@/hooks/useRealtimeChat";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +28,7 @@ const ChatInterface = ({
   const [input, setInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isVoiceChatMode, setIsVoiceChatMode] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -192,33 +193,50 @@ const ChatInterface = ({
       )}
 
       <div className="space-y-2">
-          <div className="flex gap-2">
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder={
-                gameName 
-                  ? `Ask about ${gameName} rules...` 
-                  : "Tell me what game you're playing and ask your question."
-              }
-              className="resize-none italic placeholder:italic"
-              rows={2}
-              disabled={isLoading || isProcessingCommand}
-            />
-            <div className="flex flex-col gap-2">
-              <Button
-                size="icon"
-                variant={isRecording ? "destructive" : "outline"}
-                onClick={isRecording ? stopRecording : startRecording}
-                disabled={isLoading || isProcessingCommand}
-              >
-                {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              </Button>
-              <Button size="icon" onClick={handleSend} disabled={isLoading || isProcessingCommand || !input.trim()}>
-                {(isLoading || isProcessingCommand) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              </Button>
-            </div>
+        <Textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyPress}
+          placeholder={
+            gameName 
+              ? `Ask about ${gameName} rules...` 
+              : "Tell me what game you're playing and ask your question."
+          }
+          className="resize-none italic placeholder:italic"
+          rows={2}
+          disabled={isLoading || isProcessingCommand}
+        />
+        
+        <div className="flex items-center justify-center gap-2 bg-muted/50 rounded-full px-4 py-2 w-fit mx-auto">
+          <Button
+            size="icon"
+            variant={isRecording ? "default" : "ghost"}
+            onClick={isRecording ? stopRecording : startRecording}
+            disabled={isLoading || isProcessingCommand}
+            className="rounded-full h-10 w-10"
+          >
+            {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+          </Button>
+          
+          <Button
+            size="icon"
+            variant={isVoiceChatMode ? "default" : "ghost"}
+            onClick={() => setIsVoiceChatMode(!isVoiceChatMode)}
+            disabled={isLoading || isProcessingCommand}
+            className="rounded-full h-10 w-10"
+          >
+            <AudioWaveform className="h-5 w-5" />
+          </Button>
+          
+          <Button 
+            size="icon" 
+            variant="ghost"
+            onClick={handleSend} 
+            disabled={isLoading || isProcessingCommand || !input.trim()}
+            className="rounded-full h-10 w-10"
+          >
+            {(isLoading || isProcessingCommand) ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+          </Button>
         </div>
       </div>
     </div>
