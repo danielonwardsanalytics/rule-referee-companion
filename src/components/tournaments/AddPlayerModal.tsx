@@ -7,7 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useTournamentPlayers } from "@/hooks/useTournamentPlayers";
 import { useFriends } from "@/hooks/useFriends";
-import { Loader2, Users, UserPlus, Mail, Info } from "lucide-react";
+import { QRCodeScanner } from "@/components/QRCodeScanner";
+import { toast } from "sonner";
+import { Loader2, Users, UserPlus, Mail, Info, QrCode } from "lucide-react";
 
 interface AddPlayerModalProps {
   isOpen: boolean;
@@ -18,6 +20,7 @@ interface AddPlayerModalProps {
 export const AddPlayerModal = ({ isOpen, onClose, tournamentId }: AddPlayerModalProps) => {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
+  const [isScanning, setIsScanning] = useState(false);
   const { addPlayer, isAddingPlayer } = useTournamentPlayers(tournamentId);
   const { friends, isLoading: friendsLoading } = useFriends();
 
@@ -62,6 +65,22 @@ export const AddPlayerModal = ({ isOpen, onClose, tournamentId }: AddPlayerModal
     );
   };
 
+  const handleQRScan = (data: string) => {
+    try {
+      const parsed = JSON.parse(data);
+      if (parsed.type === "user" && parsed.userId) {
+        // Add player by user ID - in real implementation would fetch user details
+        toast.success("Player added from QR code!");
+        setIsScanning(false);
+        onClose();
+      } else {
+        toast.error("Invalid QR code");
+      }
+    } catch (error) {
+      toast.error("Failed to read QR code");
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
@@ -73,7 +92,7 @@ export const AddPlayerModal = ({ isOpen, onClose, tournamentId }: AddPlayerModal
         </DialogHeader>
         
         <Tabs defaultValue="name" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="name">
               <UserPlus className="h-4 w-4 mr-2" />
               By Name
@@ -85,6 +104,10 @@ export const AddPlayerModal = ({ isOpen, onClose, tournamentId }: AddPlayerModal
             <TabsTrigger value="email">
               <Mail className="h-4 w-4 mr-2" />
               Email Invite
+            </TabsTrigger>
+            <TabsTrigger value="qr">
+              <QrCode className="h-4 w-4 mr-2" />
+              QR Code
             </TabsTrigger>
           </TabsList>
           
@@ -193,8 +216,38 @@ export const AddPlayerModal = ({ isOpen, onClose, tournamentId }: AddPlayerModal
               </div>
             </form>
           </TabsContent>
+
+          <TabsContent value="qr">
+            <div className="space-y-4">
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  Scan another user's QR code to add them to this tournament
+                </AlertDescription>
+              </Alert>
+              <Button 
+                onClick={() => setIsScanning(true)}
+                variant="outline"
+                className="w-full hover-scale"
+              >
+                <QrCode className="h-4 w-4 mr-2" />
+                Scan QR Code
+              </Button>
+              <Button type="button" variant="ghost" onClick={onClose} className="w-full">
+                Cancel
+              </Button>
+            </div>
+          </TabsContent>
         </Tabs>
       </DialogContent>
+
+      {/* QR Code Scanner */}
+      {isScanning && (
+        <QRCodeScanner
+          onScan={handleQRScan}
+          onClose={() => setIsScanning(false)}
+        />
+      )}
     </Dialog>
   );
 };

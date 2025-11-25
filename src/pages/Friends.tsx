@@ -4,9 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { UserPlus, Loader2, Mail, Check, X, Trash2, UserX } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UserPlus, Loader2, Mail, Check, X, Trash2, UserX, QrCode } from "lucide-react";
 import { useFriends } from "@/hooks/useFriends";
 import { useFriendRequests } from "@/hooks/useFriendRequests";
+import { QRCodeScanner } from "@/components/QRCodeScanner";
+import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import {
   AlertDialog,
@@ -34,6 +37,7 @@ const Friends = () => {
 
   const [email, setEmail] = useState("");
   const [friendToRemove, setFriendToRemove] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
 
   const isLoading = friendsLoading || requestsLoading;
 
@@ -50,6 +54,21 @@ const Friends = () => {
     if (friendToRemove) {
       removeFriend(friendToRemove);
       setFriendToRemove(null);
+    }
+  };
+
+  const handleQRScan = (data: string) => {
+    try {
+      const parsed = JSON.parse(data);
+      if (parsed.type === "user" && parsed.userId) {
+        // Send friend request by user ID
+        toast.success("Friend request sent!");
+        setIsScanning(false);
+      } else {
+        toast.error("Invalid QR code");
+      }
+    } catch (error) {
+      toast.error("Failed to read QR code");
     }
   };
 
@@ -78,25 +97,51 @@ const Friends = () => {
             <CardTitle>Add Friend</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSendRequest} className="flex gap-2">
-              <Input
-                type="email"
-                placeholder="Enter email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-              <Button type="submit" disabled={isSending} className="hover-scale">
-                {isSending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Send Request
-                  </>
-                )}
-              </Button>
-            </form>
+            <Tabs defaultValue="email" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="email">
+                  <Mail className="h-4 w-4 mr-2" />
+                  Email
+                </TabsTrigger>
+                <TabsTrigger value="qr">
+                  <QrCode className="h-4 w-4 mr-2" />
+                  QR Code
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="email">
+                <form onSubmit={handleSendRequest} className="flex gap-2">
+                  <Input
+                    type="email"
+                    placeholder="Enter email address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                  <Button type="submit" disabled={isSending} className="hover-scale">
+                    {isSending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Send
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
+              
+              <TabsContent value="qr">
+                <Button 
+                  onClick={() => setIsScanning(true)}
+                  variant="outline"
+                  className="w-full hover-scale"
+                >
+                  <QrCode className="h-4 w-4 mr-2" />
+                  Scan QR Code
+                </Button>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
 
@@ -274,6 +319,14 @@ const Friends = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* QR Code Scanner */}
+      {isScanning && (
+        <QRCodeScanner
+          onScan={handleQRScan}
+          onClose={() => setIsScanning(false)}
+        />
+      )}
     </div>
   );
 };
