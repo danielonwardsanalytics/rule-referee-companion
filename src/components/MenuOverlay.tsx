@@ -17,7 +17,7 @@ export const MenuOverlay = ({ isOpen, onClose }: MenuOverlayProps) => {
 
   const menuItems = [
     { icon: GamepadIcon, label: "All Games", path: "/games" },
-    { icon: FileText, label: "My House Rules", path: "/my-house-rules" },
+    { icon: FileText, label: "My House Rules", path: "/house-rules" },
     { icon: Trophy, label: "Tournaments", path: "/tournaments" },
     { icon: Globe, label: "Public House Rules", path: "/public-house-rules" },
     { icon: Users, label: "Friends", path: "/friends" },
