@@ -8,9 +8,25 @@
   - Create payment flow for premium upgrade
   - Add webhook handlers for subscription events
   - Update subscription status in profiles table
+  - Add upgrade UI in Settings and PremiumGate components
+
+### Premium Features
+- [ ] Add trial expiry notifications
+- [ ] Create premium features showcase page
+- [ ] Add subscription management in Settings
 
 ## Future Enhancements
-- [ ] Analytics integration
-- [ ] Performance optimization
-- [ ] Advanced voice chat features
-- [ ] Additional game content
+- [ ] Analytics integration (user behavior tracking)
+- [ ] Performance optimization (code splitting, lazy loading)
+- [ ] Advanced voice chat features (game result parsing via voice)
+- [ ] Additional game content and rules
+- [ ] Push notifications for game requests and invites
+- [ ] Tournament bracket/playoff mode
+- [ ] Game statistics and player performance tracking
+- [ ] Export tournament results (PDF/CSV)
+- [ ] Custom tournament rules and scoring systems
+
+## Completed ✅
+- ✅ Phase 1-14: Core app functionality
+- ✅ Phase 15: Friends system with requests and QR codes
+- ✅ Phase 16: Tournament player management (already implemented)
