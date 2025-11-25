@@ -47,9 +47,6 @@ const Home = () => {
             <span className="block">Your game.</span>
             <span className="block">No debates.</span>
           </h1>
-          <p className="text-xl sm:text-2xl text-white/95 mb-8 max-w-2xl animate-slide-up drop-shadow-md" style={{ animationDelay: '0.1s' }}>
-            Your personal rule companion for every game. Look up rules, settle disputes, and keep the peace.
-          </p>
         </div>
       </section>
 
