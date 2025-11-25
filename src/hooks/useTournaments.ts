@@ -88,6 +88,7 @@ export const useTournaments = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tournaments"] });
+      queryClient.invalidateQueries({ queryKey: ["tournament"] });
       toast.success("Tournament updated!");
     },
     onError: (error: any) => {
