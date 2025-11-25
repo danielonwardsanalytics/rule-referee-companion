@@ -73,7 +73,7 @@ const Friends = () => {
         </div>
 
         {/* Add Friend */}
-        <Card>
+        <Card className="animate-fade-in">
           <CardHeader>
             <CardTitle>Add Friend</CardTitle>
           </CardHeader>
@@ -86,7 +86,7 @@ const Friends = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
-              <Button type="submit" disabled={isSending}>
+              <Button type="submit" disabled={isSending} className="hover-scale">
                 {isSending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
@@ -102,7 +102,7 @@ const Friends = () => {
 
         {/* Incoming Friend Requests */}
         {incomingRequests.length > 0 && (
-          <Card>
+          <Card className="animate-fade-in">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Friend Requests</CardTitle>
@@ -113,7 +113,7 @@ const Friends = () => {
               {incomingRequests.map((request) => (
                 <div
                   key={request.id}
-                  className="flex items-center justify-between p-3 border rounded-lg"
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -134,6 +134,7 @@ const Friends = () => {
                     <Button
                       size="sm"
                       onClick={() => acceptFriendRequest(request.id)}
+                      className="hover-scale"
                     >
                       <Check className="h-4 w-4 mr-1" />
                       Accept
@@ -142,6 +143,7 @@ const Friends = () => {
                       size="sm"
                       variant="outline"
                       onClick={() => rejectFriendRequest(request.id)}
+                      className="hover-scale"
                     >
                       <X className="h-4 w-4 mr-1" />
                       Decline
@@ -155,7 +157,7 @@ const Friends = () => {
 
         {/* Outgoing Friend Requests */}
         {outgoingRequests.length > 0 && (
-          <Card>
+          <Card className="animate-fade-in">
             <CardHeader>
               <CardTitle>Pending Requests</CardTitle>
             </CardHeader>
@@ -163,7 +165,7 @@ const Friends = () => {
               {outgoingRequests.map((request) => (
                 <div
                   key={request.id}
-                  className="flex items-center justify-between p-3 border rounded-lg"
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
@@ -186,6 +188,7 @@ const Friends = () => {
                     size="sm"
                     variant="outline"
                     onClick={() => cancelFriendRequest(request.id)}
+                    className="hover-scale"
                   >
                     Cancel
                   </Button>
@@ -196,7 +199,7 @@ const Friends = () => {
         )}
 
         {/* Friends List */}
-        <Card>
+        <Card className="animate-fade-in">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>My Friends</CardTitle>

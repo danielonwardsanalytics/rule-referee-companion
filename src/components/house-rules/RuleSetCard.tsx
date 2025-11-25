@@ -22,7 +22,7 @@ interface RuleSetCardProps {
 export const RuleSetCard = ({ ruleSet, onClick }: RuleSetCardProps) => {
   return (
     <Card
-      className="cursor-pointer hover:shadow-lg transition-shadow"
+      className="cursor-pointer hover:shadow-lg transition-shadow animate-fade-in hover-scale"
       onClick={onClick}
     >
       <CardHeader className="pb-3">
