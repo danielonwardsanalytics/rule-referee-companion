@@ -3,6 +3,7 @@ import { Plus, Loader2, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTournaments } from "@/hooks/useTournaments";
 import { TournamentCard } from "@/components/tournaments/TournamentCard";
+import { PendingInvitationsBanner } from "@/components/tournaments/PendingInvitationsBanner";
 
 const Tournaments = () => {
   const navigate = useNavigate();
@@ -10,8 +11,8 @@ const Tournaments = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-between mb-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Tournaments</h1>
             <p className="text-muted-foreground mt-1">
@@ -23,6 +24,9 @@ const Tournaments = () => {
             New Tournament
           </Button>
         </div>
+
+        {/* Pending Invitations Banner */}
+        <PendingInvitationsBanner />
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">

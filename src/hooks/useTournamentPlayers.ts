@@ -38,20 +38,40 @@ export const useTournamentPlayers = (tournamentId: string | undefined) => {
   });
 
   const addPlayerMutation = useMutation({
-    mutationFn: async (data: { tournamentId: string; displayName: string }) => {
+    mutationFn: async (data: { tournamentId: string; displayName?: string; email?: string }) => {
+      const insertData: any = {
+        tournament_id: data.tournamentId,
+        status: "active",
+      };
+
+      if (data.email) {
+        // Email invitation
+        insertData.email = data.email;
+        insertData.display_name = data.email.split('@')[0]; // Use email prefix as display name
+        insertData.status = "pending_invite";
+        insertData.invited_at = new Date().toISOString();
+        insertData.invite_expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
+      } else if (data.displayName) {
+        // Name-only player
+        insertData.display_name = data.displayName;
+      }
+
       const { error } = await supabase
         .from("tournament_players")
-        .insert({
-          tournament_id: data.tournamentId,
-          display_name: data.displayName,
-          status: "active",
-        });
+        .insert(insertData);
 
       if (error) throw error;
+      
+      return { isEmailInvite: !!data.email };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["tournament-players"] });
-      toast.success("Player added!");
+      
+      if (result?.isEmailInvite) {
+        toast.success("Invitation sent! They'll be added when they sign up or log in with this email.");
+      } else {
+        toast.success("Player added!");
+      }
     },
     onError: (error: any) => {
       toast.error(error.message || "Failed to add player");

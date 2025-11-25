@@ -1,5 +1,6 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trophy } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Trophy, Mail } from "lucide-react";
 
 interface Player {
   id: string;
@@ -7,6 +8,8 @@ interface Player {
   wins: number;
   losses: number;
   points: number;
+  status: string;
+  email?: string | null;
 }
 
 interface LeaderboardTableProps {
@@ -42,9 +45,10 @@ export const LeaderboardTable = ({ players, isAdmin, accentColor }: LeaderboardT
           {sortedPlayers.map((player, index) => {
             const totalGames = player.wins + player.losses;
             const winRate = totalGames > 0 ? ((player.wins / totalGames) * 100).toFixed(0) : "0";
+            const isPendingInvite = player.status === "pending_invite";
 
             return (
-              <TableRow key={player.id}>
+              <TableRow key={player.id} className={isPendingInvite ? "opacity-60" : ""}>
                 <TableCell className="font-medium">
                   {index === 0 && player.wins > 0 ? (
                     <Trophy className="h-5 w-5" style={{ color: accentColor }} />
@@ -52,7 +56,17 @@ export const LeaderboardTable = ({ players, isAdmin, accentColor }: LeaderboardT
                     <span className="text-muted-foreground">#{index + 1}</span>
                   )}
                 </TableCell>
-                <TableCell className="font-medium">{player.display_name}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{player.display_name}</span>
+                    {isPendingInvite && (
+                      <Badge variant="outline" className="text-xs">
+                        <Mail className="h-3 w-3 mr-1" />
+                        Invited
+                      </Badge>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell className="text-center font-bold">{player.wins}</TableCell>
                 <TableCell className="text-center text-muted-foreground">
                   {player.losses}
