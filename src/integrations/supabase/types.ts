@@ -14,16 +14,455 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      friend_requests: {
+        Row: {
+          created_at: string | null
+          id: string
+          recipient_email: string | null
+          recipient_id: string | null
+          requester_id: string
+          status: Database["public"]["Enums"]["friend_request_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          recipient_email?: string | null
+          recipient_id?: string | null
+          requester_id: string
+          status?: Database["public"]["Enums"]["friend_request_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          recipient_email?: string | null
+          recipient_id?: string | null
+          requester_id?: string
+          status?: Database["public"]["Enums"]["friend_request_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      friends: {
+        Row: {
+          created_at: string | null
+          friend_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          friend_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          friend_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      game_requests: {
+        Row: {
+          created_at: string | null
+          game_id: string
+          id: string
+          message: string | null
+          recipient_id: string
+          requester_id: string
+          status: Database["public"]["Enums"]["game_request_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          game_id: string
+          id?: string
+          message?: string | null
+          recipient_id: string
+          requester_id: string
+          status?: Database["public"]["Enums"]["game_request_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          game_id?: string
+          id?: string
+          message?: string | null
+          recipient_id?: string
+          requester_id?: string
+          status?: Database["public"]["Enums"]["game_request_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_requests_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_results: {
+        Row: {
+          created_at: string | null
+          id: string
+          notes: string | null
+          recorded_by: string
+          tournament_id: string
+          winner_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          recorded_by: string
+          tournament_id: string
+          winner_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          recorded_by?: string
+          tournament_id?: string
+          winner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_results_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_results_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      games: {
+        Row: {
+          accent_color: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          name: string
+          rules_summary: string | null
+          slug: string
+        }
+        Insert: {
+          accent_color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          rules_summary?: string | null
+          slug: string
+        }
+        Update: {
+          accent_color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          rules_summary?: string | null
+          slug?: string
+        }
+        Relationships: []
+      }
+      house_rule_sets: {
+        Row: {
+          created_at: string | null
+          game_id: string
+          id: string
+          is_active: boolean | null
+          is_public: boolean | null
+          name: string
+          save_count: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          game_id: string
+          id?: string
+          is_active?: boolean | null
+          is_public?: boolean | null
+          name: string
+          save_count?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          game_id?: string
+          id?: string
+          is_active?: boolean | null
+          is_public?: boolean | null
+          name?: string
+          save_count?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "house_rule_sets_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      house_rules: {
+        Row: {
+          created_at: string | null
+          id: string
+          rule_set_id: string
+          rule_text: string
+          sort_order: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          rule_set_id: string
+          rule_text: string
+          sort_order?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          rule_set_id?: string
+          rule_text?: string
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "house_rules_rule_set_id_fkey"
+            columns: ["rule_set_id"]
+            isOneToOne: false
+            referencedRelation: "house_rule_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          display_name: string | null
+          email: string
+          id: string
+          is_premium: boolean | null
+          qr_code_data: string | null
+          trial_ends_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_name?: string | null
+          email: string
+          id: string
+          is_premium?: boolean | null
+          qr_code_data?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string | null
+          email?: string
+          id?: string
+          is_premium?: boolean | null
+          qr_code_data?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      tournament_players: {
+        Row: {
+          display_name: string
+          email: string | null
+          id: string
+          joined_at: string | null
+          losses: number | null
+          points: number | null
+          position: number | null
+          status: Database["public"]["Enums"]["tournament_player_status"] | null
+          tournament_id: string
+          user_id: string | null
+          wins: number | null
+        }
+        Insert: {
+          display_name: string
+          email?: string | null
+          id?: string
+          joined_at?: string | null
+          losses?: number | null
+          points?: number | null
+          position?: number | null
+          status?:
+            | Database["public"]["Enums"]["tournament_player_status"]
+            | null
+          tournament_id: string
+          user_id?: string | null
+          wins?: number | null
+        }
+        Update: {
+          display_name?: string
+          email?: string | null
+          id?: string
+          joined_at?: string | null
+          losses?: number | null
+          points?: number | null
+          position?: number | null
+          status?:
+            | Database["public"]["Enums"]["tournament_player_status"]
+            | null
+          tournament_id?: string
+          user_id?: string | null
+          wins?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_players_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournaments: {
+        Row: {
+          admin_id: string
+          created_at: string | null
+          game_id: string
+          house_rule_set_id: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string | null
+          game_id: string
+          house_rule_set_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string | null
+          game_id?: string
+          house_rule_set_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournaments_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournaments_house_rule_set_id_fkey"
+            columns: ["house_rule_set_id"]
+            isOneToOne: false
+            referencedRelation: "house_rule_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_games: {
+        Row: {
+          added_at: string | null
+          game_id: string
+          id: string
+          is_visible: boolean | null
+          user_id: string
+        }
+        Insert: {
+          added_at?: string | null
+          game_id: string
+          id?: string
+          is_visible?: boolean | null
+          user_id: string
+        }
+        Update: {
+          added_at?: string | null
+          game_id?: string
+          id?: string
+          is_visible?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_games_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
+      friend_request_status: "pending" | "accepted" | "rejected"
+      game_request_status: "pending" | "accepted" | "declined"
+      tournament_player_status: "active" | "pending_invite" | "inactive"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +589,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+      friend_request_status: ["pending", "accepted", "rejected"],
+      game_request_status: ["pending", "accepted", "declined"],
+      tournament_player_status: ["active", "pending_invite", "inactive"],
+    },
   },
 } as const
