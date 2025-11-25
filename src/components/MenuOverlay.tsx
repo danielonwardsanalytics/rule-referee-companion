@@ -5,6 +5,7 @@ import { usePremium } from "@/hooks/usePremium";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { PremiumBadge } from "./premium/PremiumBadge";
+import { NotificationBell } from "./NotificationBell";
 
 interface MenuOverlayProps {
   isOpen: boolean;
@@ -37,9 +38,12 @@ export const MenuOverlay = ({ isOpen, onClose }: MenuOverlayProps) => {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h2 className="text-xl font-bold">Menu</h2>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
 
         {/* Menu Items */}

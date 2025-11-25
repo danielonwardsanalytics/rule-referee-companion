@@ -9,6 +9,7 @@ import { usePremium } from "@/hooks/usePremium";
 import { useAuth } from "@/hooks/useAuth";
 import { UpgradeModal } from "@/components/premium/UpgradeModal";
 import { QRCodeDisplay } from "@/components/QRCodeDisplay";
+import { NotificationPreferences } from "@/components/NotificationPreferences";
 import { formatDistanceToNow } from "date-fns";
 
 type Theme = "light" | "dark" | "system";
@@ -155,6 +156,9 @@ const Settings = () => {
             </RadioGroup>
           </CardContent>
         </Card>
+
+        {/* Notification Preferences */}
+        <NotificationPreferences />
 
         {/* QR Code */}
         <Card className="animate-fade-in">

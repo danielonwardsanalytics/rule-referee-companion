@@ -293,6 +293,75 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          friend_requests: boolean
+          game_requests: boolean
+          game_results: boolean
+          id: string
+          tournament_invites: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          friend_requests?: boolean
+          game_requests?: boolean
+          game_results?: boolean
+          id?: string
+          tournament_invites?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          friend_requests?: boolean
+          game_requests?: boolean
+          game_results?: boolean
+          id?: string
+          tournament_invites?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          action_url: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          metadata: Json | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          metadata?: Json | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          action_url?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          metadata?: Json | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -508,6 +577,17 @@ export type Database = {
       cleanup_expired_tournament_invitations: {
         Args: never
         Returns: undefined
+      }
+      create_notification: {
+        Args: {
+          _action_url?: string
+          _message: string
+          _metadata?: Json
+          _title: string
+          _type: string
+          _user_id: string
+        }
+        Returns: string
       }
       get_pending_invitations_for_email: {
         Args: { _email: string }
