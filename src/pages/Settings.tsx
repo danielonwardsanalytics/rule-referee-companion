@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
-import { Moon, Sun, Monitor, Crown, Calendar } from "lucide-react";
+import { Moon, Sun, Monitor, Crown, Calendar, QrCode } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { usePremium } from "@/hooks/usePremium";
+import { useAuth } from "@/hooks/useAuth";
 import { UpgradeModal } from "@/components/premium/UpgradeModal";
+import { QRCodeDisplay } from "@/components/QRCodeDisplay";
 import { formatDistanceToNow } from "date-fns";
 
 type Theme = "light" | "dark" | "system";
@@ -17,7 +19,9 @@ const Settings = () => {
     return stored || "system";
   });
   const { premiumStatus, hasPremiumAccess, isTrial, isPremium, daysLeftInTrial } = usePremium();
+  const { user } = useAuth();
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [showQRCode, setShowQRCode] = useState(false);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -149,6 +153,44 @@ const Settings = () => {
                 </Label>
               </div>
             </RadioGroup>
+          </CardContent>
+        </Card>
+
+        {/* QR Code */}
+        <Card className="animate-fade-in">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <QrCode className="h-5 w-5" />
+              Your QR Code
+            </CardTitle>
+            <CardDescription>
+              Share your QR code to let friends add you quickly
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {showQRCode ? (
+              <div className="space-y-4">
+                <QRCodeDisplay 
+                  data={JSON.stringify({ type: "user", userId: user?.id })}
+                  description="Others can scan this to add you as a friend"
+                />
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowQRCode(false)}
+                  className="w-full"
+                >
+                  Hide QR Code
+                </Button>
+              </div>
+            ) : (
+              <Button 
+                onClick={() => setShowQRCode(true)}
+                className="w-full hover-scale"
+              >
+                <QrCode className="h-4 w-4 mr-2" />
+                Show My QR Code
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>
