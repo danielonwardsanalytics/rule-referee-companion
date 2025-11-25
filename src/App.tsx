@@ -16,6 +16,7 @@ import TournamentDetail from "./pages/TournamentDetail";
 import GameDetail from "./pages/GameDetail";
 import HouseRules from "./pages/HouseRules";
 import HouseRuleDetail from "./pages/HouseRuleDetail";
+import PublicHouseRules from "./pages/PublicHouseRules";
 import Friends from "./pages/Friends";
 import NotFound from "./pages/NotFound";
 
@@ -134,6 +135,18 @@ const App = () => {
                 <ProtectedRoute>
                   <>
                     <Friends />
+                    <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
+                    <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+                  </>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/public-house-rules"
+              element={
+                <ProtectedRoute>
+                  <>
+                    <PublicHouseRules />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
                   </>
