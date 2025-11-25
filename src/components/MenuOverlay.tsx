@@ -1,8 +1,10 @@
-import { X, GamepadIcon, FileText, Trophy, Globe, Users, Target, Settings, User, LogOut } from "lucide-react";
+import { X, GamepadIcon, FileText, Trophy, Globe, Users, Target, Settings, User, LogOut, Crown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { usePremium } from "@/hooks/usePremium";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { PremiumBadge } from "./premium/PremiumBadge";
 
 interface MenuOverlayProps {
   isOpen: boolean;
@@ -11,6 +13,7 @@ interface MenuOverlayProps {
 
 export const MenuOverlay = ({ isOpen, onClose }: MenuOverlayProps) => {
   const { signOut, user } = useAuth();
+  const { premiumStatus, isPremium, isTrial, daysLeftInTrial } = usePremium();
 
   const menuItems = [
     { icon: GamepadIcon, label: "All Games", path: "/games" },
@@ -96,8 +99,31 @@ export const MenuOverlay = ({ isOpen, onClose }: MenuOverlayProps) => {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium truncate">{user.email}</p>
-                <p className="text-sm text-muted-foreground">Free Trial</p>
+                <div className="flex items-center gap-2 mt-1">
+                  {isPremium ? (
+                    <PremiumBadge size="sm" />
+                  ) : isTrial ? (
+                    <p className="text-xs text-muted-foreground">
+                      Trial: {daysLeftInTrial} {daysLeftInTrial === 1 ? 'day' : 'days'} left
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Free Plan</p>
+                  )}
+                </div>
               </div>
+              {!isPremium && (
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={onClose}
+                  asChild
+                >
+                  <Link to="/settings">
+                    <Crown className="h-3 w-3 mr-1" />
+                    Upgrade
+                  </Link>
+                </Button>
+              )}
             </div>
           </div>
         )}

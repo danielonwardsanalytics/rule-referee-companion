@@ -265,6 +265,9 @@ export type Database = {
           id: string
           is_premium: boolean | null
           qr_code_data: string | null
+          subscription_status:
+            | Database["public"]["Enums"]["subscription_status"]
+            | null
           trial_ends_at: string | null
           updated_at: string | null
         }
@@ -275,6 +278,9 @@ export type Database = {
           id: string
           is_premium?: boolean | null
           qr_code_data?: string | null
+          subscription_status?:
+            | Database["public"]["Enums"]["subscription_status"]
+            | null
           trial_ends_at?: string | null
           updated_at?: string | null
         }
@@ -285,6 +291,9 @@ export type Database = {
           id?: string
           is_premium?: boolean | null
           qr_code_data?: string | null
+          subscription_status?:
+            | Database["public"]["Enums"]["subscription_status"]
+            | null
           trial_ends_at?: string | null
           updated_at?: string | null
         }
@@ -450,6 +459,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_premium_status: {
+        Args: { _user_id: string }
+        Returns: {
+          has_access: boolean
+          is_trial: boolean
+          status: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at: string
+        }[]
+      }
+      has_premium_access: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -462,6 +481,7 @@ export type Database = {
       app_role: "admin" | "user"
       friend_request_status: "pending" | "accepted" | "rejected"
       game_request_status: "pending" | "accepted" | "declined"
+      subscription_status: "trial" | "free" | "premium" | "cancelled"
       tournament_player_status: "active" | "pending_invite" | "inactive"
     }
     CompositeTypes: {
@@ -593,6 +613,7 @@ export const Constants = {
       app_role: ["admin", "user"],
       friend_request_status: ["pending", "accepted", "rejected"],
       game_request_status: ["pending", "accepted", "declined"],
+      subscription_status: ["trial", "free", "premium", "cancelled"],
       tournament_player_status: ["active", "pending_invite", "inactive"],
     },
   },

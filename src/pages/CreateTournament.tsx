@@ -7,18 +7,36 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAllGames } from "@/hooks/useAllGames";
 import { useTournaments } from "@/hooks/useTournaments";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { usePremium } from "@/hooks/usePremium";
+import { Loader2, ArrowLeft, Crown } from "lucide-react";
+import { toast } from "sonner";
+import { UpgradeModal } from "@/components/premium/UpgradeModal";
 
 const CreateTournament = () => {
   const navigate = useNavigate();
   const { games, isLoading: gamesLoading } = useAllGames();
-  const { createTournament, isCreating } = useTournaments();
+  const { createTournament, isCreating, tournaments } = useTournaments();
+  const { hasPremiumAccess } = usePremium();
   const [name, setName] = useState("");
   const [gameId, setGameId] = useState("");
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !gameId) return;
+
+    // Check if free user already has an active tournament for this game
+    if (!hasPremiumAccess) {
+      const existingTournament = tournaments.find(
+        (t) => t.game_id === gameId && t.is_active
+      );
+      
+      if (existingTournament) {
+        toast.error("Free users can only have 1 active tournament per game");
+        setIsUpgradeModalOpen(true);
+        return;
+      }
+    }
 
     createTournament(
       { name, gameId },
@@ -92,6 +110,12 @@ const CreateTournament = () => {
           </CardContent>
         </Card>
       </div>
+
+      <UpgradeModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+        feature="Multiple Active Tournaments"
+      />
     </div>
   );
 };

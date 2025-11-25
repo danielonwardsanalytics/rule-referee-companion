@@ -4,6 +4,7 @@ import MyGames from "@/components/MyGames";
 import heroImage from "@/assets/hero-image.jpg";
 import { useAllGames } from "@/hooks/useAllGames";
 import { Loader2 } from "lucide-react";
+import { TrialBanner } from "@/components/premium/TrialBanner";
 
 const Home = () => {
   const { games, isLoading } = useAllGames();
@@ -11,6 +12,7 @@ const Home = () => {
 
   return (
     <div className="min-h-screen relative pb-20">
+      <TrialBanner />
       <div className="fixed inset-0 -z-10 bg-background" style={{ backgroundImage: 'var(--gradient-background)' }} />
       {/* Hero Section */}
       <section className="relative h-[50vh] min-h-[400px] overflow-hidden">

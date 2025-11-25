@@ -5,13 +5,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Loader2 } from "lucide-react";
 import { useHouseRuleSets } from "@/hooks/useHouseRuleSets";
 import { useAllGames } from "@/hooks/useAllGames";
+import { usePremium } from "@/hooks/usePremium";
 import { RuleSetCard } from "@/components/house-rules/RuleSetCard";
 import { CreateRuleSetModal } from "@/components/house-rules/CreateRuleSetModal";
+import { PremiumGate } from "@/components/premium/PremiumGate";
+import { TrialBanner } from "@/components/premium/TrialBanner";
 
 const HouseRules = () => {
   const navigate = useNavigate();
   const { ruleSets, isLoading: ruleSetsLoading } = useHouseRuleSets();
   const { games, isLoading: gamesLoading } = useAllGames();
+  const { hasPremiumAccess } = usePremium();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const isLoading = ruleSetsLoading || gamesLoading;
@@ -36,7 +40,9 @@ const HouseRules = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <TrialBanner />
+      <PremiumGate feature="House Rules">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -100,6 +106,7 @@ const HouseRules = () => {
         onClose={() => setIsCreateModalOpen(false)}
         games={games}
       />
+      </PremiumGate>
     </div>
   );
 };

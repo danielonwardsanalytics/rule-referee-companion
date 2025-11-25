@@ -11,7 +11,7 @@ export const BottomNav = ({ onMenuClick }: BottomNavProps) => {
 
   const navItems = [
     { icon: Home, label: "Hub", path: "/" },
-    { icon: BookOpen, label: "Rules", path: "/rules" },
+    { icon: BookOpen, label: "Rules", path: "/house-rules" },
     { icon: Trophy, label: "Tournaments", path: "/tournaments" },
   ];
 
