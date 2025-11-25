@@ -2,6 +2,7 @@ import GameCard from "@/components/GameCard";
 import ChatInterface from "@/components/ChatInterface";
 import MyGames from "@/components/MyGames";
 import heroImage from "@/assets/hero-image.jpg";
+import logo from "@/assets/logo.png";
 import { useAllGames } from "@/hooks/useAllGames";
 import { Loader2 } from "lucide-react";
 import { TrialBanner } from "@/components/premium/TrialBanner";
@@ -25,6 +26,21 @@ const Home = () => {
     <div className="min-h-screen relative pb-20">
       <TrialBanner />
       <div className="fixed inset-0 -z-10 bg-background" style={{ backgroundImage: 'var(--gradient-background)' }} />
+      
+      {/* Logo & Tagline Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-4 animate-slide-down" aria-label="Brand tagline">
+        <div className="flex flex-col items-center text-center">
+          <img 
+            src={logo} 
+            alt="House Rules" 
+            className="h-24 w-auto mb-4"
+          />
+          <p className="text-xl sm:text-2xl text-foreground/90 font-medium">
+            Because someone always plays it differently.
+          </p>
+        </div>
+      </section>
+
       {/* Hero Section */}
       <section className="relative h-[50vh] min-h-[400px] overflow-hidden animate-slide-down" aria-label="Hero section">
         <div className="absolute inset-0">
