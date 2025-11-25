@@ -53,8 +53,12 @@ const HouseRuleDetail = () => {
 
   const handleSaveName = () => {
     if (ruleSet && editedName.trim()) {
-      updateRuleSet({ id: ruleSet.id, name: editedName });
-      setIsEditingName(false);
+      updateRuleSet(
+        { id: ruleSet.id, name: editedName },
+        {
+          onSuccess: () => setIsEditingName(false),
+        }
+      );
     }
   };
 

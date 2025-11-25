@@ -104,9 +104,11 @@ export const useHouseRuleSets = (gameId?: string) => {
         .eq("id", data.id);
 
       if (error) throw error;
+      return data.id;
     },
-    onSuccess: () => {
+    onSuccess: (ruleSetId) => {
       queryClient.invalidateQueries({ queryKey: ["house-rule-sets"] });
+      queryClient.invalidateQueries({ queryKey: ["house-rule-set", ruleSetId] });
       toast.success("Rule set updated!");
     },
     onError: (error: any) => {
