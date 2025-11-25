@@ -40,7 +40,7 @@ const games = [
 
 const Home = () => {
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative pb-20">
       <div className="fixed inset-0 -z-10 bg-background" style={{ backgroundImage: 'var(--gradient-background)' }} />
       {/* Hero Section */}
       <section className="relative h-[50vh] min-h-[400px] overflow-hidden">
