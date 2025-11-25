@@ -14,6 +14,8 @@ import Tournaments from "./pages/Tournaments";
 import CreateTournament from "./pages/CreateTournament";
 import TournamentDetail from "./pages/TournamentDetail";
 import GameDetail from "./pages/GameDetail";
+import HouseRules from "./pages/HouseRules";
+import HouseRuleDetail from "./pages/HouseRuleDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -95,6 +97,30 @@ const App = () => {
                 <ProtectedRoute>
                   <>
                     <GameDetail />
+                    <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
+                    <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+                  </>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/house-rules"
+              element={
+                <ProtectedRoute>
+                  <>
+                    <HouseRules />
+                    <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
+                    <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+                  </>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/house-rules/:ruleSetId"
+              element={
+                <ProtectedRoute>
+                  <>
+                    <HouseRuleDetail />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
                   </>
