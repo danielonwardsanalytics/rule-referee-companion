@@ -43,9 +43,9 @@ const Home = () => {
 
       {/* Hero Section */}
       <section className="relative h-[50vh] min-h-[400px] overflow-hidden animate-slide-down" aria-label="Hero section">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-accent to-primary/60">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.1),transparent_50%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(255,255,255,0.08),transparent_50%)]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 via-green-300 to-teal-400">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.3),transparent_50%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(255,255,255,0.2),transparent_50%)]" />
         </div>
         
         <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center text-center">
