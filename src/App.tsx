@@ -10,6 +10,9 @@ import { MenuOverlay } from "./components/MenuOverlay";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import Settings from "./pages/Settings";
+import Tournaments from "./pages/Tournaments";
+import CreateTournament from "./pages/CreateTournament";
+import TournamentDetail from "./pages/TournamentDetail";
 import GameDetail from "./pages/GameDetail";
 import NotFound from "./pages/NotFound";
 
@@ -44,6 +47,42 @@ const App = () => {
                 <ProtectedRoute>
                   <>
                     <Settings />
+                    <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
+                    <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+                  </>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tournaments"
+              element={
+                <ProtectedRoute>
+                  <>
+                    <Tournaments />
+                    <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
+                    <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+                  </>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tournaments/create"
+              element={
+                <ProtectedRoute>
+                  <>
+                    <CreateTournament />
+                    <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
+                    <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+                  </>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tournament/:tournamentId"
+              element={
+                <ProtectedRoute>
+                  <>
+                    <TournamentDetail />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
                   </>
