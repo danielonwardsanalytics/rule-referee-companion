@@ -1,8 +1,9 @@
-import { Crown, Zap, Users, Trophy, MessageSquare, Lock } from "lucide-react";
+import { Crown, Zap, Users, Trophy, MessageSquare, Lock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PremiumBadge } from "@/components/premium/PremiumBadge";
 import { usePremium } from "@/hooks/usePremium";
+import { useSubscription } from "@/hooks/useSubscription";
 import { useState } from "react";
 import { UpgradeModal } from "@/components/premium/UpgradeModal";
 
@@ -46,6 +47,7 @@ const features = [
 
 export default function PremiumFeatures() {
   const { hasPremiumAccess, isTrial, daysLeftInTrial } = usePremium();
+  const { startCheckout, isCheckoutLoading } = useSubscription();
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
   return (
@@ -70,9 +72,18 @@ export default function PremiumFeatures() {
             )}
           </div>
         ) : (
-          <Button size="lg" onClick={() => setIsUpgradeModalOpen(true)} className="gap-2">
-            <Crown className="h-5 w-5" />
-            Start 5-Day Free Trial
+          <Button 
+            size="lg" 
+            onClick={() => startCheckout()} 
+            disabled={isCheckoutLoading}
+            className="gap-2"
+          >
+            {isCheckoutLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Crown className="h-5 w-5" />
+            )}
+            {isCheckoutLoading ? "Loading..." : "Start 5-Day Free Trial"}
           </Button>
         )}
       </div>

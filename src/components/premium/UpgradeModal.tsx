@@ -6,8 +6,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Crown, Check } from "lucide-react";
+import { Crown, Check, Loader2 } from "lucide-react";
 import { usePremium } from "@/hooks/usePremium";
+import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -17,6 +20,26 @@ interface UpgradeModalProps {
 
 export const UpgradeModal = ({ isOpen, onClose, feature }: UpgradeModalProps) => {
   const { isTrial, daysLeftInTrial } = usePremium();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleUpgrade = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout');
+      
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.open(data.url, '_blank');
+        toast.success("Opening checkout in new tab...");
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      toast.error("Failed to start checkout. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const premiumFeatures = [
     "Create unlimited custom house rules",
@@ -63,9 +86,18 @@ export const UpgradeModal = ({ isOpen, onClose, feature }: UpgradeModalProps) =>
           </div>
 
           <div className="pt-4 space-y-3">
-            <Button className="w-full" size="lg">
-              <Crown className="h-4 w-4 mr-2" />
-              Upgrade Now - $9.99/month
+            <Button 
+              className="w-full" 
+              size="lg"
+              onClick={handleUpgrade}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Crown className="h-4 w-4 mr-2" />
+              )}
+              {isLoading ? "Loading..." : "Upgrade Now - $9.99/month"}
             </Button>
             <p className="text-xs text-center text-muted-foreground">
               Cancel anytime. No commitments.
