@@ -3,12 +3,14 @@
 ## Pending Features
 
 ### Payment Integration
-- [ ] **Stripe Payment Integration** - Enable Stripe for premium subscriptions (deferred for later implementation)
-  - Configure Stripe secret key
-  - Create payment flow for premium upgrade
-  - Add webhook handlers for subscription events
-  - Update subscription status in profiles table
-  - Add upgrade UI in Settings and PremiumGate components
+- [x] **Stripe Payment Integration** - Subscription flow implemented
+  - [x] Created edge functions (create-checkout, check-subscription, customer-portal)
+  - [x] Integrated subscription management in UI components
+  - [x] Auto-sync subscription status to profiles table
+  - [ ] **USER ACTION REQUIRED:** Create Stripe product and update Price ID (see STRIPE_SETUP.md)
+  - [ ] **USER ACTION REQUIRED:** Configure Stripe Customer Portal
+  - [ ] Test in Stripe Test Mode
+  - [ ] Deploy to Live Mode
 
 ### Game Requests Enhancement
 - [ ] Complete Game Requests page with full CRUD

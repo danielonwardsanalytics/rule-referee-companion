@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Moon, Sun, Monitor, Crown, Calendar, QrCode } from "lucide-react";
+import { Moon, Sun, Monitor, Crown, Calendar, QrCode, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { usePremium } from "@/hooks/usePremium";
 import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useSubscription";
 import { UpgradeModal } from "@/components/premium/UpgradeModal";
 import { QRCodeDisplay } from "@/components/QRCodeDisplay";
 import { NotificationPreferences } from "@/components/NotificationPreferences";
@@ -21,6 +22,12 @@ const Settings = () => {
   });
   const { premiumStatus, hasPremiumAccess, isTrial, isPremium, daysLeftInTrial } = usePremium();
   const { user } = useAuth();
+  const { 
+    openCustomerPortal, 
+    isPortalLoading, 
+    refreshSubscription,
+    isLoading: isSubscriptionLoading 
+  } = useSubscription();
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [showQRCode, setShowQRCode] = useState(false);
 
@@ -129,14 +136,26 @@ const Settings = () => {
                 <Button 
                   variant="outline"
                   className="flex-1"
-                  onClick={() => {
-                    // TODO: Implement billing portal
-                    alert("Billing management coming soon!");
-                  }}
+                  onClick={() => openCustomerPortal()}
+                  disabled={isPortalLoading}
                 >
+                  {isPortalLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Manage Billing
                 </Button>
               )}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => refreshSubscription()}
+                disabled={isSubscriptionLoading}
+                title="Refresh subscription status"
+              >
+                {isSubscriptionLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Crown className="h-4 w-4" />
+                )}
+              </Button>
             </div>
           </CardContent>
         </Card>
