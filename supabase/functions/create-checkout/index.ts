@@ -53,8 +53,7 @@ serve(async (req) => {
       logStep("No existing customer found");
     }
 
-    // TODO: Replace with your actual price ID from Stripe dashboard
-    const priceId = "price_REPLACE_WITH_YOUR_PRICE_ID";
+    const priceId = "price_1SXcW0694zCxZTddNFMBjqv9";
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
