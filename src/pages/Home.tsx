@@ -27,7 +27,41 @@ const Home = () => {
       <TrialBanner />
       <div className="fixed inset-0 -z-10 bg-background" style={{ backgroundImage: 'var(--gradient-background)' }} />
 
-      {/* Hero Section */}
+      {/* New Hero Section - Sunrise Arc */}
+      <section className="relative h-[35vh] min-h-[300px] overflow-hidden bg-white" aria-label="New hero section">
+        {/* Orange Arc - Upward Curve */}
+        <svg 
+          className="absolute inset-x-0 top-0 w-full h-full" 
+          viewBox="0 0 1200 300" 
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path 
+            d="M 0,250 Q 600,50 1200,250 L 1200,0 L 0,0 Z" 
+            fill="#F5A623"
+          />
+        </svg>
+
+        {/* Circular Logo Container at Arc Apex */}
+        <div className="absolute top-[60px] left-1/2 -translate-x-1/2 z-10">
+          <div className="w-24 h-24 rounded-full bg-white border-4 border-white shadow-lg flex items-center justify-center p-3">
+            <img 
+              src={logo} 
+              alt="House Rules" 
+              className="w-full h-full object-contain"
+            />
+          </div>
+        </div>
+
+        {/* Title in White Space Below Arc */}
+        <div className="absolute bottom-12 left-0 right-0 text-center z-10">
+          <h1 className="text-4xl sm:text-5xl font-bold text-gray-900">
+            Play sunrise to sunset
+          </h1>
+        </div>
+      </section>
+
+      {/* Original Hero Section */}
       <section className="relative h-[35vh] min-h-[300px] overflow-hidden animate-slide-down" aria-label="Hero section">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 via-green-300 to-teal-400">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.3),transparent_50%)]" />
