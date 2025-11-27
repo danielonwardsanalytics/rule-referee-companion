@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 
 interface GameCardCircularProps {
   id: string;
@@ -17,22 +18,55 @@ const GameCardCircular = ({
   onRemove,
 }: GameCardCircularProps) => {
   const navigate = useNavigate();
+  const [showRemove, setShowRemove] = useState(false);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
   const handleClick = () => {
-    navigate(`/game/${id}`);
+    if (!showRemove) {
+      navigate(`/game/${id}`);
+    }
   };
 
   const handleRemove = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onRemove) {
       onRemove();
+      setShowRemove(false);
     }
   };
+
+  const handlePressStart = () => {
+    if (canRemove) {
+      longPressTimer.current = setTimeout(() => {
+        setShowRemove(true);
+      }, 3000); // 3 seconds
+    }
+  };
+
+  const handlePressEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="flex flex-col items-center gap-2 w-[80px]">
       <div
         onClick={handleClick}
+        onMouseDown={handlePressStart}
+        onMouseUp={handlePressEnd}
+        onMouseLeave={handlePressEnd}
+        onTouchStart={handlePressStart}
+        onTouchEnd={handlePressEnd}
         className="group relative cursor-pointer"
       >
         {/* Circular image container */}
@@ -44,11 +78,11 @@ const GameCardCircular = ({
           />
         </div>
 
-        {/* Remove button */}
-        {canRemove && (
+        {/* Remove button - only shows after 3 second hold */}
+        {canRemove && showRemove && (
           <button
             onClick={handleRemove}
-            className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive hover:bg-destructive/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 shadow-md"
+            className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive hover:bg-destructive/90 flex items-center justify-center z-10 shadow-md animate-scale-in"
             aria-label={`Remove ${title}`}
           >
             <X className="h-3 w-3 text-destructive-foreground" />
