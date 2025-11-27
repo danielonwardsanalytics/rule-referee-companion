@@ -11,6 +11,7 @@ import {
 
 const MyGames = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
   const { userGames, isLoading, removeGame } = useUserGames();
 
   // Create 10 fixed slots
@@ -50,6 +51,8 @@ const MyGames = () => {
                       image={slot.games.image_url || ""}
                       canRemove={true}
                       onRemove={() => removeGame(slot.game_id)}
+                      onDeleteModeChange={setIsDeleteMode}
+                      shouldShake={isDeleteMode}
                     />
                   ) : (
                     <div className="flex flex-col items-center gap-2 w-[80px]">
