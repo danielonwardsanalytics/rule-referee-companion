@@ -33,7 +33,7 @@ const Home = () => {
       <div className="fixed inset-0 -z-10 bg-white" />
 
       {/* New Hero Section - Sunrise Arc */}
-      <section className="relative h-[30vh] min-h-[250px] overflow-hidden bg-white" aria-label="New hero section">
+      <section className="relative h-[28vh] min-h-[220px] overflow-hidden bg-white" aria-label="New hero section">
         {/* Orange Arc - Top Section */}
         <svg 
           className="absolute inset-x-0 top-0 w-full h-[65%]" 
@@ -59,7 +59,7 @@ const Home = () => {
         </div>
 
         {/* Title in White Space Below Arc */}
-        <div className="absolute bottom-[40px] left-0 right-0 text-center z-10 px-4">
+        <div className="absolute bottom-[20px] left-0 right-0 text-center z-10 px-4">
           <h1 className="text-xl sm:text-2xl font-normal text-gray-900 tracking-normal">
             Play sunrise to sunset...
           </h1>
@@ -71,7 +71,7 @@ const Home = () => {
 
       {/* Unlock Premium Button - Only shown for non-premium users (free + trial) */}
       {!hasPremiumAccess || isTrial ? (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-4 pb-8">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8">
           <div className="flex justify-center">
             <Button
               size="default"
