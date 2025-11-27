@@ -69,7 +69,7 @@ const GameCardCircular = ({
   }, []);
 
   return (
-    <div className="flex flex-col items-center gap-2 w-[80px]">
+    <div className="flex flex-col items-center gap-2 w-[80px] pt-2">
       <div
         onClick={handleClick}
         onMouseDown={handlePressStart}
