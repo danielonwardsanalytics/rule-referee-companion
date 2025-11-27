@@ -33,7 +33,7 @@ export const MyTournaments = () => {
           <div
             key={tournament.id}
             onClick={() => navigate(`/tournaments/${tournament.id}`)}
-            className="group relative min-w-[200px] max-w-[200px] h-[340px] rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-2xl snap-start bg-card"
+            className="group relative min-w-[200px] max-w-[200px] h-[340px] rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl snap-start border border-border"
             style={{
               animationDelay: `${index * 0.05}s`,
             }}
@@ -75,7 +75,7 @@ export const MyTournaments = () => {
             </div>
 
             {/* Info Section (Bottom ~55%) */}
-            <div className="p-4 flex flex-col gap-3 h-[190px]">
+            <div className="p-4 flex flex-col gap-3 h-[190px] bg-card">
               {/* Tournament Title */}
               <h3 className="text-base font-bold text-foreground line-clamp-2">
                 {tournament.name}
