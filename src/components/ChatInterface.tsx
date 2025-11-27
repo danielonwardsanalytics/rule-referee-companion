@@ -89,11 +89,21 @@ const ChatInterface = ({
         throw error;
       }
 
-      if (!data) {
+      if (!data?.audioContent) {
         throw new Error("No audio data received");
       }
 
-      const audioBlob = new Blob([data], { type: "audio/mpeg" });
+      // Decode base64 audio to binary
+      const binaryString = atob(data.audioContent);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      console.log("[ChatInterface] Decoded audio bytes:", bytes.length);
+
+      // Create audio blob and play
+      const audioBlob = new Blob([bytes], { type: "audio/mpeg" });
       const audioUrl = URL.createObjectURL(audioBlob);
       
       console.log("[ChatInterface] Audio blob created, size:", audioBlob.size);
