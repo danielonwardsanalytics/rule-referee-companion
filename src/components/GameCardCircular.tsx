@@ -25,8 +25,21 @@ const GameCardCircular = ({
   const [showRemove, setShowRemove] = useState(false);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
+  // Exit delete mode when shouldShake becomes false
+  useEffect(() => {
+    if (!shouldShake && showRemove) {
+      setShowRemove(false);
+    }
+  }, [shouldShake, showRemove]);
+
   const handleClick = () => {
-    if (!showRemove) {
+    if (showRemove) {
+      // Exit delete mode when clicking on the card
+      setShowRemove(false);
+      if (onDeleteModeChange) {
+        onDeleteModeChange(false);
+      }
+    } else {
       navigate(`/game/${id}`);
     }
   };

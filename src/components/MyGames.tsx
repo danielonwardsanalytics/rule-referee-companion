@@ -21,9 +21,18 @@ const MyGames = () => {
     return userGame || null;
   });
 
+  const handleExitDeleteMode = () => {
+    if (isDeleteMode) {
+      setIsDeleteMode(false);
+    }
+  };
+
   return (
     <>
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <section 
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+        onClick={handleExitDeleteMode}
+      >
         <div className="flex items-center gap-3 mb-6">
           <h2 className="text-2xl font-bold text-foreground">My Games</h2>
         </div>
