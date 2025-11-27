@@ -2,6 +2,7 @@ import GameCard from "@/components/GameCard";
 import ChatInterface from "@/components/ChatInterface";
 import MyGames from "@/components/MyGames";
 import { MyTournaments } from "@/components/MyTournaments";
+import { MyHouseRules } from "@/components/MyHouseRules";
 import heroImage from "@/assets/hero-image.jpg";
 import logo from "@/assets/logo.png";
 import { useAllGames } from "@/hooks/useAllGames";
@@ -109,6 +110,9 @@ const Home = () => {
 
       {/* My Tournaments Section */}
       <MyTournaments />
+
+      {/* My House Rules Section */}
+      <MyHouseRules />
 
       {/* Main Content */}
       <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
