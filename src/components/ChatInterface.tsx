@@ -123,70 +123,99 @@ const ChatInterface = ({
 
   const startRecording = async () => {
     try {
+      console.log("[ChatInterface] Starting recording...");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log("[ChatInterface] Microphone access granted");
+      
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
+        console.log("[ChatInterface] Audio data available, size:", event.data.size);
         audioChunksRef.current.push(event.data);
       };
 
       mediaRecorder.onstop = async () => {
+        console.log("[ChatInterface] Recording stopped, chunks:", audioChunksRef.current.length);
         const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        console.log("[ChatInterface] Audio blob created, size:", audioBlob.size);
         await transcribeAudio(audioBlob);
         stream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorder.start();
       setIsRecording(true);
-      toast.info("Recording started...");
+      toast.info("Recording started - speak now!");
+      console.log("[ChatInterface] MediaRecorder started");
     } catch (error) {
-      console.error("Error accessing microphone:", error);
-      toast.error("Could not access microphone");
+      console.error("[ChatInterface] Error accessing microphone:", error);
+      toast.error(`Could not access microphone: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
   const stopRecording = () => {
+    console.log("[ChatInterface] Stop recording called, isRecording:", isRecording);
     if (mediaRecorderRef.current && isRecording) {
+      console.log("[ChatInterface] Stopping MediaRecorder");
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       toast.success("Processing your audio...");
+    } else {
+      console.log("[ChatInterface] MediaRecorder not available or not recording");
     }
   };
 
   const transcribeAudio = async (audioBlob: Blob) => {
     try {
+      console.log("[ChatInterface] Starting transcription...");
       const reader = new FileReader();
       reader.readAsDataURL(audioBlob);
       reader.onloadend = async () => {
         const base64Audio = reader.result?.toString().split(",")[1];
-        if (!base64Audio) return;
+        if (!base64Audio) {
+          console.error("[ChatInterface] No base64 audio data");
+          return;
+        }
 
+        console.log("[ChatInterface] Calling transcribe-audio edge function...");
         const { data, error } = await supabase.functions.invoke("transcribe-audio", {
           body: { audio: base64Audio },
         });
 
-        if (error) throw error;
+        console.log("[ChatInterface] Transcription response:", { hasData: !!data, error, text: data?.text });
+
+        if (error) {
+          console.error("[ChatInterface] Transcription error:", error);
+          throw error;
+        }
+        
         if (data?.text) {
+          console.log("[ChatInterface] Transcribed text:", data.text);
           setInput(data.text);
           
           // Auto-send for house rules context
           if (contextType === "house-rules" && onVoiceCommand) {
+            console.log("[ChatInterface] House rules context, calling voice command handler");
             const response = await onVoiceCommand(data.text);
             if (isVoiceChatMode) {
               await speakResponse(response);
             }
             setInput("");
           } else if (isVoiceChatMode) {
+            console.log("[ChatInterface] Voice chat mode active, auto-sending message");
             // In voice chat mode, auto-send the transcribed message
             await handleSend();
+          } else {
+            console.log("[ChatInterface] Voice chat mode not active, text set in input");
           }
+        } else {
+          console.log("[ChatInterface] No text in transcription response");
         }
       };
     } catch (error) {
-      console.error("Transcription error:", error);
-      toast.error("Failed to transcribe audio");
+      console.error("[ChatInterface] Transcription error:", error);
+      toast.error(`Failed to transcribe audio: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
