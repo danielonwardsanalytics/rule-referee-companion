@@ -29,21 +29,21 @@ const Home = () => {
 
       {/* New Hero Section - Sunrise Arc */}
       <section className="relative h-[35vh] min-h-[300px] overflow-hidden bg-white" aria-label="New hero section">
-        {/* Orange Arc - Corrected Downward Curve */}
+        {/* Orange Arc - Top Section */}
         <svg 
-          className="absolute inset-x-0 bottom-0 w-full h-[60%]" 
-          viewBox="0 0 1200 180" 
+          className="absolute inset-x-0 top-0 w-full h-[65%]" 
+          viewBox="0 0 1200 200" 
           preserveAspectRatio="none"
           xmlns="http://www.w3.org/2000/svg"
         >
           <path 
-            d="M 0,180 Q 600,0 1200,180 L 1200,180 L 0,180 Z" 
+            d="M 0,0 L 1200,0 L 1200,200 Q 600,80 0,200 Z" 
             fill="#F5A623"
           />
         </svg>
 
         {/* Logo Container at Arc Apex */}
-        <div className="absolute bottom-[120px] left-1/2 -translate-x-1/2 z-10">
+        <div className="absolute top-[110px] left-1/2 -translate-x-1/2 z-10">
           <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full bg-[#2C3E50] border-4 border-white shadow-xl flex items-center justify-center p-3">
             <img 
               src={logo} 
@@ -53,8 +53,8 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Title in White Space Above Arc */}
-        <div className="absolute top-12 left-0 right-0 text-center z-10">
+        {/* Title in White Space Below Arc */}
+        <div className="absolute bottom-8 left-0 right-0 text-center z-10">
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">
             Play sunrise to sunset
           </h1>
