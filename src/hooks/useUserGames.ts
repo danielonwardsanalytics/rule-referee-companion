@@ -111,14 +111,14 @@ export const useUserGames = () => {
       if (!user) throw new Error("User not authenticated");
 
       // Update added_at timestamps to reflect new order
-      // Use descending timestamps so newest order = most recent
+      // First item (index 0) should have newest timestamp
       const baseTime = Date.now();
       
       const updates = games.map((game, index) => 
         supabase
           .from("user_games")
           .update({ 
-            added_at: new Date(baseTime - (games.length - index) * 1000).toISOString() 
+            added_at: new Date(baseTime - index * 1000).toISOString() 
           })
           .eq("user_id", user.id)
           .eq("game_id", game.gameId)
