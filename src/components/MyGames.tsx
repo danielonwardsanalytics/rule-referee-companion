@@ -60,9 +60,12 @@ const MyGames = () => {
                       >
                         <Plus className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:scale-110 transition-all" />
                       </button>
-                      <span className="text-xs text-center text-muted-foreground font-medium">
-                        Empty
-                      </span>
+                      {/* Only show "Add Game" on first empty slot */}
+                      {userGames.length === index && (
+                        <span className="text-xs text-center text-muted-foreground group-hover:text-foreground font-medium">
+                          Add Game
+                        </span>
+                      )}
                     </div>
                   )}
                 </CarouselItem>
