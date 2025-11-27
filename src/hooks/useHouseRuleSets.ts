@@ -18,6 +18,7 @@ interface HouseRuleSet {
     name: string;
     slug: string;
     accent_color: string;
+    image_url: string | null;
   };
 }
 
@@ -38,7 +39,8 @@ export const useHouseRuleSets = (gameId?: string) => {
             id,
             name,
             slug,
-            accent_color
+            accent_color,
+            image_url
           )
         `)
         .eq("user_id", user.id)
@@ -249,7 +251,8 @@ export const useRuleSetDetail = (ruleSetId: string | undefined) => {
             id,
             name,
             slug,
-            accent_color
+            accent_color,
+            image_url
           )
         `)
         .eq("id", ruleSetId)
