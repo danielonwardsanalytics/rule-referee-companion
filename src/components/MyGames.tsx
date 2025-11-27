@@ -21,8 +21,9 @@ const MyGames = () => {
     return userGame || null;
   });
 
-  const handleExitDeleteMode = () => {
-    if (isDeleteMode) {
+  const handleExitDeleteMode = (e: React.MouseEvent) => {
+    // Only exit if clicking on the section itself, not on children (game cards)
+    if (e.target === e.currentTarget && isDeleteMode) {
       setIsDeleteMode(false);
     }
   };
@@ -49,7 +50,7 @@ const MyGames = () => {
             }}
             className="w-full"
           >
-            <CarouselContent className="-ml-2">
+            <CarouselContent className="-ml-2" onClick={(e) => e.stopPropagation()}>
               {/* 10 Fixed Slots */}
               {slots.map((slot, index) => (
                 <CarouselItem key={index} className="pl-2 basis-auto">
