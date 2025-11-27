@@ -2,10 +2,11 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mic, MicOff, Send, X, Loader2, Volume2, AudioWaveform } from "lucide-react";
+import { Mic, MicOff, Send, X, Loader2, Volume2, AudioWaveform, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { useRealtimeChat } from "@/hooks/useRealtimeChat";
 import { supabase } from "@/integrations/supabase/client";
+import { RealtimeChat } from "@/utils/RealtimeAudio";
 
 interface ChatInterfaceProps {
   gameName?: string;
@@ -30,10 +31,12 @@ const ChatInterface = ({
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isVoiceChatMode, setIsVoiceChatMode] = useState(false);
   const [voiceChatModeWhenRecording, setVoiceChatModeWhenRecording] = useState(false);
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const realtimeChatRef = useRef<RealtimeChat | null>(null);
   
   const contextPrompt = gameName 
     ? `I'm playing ${gameName}. ` 
@@ -259,6 +262,50 @@ const ChatInterface = ({
     }
   };
 
+  const startRealtimeChat = async () => {
+    try {
+      console.log("[ChatInterface] Starting realtime chat...");
+      toast.info("Connecting to voice chat...");
+      
+      const contextInstructions = gameName 
+        ? `You are a helpful card game rules expert specifically for ${gameName}. Answer questions clearly and concisely about ${gameName} rules, strategies, and common questions. Keep responses under 3 sentences unless more detail is requested.`
+        : "You are a helpful card game rules expert. Answer questions clearly and concisely about game rules, strategies, and common questions. Keep responses under 3 sentences unless more detail is requested.";
+
+      realtimeChatRef.current = new RealtimeChat(
+        (event) => {
+          console.log("[ChatInterface] Realtime event:", event.type);
+          if (event.type === 'response.audio_transcript.delta') {
+            // Handle transcript if needed
+          }
+        },
+        contextInstructions,
+        voice
+      );
+
+      await realtimeChatRef.current.init();
+      setIsRealtimeConnected(true);
+      toast.success("Voice chat connected - start speaking!");
+      
+    } catch (error) {
+      console.error("[ChatInterface] Error starting realtime chat:", error);
+      toast.error(`Failed to connect: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const endRealtimeChat = () => {
+    console.log("[ChatInterface] Ending realtime chat...");
+    realtimeChatRef.current?.disconnect();
+    realtimeChatRef.current = null;
+    setIsRealtimeConnected(false);
+    toast.success("Voice chat disconnected");
+  };
+
+  useEffect(() => {
+    return () => {
+      realtimeChatRef.current?.disconnect();
+    };
+  }, []);
+
   return (
     <div className="w-full flex flex-col">
       <audio ref={audioRef} onEnded={() => setIsSpeaking(false)} />
@@ -311,7 +358,7 @@ const ChatInterface = ({
             size="icon"
             variant={isRecording ? "default" : "ghost"}
             onClick={isRecording ? stopRecording : startRecording}
-            disabled={isLoading || isProcessingCommand}
+            disabled={isLoading || isProcessingCommand || isRealtimeConnected}
             className="rounded-full h-10 w-10"
           >
             {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
@@ -324,17 +371,27 @@ const ChatInterface = ({
               setIsVoiceChatMode(!isVoiceChatMode);
               toast.success(isVoiceChatMode ? "Voice chat mode disabled" : "Voice chat mode enabled - AI responses will be spoken");
             }}
-            disabled={isLoading || isProcessingCommand}
+            disabled={isLoading || isProcessingCommand || isRealtimeConnected}
             className="rounded-full h-10 w-10"
           >
             <AudioWaveform className={`h-5 w-5 ${isVoiceChatMode ? "animate-pulse" : ""}`} />
+          </Button>
+
+          <Button
+            size="icon"
+            variant={isRealtimeConnected ? "default" : "ghost"}
+            onClick={isRealtimeConnected ? endRealtimeChat : startRealtimeChat}
+            disabled={isLoading || isProcessingCommand}
+            className="rounded-full h-10 w-10"
+          >
+            <Phone className={`h-5 w-5 ${isRealtimeConnected ? "animate-pulse text-green-500" : ""}`} />
           </Button>
           
           <Button 
             size="icon" 
             variant="ghost"
             onClick={() => handleSend()} 
-            disabled={isLoading || isProcessingCommand || !input.trim()}
+            disabled={isLoading || isProcessingCommand || !input.trim() || isRealtimeConnected}
             className="rounded-full h-10 w-10"
           >
             {(isLoading || isProcessingCommand) ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}

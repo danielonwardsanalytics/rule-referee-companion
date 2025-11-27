@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.parse-rule-command]
 verify_jwt = false
+
+[functions.realtime-session]
+verify_jwt = false
