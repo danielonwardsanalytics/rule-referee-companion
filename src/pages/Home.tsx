@@ -71,7 +71,7 @@ const Home = () => {
 
       {/* Unlock Premium Button - Only shown for non-premium users (free + trial) */}
       {!hasPremiumAccess || isTrial ? (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-4">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-4">
           <div className="flex justify-center">
             <Button
               size="default"
