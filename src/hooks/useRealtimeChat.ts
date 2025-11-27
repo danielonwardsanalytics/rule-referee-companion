@@ -7,7 +7,7 @@ export const useRealtimeChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const sendMessage = useCallback(async (userMessage: string) => {
+  const sendMessage = useCallback(async (userMessage: string, onComplete?: (response: string) => void) => {
     const userMsg: Message = { role: 'user', content: userMessage };
     setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
@@ -28,7 +28,12 @@ export const useRealtimeChat = () => {
       await streamChat({
         messages: [...messages, userMsg],
         onDelta: (chunk) => upsertAssistant(chunk),
-        onDone: () => setIsLoading(false),
+        onDone: () => {
+          setIsLoading(false);
+          if (onComplete && assistantSoFar) {
+            onComplete(assistantSoFar);
+          }
+        },
       });
     } catch (e) {
       console.error(e);

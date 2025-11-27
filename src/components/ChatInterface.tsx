@@ -52,23 +52,30 @@ const ChatInterface = ({
       const userMessage = input;
       setInput("");
       const response = await onVoiceCommand(userMessage);
-      await speakResponse(response);
+      if (isVoiceChatMode) {
+        await speakResponse(response);
+      }
       return;
     }
     
     // Otherwise use the normal chat flow
     const messageText = contextPrompt + input;
     setInput("");
-    await sendMessage(messageText);
-    await speakResponse(messageText);
+    
+    await sendMessage(messageText, async (aiResponse) => {
+      // Only speak response if voice chat mode is enabled
+      if (isVoiceChatMode) {
+        await speakResponse(aiResponse);
+      }
+    });
   };
 
-  const speakResponse = async (userMessage: string) => {
+  const speakResponse = async (text: string) => {
     try {
       setIsSpeaking(true);
       const { data, error } = await supabase.functions.invoke("text-to-speech", {
         body: { 
-          text: `Responding to: ${userMessage}`,
+          text: text,
           voice: voice 
         },
       });
@@ -84,6 +91,7 @@ const ChatInterface = ({
       }
     } catch (error) {
       console.error("TTS error:", error);
+      toast.error("Failed to speak response");
     } finally {
       setIsSpeaking(false);
     }
@@ -149,8 +157,13 @@ const ChatInterface = ({
           // Auto-send for house rules context
           if (contextType === "house-rules" && onVoiceCommand) {
             const response = await onVoiceCommand(data.text);
-            await speakResponse(response);
+            if (isVoiceChatMode) {
+              await speakResponse(response);
+            }
             setInput("");
+          } else if (isVoiceChatMode) {
+            // In voice chat mode, auto-send the transcribed message
+            await handleSend();
           }
         }
       };
@@ -221,11 +234,14 @@ const ChatInterface = ({
           <Button
             size="icon"
             variant={isVoiceChatMode ? "default" : "ghost"}
-            onClick={() => setIsVoiceChatMode(!isVoiceChatMode)}
+            onClick={() => {
+              setIsVoiceChatMode(!isVoiceChatMode);
+              toast.success(isVoiceChatMode ? "Voice chat mode disabled" : "Voice chat mode enabled - AI responses will be spoken");
+            }}
             disabled={isLoading || isProcessingCommand}
             className="rounded-full h-10 w-10"
           >
-            <AudioWaveform className="h-5 w-5" />
+            <AudioWaveform className={`h-5 w-5 ${isVoiceChatMode ? "animate-pulse" : ""}`} />
           </Button>
           
           <Button 
