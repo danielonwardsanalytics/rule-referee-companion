@@ -33,60 +33,80 @@ export const MyTournaments = () => {
           <div
             key={tournament.id}
             onClick={() => navigate(`/tournaments/${tournament.id}`)}
-            className="group relative min-w-[200px] max-w-[200px] h-[280px] rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-2xl snap-start"
+            className="group relative min-w-[200px] max-w-[200px] h-[340px] rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-2xl snap-start bg-card"
             style={{
               animationDelay: `${index * 0.05}s`,
             }}
           >
-            {/* Background gradient using game accent color */}
-            <div
-              className="absolute inset-0 opacity-90"
-              style={{
-                background: `linear-gradient(135deg, ${tournament.games.accent_color}20 0%, ${tournament.games.accent_color}60 100%)`,
-              }}
-            />
+            {/* Image Section (Top ~45%) */}
+            <div className="relative h-[150px] overflow-hidden rounded-t-xl">
+              {tournament.games.image_url ? (
+                <>
+                  {/* Game Image */}
+                  <img
+                    src={tournament.games.image_url}
+                    alt={tournament.games.name}
+                    className="w-full h-full object-cover"
+                  />
+                  {/* Dark gradient overlay for badge readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                </>
+              ) : (
+                /* Fallback gradient if no image */
+                <div
+                  className="w-full h-full"
+                  style={{
+                    background: `linear-gradient(135deg, ${tournament.games.accent_color}40 0%, ${tournament.games.accent_color}80 100%)`,
+                  }}
+                />
+              )}
 
-            {/* Content */}
-            <div className="relative h-full flex flex-col justify-between p-4 bg-card/80 backdrop-blur-sm border border-border">
-              {/* Top: Tournament Name */}
-              <div>
-                <h3 className="text-lg font-bold text-foreground line-clamp-2 mb-2">
-                  {tournament.name}
-                </h3>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Trophy className="h-3 w-3" style={{ color: tournament.games.accent_color }} />
-                  <span>{tournament.games.name}</span>
-                </div>
+              {/* Game Name Badge - Bottom Left of Image */}
+              <div
+                className="absolute bottom-2 left-2 px-3 py-1 rounded-md bg-black/70 backdrop-blur-sm border"
+                style={{
+                  borderColor: `${tournament.games.accent_color}60`,
+                }}
+              >
+                <span className="text-xs font-semibold text-white">
+                  {tournament.games.name}
+                </span>
               </div>
+            </div>
 
-              {/* Middle: Leader Badge */}
+            {/* Info Section (Bottom ~55%) */}
+            <div className="p-4 flex flex-col gap-3 h-[190px]">
+              {/* Tournament Title */}
+              <h3 className="text-base font-bold text-foreground line-clamp-2">
+                {tournament.name}
+              </h3>
+
+              {/* Leader Card */}
               {tournament.leader && (
-                <div className="py-3">
-                  <div
-                    className="rounded-lg p-3 border"
-                    style={{
-                      backgroundColor: `${tournament.games.accent_color}15`,
-                      borderColor: `${tournament.games.accent_color}40`,
-                    }}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <Trophy className="h-4 w-4" style={{ color: tournament.games.accent_color }} />
-                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                        Leader
-                      </span>
-                    </div>
-                    <p className="text-sm font-bold text-foreground line-clamp-1">
-                      {tournament.leader.display_name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {tournament.leader.wins} {tournament.leader.wins === 1 ? 'win' : 'wins'}
-                    </p>
+                <div
+                  className="rounded-lg p-2.5 border"
+                  style={{
+                    backgroundColor: `${tournament.games.accent_color}15`,
+                    borderColor: `${tournament.games.accent_color}40`,
+                  }}
+                >
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Trophy className="h-3.5 w-3.5" style={{ color: tournament.games.accent_color }} />
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      Leader
+                    </span>
                   </div>
+                  <p className="text-sm font-bold text-foreground line-clamp-1">
+                    {tournament.leader.display_name}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {tournament.leader.wins} {tournament.leader.wins === 1 ? 'win' : 'wins'}
+                  </p>
                 </div>
               )}
 
-              {/* Bottom: Stats */}
-              <div className="space-y-2">
+              {/* Stats */}
+              <div className="space-y-1.5 mt-auto">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Users className="h-3 w-3" />
                   <span>{tournament.total_games} {tournament.total_games === 1 ? 'game' : 'games'} played</span>
@@ -99,7 +119,7 @@ export const MyTournaments = () => {
             </div>
 
             {/* Hover overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
           </div>
         ))}
       </div>
