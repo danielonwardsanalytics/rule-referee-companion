@@ -33,25 +33,19 @@ const GameCardCircular = ({
   }, [shouldShake, showRemove]);
 
   const handleClick = () => {
+    // In delete mode, clicking the icon does nothing
     if (showRemove) {
-      // Exit delete mode when clicking on the card
-      setShowRemove(false);
-      if (onDeleteModeChange) {
-        onDeleteModeChange(false);
-      }
-    } else {
-      navigate(`/game/${id}`);
+      return;
     }
+    // Normal mode, navigate to game detail
+    navigate(`/game/${id}`);
   };
 
   const handleRemove = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onRemove) {
       onRemove();
-      setShowRemove(false);
-      if (onDeleteModeChange) {
-        onDeleteModeChange(false);
-      }
+      // Don't exit delete mode - let user click elsewhere to exit
     }
   };
 
