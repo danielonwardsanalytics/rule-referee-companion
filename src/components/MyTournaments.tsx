@@ -45,7 +45,7 @@ export const MyTournaments = () => {
             <CarouselItem key={tournament.id} className="pl-4 basis-[140px] shrink-0">
               <div
                 onClick={() => navigate(`/tournaments/${tournament.id}`)}
-                className="group relative w-[140px] h-[240px] rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl border border-border flex-shrink-0"
+                className="group relative w-[140px] h-[260px] rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl border border-border flex-shrink-0"
                 style={{
                   animationDelay: `${index * 0.05}s`,
                 }}
@@ -88,7 +88,7 @@ export const MyTournaments = () => {
 
                 {/* Info Section (Bottom ~60%) */}
                 <div 
-                  className="px-4 py-4 flex flex-col gap-2 h-[144px] rounded-b-lg border border-white/[0.08]"
+                  className="px-4 py-4 flex flex-col gap-2 h-[164px] rounded-b-lg border border-white/[0.08]"
                   style={{
                     backgroundColor: '#151820',
                     boxShadow: '0 2px 6px rgba(0,0,0,0.35)',
