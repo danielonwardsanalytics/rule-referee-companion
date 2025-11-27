@@ -2,7 +2,6 @@ import ChatInterface from "@/components/ChatInterface";
 import MyGames from "@/components/MyGames";
 import { MyTournaments } from "@/components/MyTournaments";
 import { MyHouseRules } from "@/components/MyHouseRules";
-import { RealtimeVoiceChat } from "@/components/RealtimeVoiceChat";
 import logo from "@/assets/logo.png";
 import { Loader2, Crown } from "lucide-react";
 import { TrialBanner } from "@/components/premium/TrialBanner";
@@ -98,19 +97,6 @@ const Home = () => {
 
       {/* My House Rules Section */}
       <MyHouseRules />
-
-      {/* Voice Assistant Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up" style={{ animationDelay: '0.5s' }} aria-label="Realtime voice chat">
-        <div className="mb-6">
-          <h2 className="text-3xl font-bold text-foreground mb-2">
-            Voice Assistant
-          </h2>
-          <p className="text-muted-foreground">
-            Talk directly with our AI assistant about game rules
-          </p>
-        </div>
-        <RealtimeVoiceChat />
-      </section>
 
       {/* Main Content */}
       <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
