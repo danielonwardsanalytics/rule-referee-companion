@@ -28,7 +28,7 @@ export const MyTournaments = () => {
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 animate-slide-up" style={{ animationDelay: '0.3s' }}>
       <h2 className="text-xl font-bold text-foreground mb-3">My Tournaments</h2>
-      <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
+      <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory touch-pan-x">
         {tournaments.map((tournament, index) => (
           <div
             key={tournament.id}

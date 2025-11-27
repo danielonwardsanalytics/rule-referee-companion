@@ -26,7 +26,7 @@ export const useRecentTournaments = () => {
     queryFn: async () => {
       if (!user) return [];
 
-      // Get latest 6 tournaments
+      // Get latest 10 tournaments
       const { data: tournamentsData, error: tournamentsError } = await supabase
         .from("tournaments")
         .select(`
@@ -42,7 +42,7 @@ export const useRecentTournaments = () => {
         .eq("admin_id", user.id)
         .eq("is_active", true)
         .order("updated_at", { ascending: false })
-        .limit(6);
+        .limit(10);
 
       if (tournamentsError) throw tournamentsError;
 
