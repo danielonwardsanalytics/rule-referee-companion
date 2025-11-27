@@ -29,6 +29,7 @@ const ChatInterface = ({
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isVoiceChatMode, setIsVoiceChatMode] = useState(false);
+  const [voiceChatModeWhenRecording, setVoiceChatModeWhenRecording] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -44,9 +45,17 @@ const ChatInterface = ({
     }
   }, [messages]);
 
-  const handleSend = async (messageOverride?: string) => {
+  const handleSend = async (messageOverride?: string, shouldSpeak?: boolean) => {
+    console.log("[ChatInterface] handleSend called with override:", !!messageOverride, "shouldSpeak:", shouldSpeak);
     const messageToSend = messageOverride || input;
-    if (!messageToSend.trim()) return;
+    const willSpeak = shouldSpeak !== undefined ? shouldSpeak : isVoiceChatMode;
+    console.log("[ChatInterface] Message to send:", messageToSend);
+    console.log("[ChatInterface] Will speak response:", willSpeak);
+    
+    if (!messageToSend.trim()) {
+      console.log("[ChatInterface] Empty message, returning");
+      return;
+    }
     
     // Clear input if using state input (not override)
     if (!messageOverride) {
@@ -55,8 +64,9 @@ const ChatInterface = ({
     
     // If this is a house rules context and we have a voice command handler, use it
     if (contextType === "house-rules" && onVoiceCommand) {
+      console.log("[ChatInterface] Using house rules voice command handler");
       const response = await onVoiceCommand(messageToSend);
-      if (isVoiceChatMode) {
+      if (willSpeak) {
         await speakResponse(response);
       }
       return;
@@ -64,13 +74,23 @@ const ChatInterface = ({
     
     // Otherwise use the normal chat flow
     const messageText = contextPrompt + messageToSend;
+    console.log("[ChatInterface] Sending to chat:", messageText);
     
-    await sendMessage(messageText, async (aiResponse) => {
-      // Only speak response if voice chat mode is enabled
-      if (isVoiceChatMode) {
-        await speakResponse(aiResponse);
-      }
-    });
+    try {
+      await sendMessage(messageText, async (aiResponse) => {
+        console.log("[ChatInterface] Received AI response:", aiResponse.substring(0, 50));
+        // Only speak response if requested
+        if (willSpeak) {
+          console.log("[ChatInterface] Speaking response");
+          await speakResponse(aiResponse);
+        } else {
+          console.log("[ChatInterface] Not speaking response");
+        }
+      });
+    } catch (error) {
+      console.error("[ChatInterface] Error in sendMessage:", error);
+      toast.error("Failed to send message");
+    }
   };
 
   const speakResponse = async (text: string) => {
@@ -137,6 +157,11 @@ const ChatInterface = ({
   const startRecording = async () => {
     try {
       console.log("[ChatInterface] Starting recording...");
+      console.log("[ChatInterface] Current voice chat mode:", isVoiceChatMode);
+      
+      // Capture voice chat mode state at recording start
+      setVoiceChatModeWhenRecording(isVoiceChatMode);
+      
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       console.log("[ChatInterface] Microphone access granted");
       
@@ -205,14 +230,23 @@ const ChatInterface = ({
         
         if (data?.text) {
           console.log("[ChatInterface] Transcribed text:", data.text);
+          console.log("[ChatInterface] Voice chat mode when recording started:", voiceChatModeWhenRecording);
+          console.log("[ChatInterface] Current voice chat mode:", isVoiceChatMode);
+          console.log("[ChatInterface] Context type:", contextType);
           
-          // In voice chat mode, auto-send immediately without updating input state
-          if (isVoiceChatMode) {
-            console.log("[ChatInterface] Voice chat mode active, auto-sending message");
-            await handleSend(data.text);
+          // Use the voice chat mode from when recording started, not current state
+          if (voiceChatModeWhenRecording) {
+            console.log("[ChatInterface] Voice chat was active during recording, calling handleSend with text and shouldSpeak=true");
+            try {
+              await handleSend(data.text, true); // Always speak if voice chat was on when recording started
+              console.log("[ChatInterface] handleSend completed successfully");
+            } catch (error) {
+              console.error("[ChatInterface] Error in handleSend:", error);
+              toast.error("Failed to process voice message");
+            }
           } else {
-            // Not in voice chat mode, just set the input for manual sending
-            console.log("[ChatInterface] Voice chat mode not active, text set in input");
+            // Voice chat was not active during recording, just set the input for manual sending
+            console.log("[ChatInterface] Voice chat was not active during recording, text set in input");
             setInput(data.text);
           }
         } else {
