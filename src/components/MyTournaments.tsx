@@ -32,7 +32,7 @@ export const MyTournaments = () => {
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 animate-slide-up" style={{ animationDelay: '0.3s' }}>
-      <h2 className="text-xl font-bold text-foreground mb-3">My Tournaments</h2>
+      <h2 className="text-2xl font-bold text-foreground mb-3">My Tournaments</h2>
       <Carousel
         opts={{
           align: "start",
