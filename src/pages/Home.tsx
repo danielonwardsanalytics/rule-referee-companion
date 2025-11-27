@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 
 const Home = () => {
   const { games, isLoading } = useAllGames();
-  const { hasPremiumAccess } = usePremium();
+  const { hasPremiumAccess, isFree, isTrial } = usePremium();
   const { startCheckout, isCheckoutLoading } = useSubscription();
   // Show 8 games now that all have images - prioritize most popular/recognizable
   const popularGameSlugs = ['uno', 'monopoly-deal', 'phase10', 'skipbo', 'poker', 'hearts', 'rummy', 'go-fish'];
@@ -69,8 +69,8 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Unlock Premium Button - Only shown for free users */}
-      {!hasPremiumAccess && (
+      {/* Unlock Premium Button - Only shown for non-premium users (free + trial) */}
+      {!hasPremiumAccess || isTrial ? (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2">
           <div className="flex justify-center">
             <Button
@@ -84,11 +84,11 @@ const Home = () => {
               ) : (
                 <Crown className="h-5 w-5 mr-2" />
               )}
-              Unlock Unlimited House Rules
+              {isTrial ? "Continue After Trial" : "Unlock Unlimited House Rules"}
             </Button>
           </div>
         </section>
-      )}
+      ) : null}
 
       {/* Quick Fire Question Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8 animate-slide-up" style={{ animationDelay: '0.2s' }} aria-label="Quick questions">
