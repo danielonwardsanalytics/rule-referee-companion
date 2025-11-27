@@ -11,11 +11,6 @@ interface GameCardCircularProps {
   onLongPress?: () => void;
   isDeleteMode?: boolean;
   shouldShake?: boolean;
-  onDragStart?: (e: React.DragEvent) => void;
-  onDragEnd?: (e: React.DragEvent) => void;
-  onDragOver?: (e: React.DragEvent) => void;
-  onDrop?: (e: React.DragEvent) => void;
-  draggable?: boolean;
 }
 
 const GameCardCircular = ({
@@ -27,11 +22,6 @@ const GameCardCircular = ({
   onLongPress,
   isDeleteMode = false,
   shouldShake = false,
-  onDragStart,
-  onDragEnd,
-  onDragOver,
-  onDrop,
-  draggable = false,
 }: GameCardCircularProps) => {
   const navigate = useNavigate();
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
@@ -87,11 +77,6 @@ const GameCardCircular = ({
         onMouseLeave={handlePressEnd}
         onTouchStart={handlePressStart}
         onTouchEnd={handlePressEnd}
-        draggable={draggable}
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
-        onDragOver={onDragOver}
-        onDrop={onDrop}
         className={`group relative ${isDeleteMode ? 'cursor-move' : 'cursor-pointer'}`}
       >
         {/* Circular image container */}
