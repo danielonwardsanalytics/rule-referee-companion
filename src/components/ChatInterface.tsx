@@ -306,13 +306,13 @@ const ChatInterface = ({
           disabled={isLoading || isProcessingCommand}
         />
         
-        <div className="flex items-center justify-center gap-2 bg-muted/50 rounded-full px-4 py-2 w-fit mx-auto">
+        <div className="flex items-center justify-center gap-2 bg-muted/50 rounded-full px-4 py-2 w-fit mx-auto border border-border">
           <Button
             size="icon"
             variant={isRecording ? "default" : "ghost"}
             onClick={isRecording ? stopRecording : startRecording}
             disabled={isLoading || isProcessingCommand}
-            className="rounded-full h-10 w-10"
+            className="rounded-full h-10 w-10 border-border"
           >
             {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
           </Button>
@@ -325,7 +325,7 @@ const ChatInterface = ({
               toast.success(isVoiceChatMode ? "Voice chat mode disabled" : "Voice chat mode enabled - AI responses will be spoken");
             }}
             disabled={isLoading || isProcessingCommand}
-            className="rounded-full h-10 w-10"
+            className="rounded-full h-10 w-10 border-border"
           >
             <AudioWaveform className={`h-5 w-5 ${isVoiceChatMode ? "animate-pulse" : ""}`} />
           </Button>
@@ -335,7 +335,7 @@ const ChatInterface = ({
             variant="ghost"
             onClick={() => handleSend()} 
             disabled={isLoading || isProcessingCommand || !input.trim()}
-            className="rounded-full h-10 w-10"
+            className="rounded-full h-10 w-10 border-border"
           >
             {(isLoading || isProcessingCommand) ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
           </Button>
