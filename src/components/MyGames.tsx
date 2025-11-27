@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, ArrowRight } from "lucide-react";
 import { Reorder } from "framer-motion";
 import SelectGameModal from "./SelectGameModal";
 import GameCardCircular from "./GameCardCircular";
 import { useUserGames } from "@/hooks/useUserGames";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import {
   Carousel,
   CarouselContent,
@@ -11,6 +13,7 @@ import {
 } from "@/components/ui/carousel";
 
 const MyGames = () => {
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [hasReordered, setHasReordered] = useState(false);
@@ -66,8 +69,16 @@ const MyGames = () => {
       )}
       
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-20">
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-foreground">My Games</h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground"
+            onClick={() => navigate('/games')}
+          >
+            See all <ArrowRight className="h-4 w-4 ml-1" />
+          </Button>
         </div>
 
         {isLoading ? (

@@ -1,8 +1,9 @@
 import { useRecentTournaments } from "@/hooks/useRecentTournaments";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { Trophy, Users, Clock } from "lucide-react";
+import { Trophy, Users, Clock, ArrowRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import {
   Carousel,
   CarouselContent,
@@ -32,7 +33,17 @@ export const MyTournaments = () => {
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 animate-slide-up" style={{ animationDelay: '0.3s' }}>
-      <h2 className="text-2xl font-bold text-foreground mb-3">My Tournaments</h2>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-2xl font-bold text-foreground">My Tournaments</h2>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground hover:text-foreground"
+          onClick={() => navigate('/tournaments')}
+        >
+          See all <ArrowRight className="h-4 w-4 ml-1" />
+        </Button>
+      </div>
       <Carousel
         opts={{
           align: "start",
