@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Plus, Loader2 } from "lucide-react";
 import SelectGameModal from "./SelectGameModal";
-import GameCardCompact from "./GameCardCompact";
+import GameCardCircular from "./GameCardCircular";
 import { useUserGames } from "@/hooks/useUserGames";
 import {
   Carousel,
@@ -42,27 +42,11 @@ const MyGames = () => {
             }}
             className="w-full"
           >
-            <CarouselContent className="-ml-4">
-              {/* Add Game Card */}
-              <CarouselItem className="pl-4 basis-auto">
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="w-[140px] h-[180px] rounded-lg border-2 border-dashed border-border hover:border-primary/50 bg-card/50 hover:bg-card transition-all duration-300 flex flex-col items-center justify-center gap-2 group"
-                  aria-label="Add game"
-                >
-                  <div className="h-12 w-12 rounded-full bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center transition-colors">
-                    <Plus className="h-6 w-6 text-primary group-hover:scale-110 transition-transform" />
-                  </div>
-                  <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-                    Add Game
-                  </span>
-                </button>
-              </CarouselItem>
-
+            <CarouselContent className="-ml-2">
               {/* Game Cards */}
               {userGames.map((userGame) => (
-                <CarouselItem key={userGame.games.id} className="pl-4 basis-auto">
-                  <GameCardCompact
+                <CarouselItem key={userGame.games.id} className="pl-2 basis-auto">
+                  <GameCardCircular
                     id={userGame.games.slug}
                     title={userGame.games.name}
                     image={userGame.games.image_url || ""}
@@ -71,6 +55,22 @@ const MyGames = () => {
                   />
                 </CarouselItem>
               ))}
+
+              {/* Add Game Card - Now at the end */}
+              <CarouselItem className="pl-2 basis-auto">
+                <div className="flex flex-col items-center gap-2 w-[80px]">
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="w-16 h-16 rounded-full border-2 border-dashed border-border hover:border-primary bg-card/50 hover:bg-card transition-all duration-300 flex items-center justify-center group"
+                    aria-label="Add game"
+                  >
+                    <Plus className="h-6 w-6 text-primary group-hover:scale-110 transition-transform" />
+                  </button>
+                  <span className="text-xs text-center text-muted-foreground group-hover:text-foreground font-medium">
+                    Add Game
+                  </span>
+                </div>
+              </CarouselItem>
             </CarouselContent>
           </Carousel>
         )}
