@@ -25,7 +25,7 @@ const Home = () => {
   return (
     <div className="min-h-screen relative pb-20">
       <TrialBanner />
-      <div className="fixed inset-0 -z-10 bg-background" style={{ backgroundImage: 'var(--gradient-background)' }} />
+      <div className="fixed inset-0 -z-10 bg-white" />
 
       {/* New Hero Section - Sunrise Arc */}
       <section className="relative h-[35vh] min-h-[300px] overflow-hidden bg-white" aria-label="New hero section">
