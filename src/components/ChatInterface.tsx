@@ -72,7 +72,9 @@ const ChatInterface = ({
 
   const speakResponse = async (text: string) => {
     try {
+      console.log("[ChatInterface] Starting TTS for text:", text.substring(0, 50));
       setIsSpeaking(true);
+      
       const { data, error } = await supabase.functions.invoke("text-to-speech", {
         body: { 
           text: text,
@@ -80,18 +82,33 @@ const ChatInterface = ({
         },
       });
 
-      if (error) throw error;
+      console.log("[ChatInterface] TTS response:", { hasData: !!data, error });
+
+      if (error) {
+        console.error("[ChatInterface] TTS error:", error);
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error("No audio data received");
+      }
 
       const audioBlob = new Blob([data], { type: "audio/mpeg" });
       const audioUrl = URL.createObjectURL(audioBlob);
       
+      console.log("[ChatInterface] Audio blob created, size:", audioBlob.size);
+      
       if (audioRef.current) {
         audioRef.current.src = audioUrl;
+        console.log("[ChatInterface] Playing audio...");
         await audioRef.current.play();
+        console.log("[ChatInterface] Audio playing");
+      } else {
+        console.error("[ChatInterface] Audio ref not available");
       }
     } catch (error) {
-      console.error("TTS error:", error);
-      toast.error("Failed to speak response");
+      console.error("[ChatInterface] TTS error:", error);
+      toast.error(`Failed to speak response: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsSpeaking(false);
     }
