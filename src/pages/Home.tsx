@@ -55,7 +55,7 @@ const Home = () => {
 
         {/* Title in White Space Below Arc */}
         <div className="absolute bottom-[60px] left-0 right-0 text-center z-10 px-4">
-          <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 tracking-normal">
             Play sunrise to sunset
           </h1>
         </div>
