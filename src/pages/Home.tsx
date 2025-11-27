@@ -33,7 +33,7 @@ const Home = () => {
       <div className="fixed inset-0 -z-10 bg-white" />
 
       {/* New Hero Section - Sunrise Arc */}
-      <section className="relative h-[35vh] min-h-[300px] overflow-hidden bg-white" aria-label="New hero section">
+      <section className="relative h-[30vh] min-h-[250px] overflow-hidden bg-white" aria-label="New hero section">
         {/* Orange Arc - Top Section */}
         <svg 
           className="absolute inset-x-0 top-0 w-full h-[65%]" 
@@ -59,7 +59,7 @@ const Home = () => {
         </div>
 
         {/* Title in White Space Below Arc */}
-        <div className="absolute bottom-[65px] left-0 right-0 text-center z-10 px-4">
+        <div className="absolute bottom-[40px] left-0 right-0 text-center z-10 px-4">
           <h1 className="text-xl sm:text-2xl font-normal text-gray-900 tracking-normal">
             Play sunrise to sunset...
           </h1>
