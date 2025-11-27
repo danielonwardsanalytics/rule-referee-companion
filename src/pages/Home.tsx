@@ -31,10 +31,10 @@ const Home = () => {
   return (
     <div className="min-h-screen relative pb-20">
       <TrialBanner />
-      <div className="fixed inset-0 -z-10 bg-white" />
+      <div className="fixed inset-0 -z-10 bg-background" />
 
       {/* New Hero Section - Sunrise Arc */}
-      <section className="relative h-[28vh] min-h-[220px] overflow-hidden bg-white" aria-label="New hero section">
+      <section className="relative h-[28vh] min-h-[220px] overflow-hidden bg-background" aria-label="New hero section">
         {/* Orange Arc - Top Section */}
         <svg 
           className="absolute inset-x-0 top-0 w-full h-[65%]" 
@@ -61,10 +61,10 @@ const Home = () => {
 
         {/* Title in White Space Below Arc */}
         <div className="absolute bottom-[20px] left-0 right-0 text-center z-10 px-4">
-          <h1 className="text-xl sm:text-2xl font-normal text-gray-900 tracking-normal">
+          <h1 className="text-xl sm:text-2xl font-normal text-foreground tracking-normal">
             Play sunrise to sunset...
           </h1>
-          <p className="text-sm sm:text-base font-normal text-gray-700 mt-1">
+          <p className="text-sm sm:text-base font-normal text-muted-foreground mt-1">
             Lets Play!
           </p>
         </div>
