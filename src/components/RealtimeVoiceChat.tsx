@@ -27,7 +27,7 @@ export const RealtimeVoiceChat = () => {
       console.error('Voice chat error:', error);
       toast({
         title: "Connection error",
-        description: error.message || "Failed to connect to voice chat",
+        description: typeof error === 'string' ? error : "Failed to connect to voice chat",
         variant: "destructive",
       });
     },
