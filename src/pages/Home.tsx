@@ -4,11 +4,16 @@ import MyGames from "@/components/MyGames";
 import heroImage from "@/assets/hero-image.jpg";
 import logo from "@/assets/logo.png";
 import { useAllGames } from "@/hooks/useAllGames";
-import { Loader2 } from "lucide-react";
+import { Loader2, Crown } from "lucide-react";
 import { TrialBanner } from "@/components/premium/TrialBanner";
+import { usePremium } from "@/hooks/usePremium";
+import { useSubscription } from "@/hooks/useSubscription";
+import { Button } from "@/components/ui/button";
 
 const Home = () => {
   const { games, isLoading } = useAllGames();
+  const { hasPremiumAccess } = usePremium();
+  const { startCheckout, isCheckoutLoading } = useSubscription();
   // Show 8 games now that all have images - prioritize most popular/recognizable
   const popularGameSlugs = ['uno', 'monopoly-deal', 'phase10', 'skipbo', 'poker', 'hearts', 'rummy', 'go-fish'];
   const popularGames = games
@@ -63,6 +68,27 @@ const Home = () => {
           </p>
         </div>
       </section>
+
+      {/* Unlock Premium Button - Only shown for free users */}
+      {!hasPremiumAccess && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2">
+          <div className="flex justify-center">
+            <Button
+              size="lg"
+              className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-semibold px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all"
+              onClick={() => startCheckout()}
+              disabled={isCheckoutLoading}
+            >
+              {isCheckoutLoading ? (
+                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+              ) : (
+                <Crown className="h-5 w-5 mr-2" />
+              )}
+              Unlock Unlimited House Rules
+            </Button>
+          </div>
+        </section>
+      )}
 
       {/* Quick Fire Question Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8 animate-slide-up" style={{ animationDelay: '0.2s' }} aria-label="Quick questions">
