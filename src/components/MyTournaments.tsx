@@ -87,51 +87,50 @@ export const MyTournaments = () => {
                 </div>
 
                 {/* Info Section (Bottom ~60%) */}
-                <div className="p-2.5 flex flex-col gap-1.5 h-[144px] bg-card">
+                <div 
+                  className="px-4 py-4 flex flex-col gap-2 h-[144px] rounded-b-lg border border-white/[0.08]"
+                  style={{
+                    backgroundColor: '#151820',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.35)',
+                  }}
+                >
                   {/* Tournament Title */}
-                  <h3 className="text-xs font-bold text-foreground line-clamp-2 mb-0.5">
+                  <h3 className="text-base font-semibold line-clamp-2" style={{ color: 'rgba(255,255,255,0.95)' }}>
                     {tournament.name}
                   </h3>
 
-                  {/* Leader Card - Always show, even if no leader yet */}
-                  <div
-                    className="rounded p-1.5 border flex-shrink-0"
-                    style={{
-                      backgroundColor: `${tournament.games.accent_color}15`,
-                      borderColor: `${tournament.games.accent_color}40`,
-                    }}
-                  >
-                    <div className="flex items-center gap-0.5 mb-0.5">
-                      <Trophy className="h-2.5 w-2.5" style={{ color: tournament.games.accent_color }} />
-                      <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide">
-                        Leader
-                      </span>
-                    </div>
+                  {/* Leader Info */}
+                  <div className="flex items-center gap-1.5">
+                    <Trophy className="h-3.5 w-3.5 shrink-0" style={{ color: tournament.games.accent_color }} />
                     {tournament.leader ? (
-                      <>
-                        <p className="text-[11px] font-bold text-foreground line-clamp-1">
+                      <div className="min-w-0">
+                        <span className="text-[13px] font-medium truncate" style={{ color: 'rgba(255,255,255,0.75)' }}>
                           {tournament.leader.display_name}
-                        </p>
-                        <p className="text-[9px] text-muted-foreground">
-                          {tournament.leader.wins} {tournament.leader.wins === 1 ? 'win' : 'wins'}
-                        </p>
-                      </>
+                        </span>
+                        <span className="text-[13px] font-medium ml-1" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                          ({tournament.leader.wins} {tournament.leader.wins === 1 ? 'win' : 'wins'})
+                        </span>
+                      </div>
                     ) : (
-                      <p className="text-[10px] text-muted-foreground italic">
+                      <span className="text-[13px] font-medium" style={{ color: 'rgba(255,255,255,0.55)' }}>
                         No games yet
-                      </p>
+                      </span>
                     )}
                   </div>
 
                   {/* Stats */}
-                  <div className="space-y-0.5 mt-auto">
-                    <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
-                      <Users className="h-2 w-2" />
-                      <span>{tournament.total_games} {tournament.total_games === 1 ? 'game' : 'games'}</span>
+                  <div className="space-y-1.5 mt-auto">
+                    <div className="flex items-center gap-1.5">
+                      <Users className="h-3 w-3 shrink-0" style={{ color: 'rgba(255,255,255,0.55)' }} />
+                      <span className="text-[13px] font-medium" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                        {tournament.total_games} {tournament.total_games === 1 ? 'game' : 'games'}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
-                      <Clock className="h-2 w-2" />
-                      <span>Updated {formatDistanceToNow(new Date(tournament.updated_at), { addSuffix: true })}</span>
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="h-3 w-3 shrink-0" style={{ color: 'rgba(255,255,255,0.55)' }} />
+                      <span className="text-xs font-normal" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                        Updated {formatDistanceToNow(new Date(tournament.updated_at), { addSuffix: true })}
+                      </span>
                     </div>
                   </div>
                 </div>
