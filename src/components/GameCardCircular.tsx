@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useRef, useEffect } from "react";
 
 interface GameCardCircularProps {
   id: string;
@@ -8,8 +8,14 @@ interface GameCardCircularProps {
   image: string;
   canRemove?: boolean;
   onRemove?: () => void;
-  onDeleteModeChange?: (isActive: boolean) => void;
+  onLongPress?: () => void;
+  isDeleteMode?: boolean;
   shouldShake?: boolean;
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent) => void;
+  draggable?: boolean;
 }
 
 const GameCardCircular = ({
@@ -18,23 +24,22 @@ const GameCardCircular = ({
   image,
   canRemove = false,
   onRemove,
-  onDeleteModeChange,
+  onLongPress,
+  isDeleteMode = false,
   shouldShake = false,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDrop,
+  draggable = false,
 }: GameCardCircularProps) => {
   const navigate = useNavigate();
-  const [showRemove, setShowRemove] = useState(false);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // Exit delete mode when shouldShake becomes false
-  useEffect(() => {
-    if (!shouldShake && showRemove) {
-      setShowRemove(false);
-    }
-  }, [shouldShake, showRemove]);
-
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     // In delete mode, clicking the icon does nothing
-    if (showRemove) {
+    if (isDeleteMode) {
       return;
     }
     // Normal mode, navigate to game detail
@@ -45,16 +50,14 @@ const GameCardCircular = ({
     e.stopPropagation();
     if (onRemove) {
       onRemove();
-      // Don't exit delete mode - let user click elsewhere to exit
     }
   };
 
   const handlePressStart = () => {
-    if (canRemove) {
+    if (canRemove && !isDeleteMode) {
       longPressTimer.current = setTimeout(() => {
-        setShowRemove(true);
-        if (onDeleteModeChange) {
-          onDeleteModeChange(true);
+        if (onLongPress) {
+          onLongPress();
         }
       }, 2000); // 2 seconds
     }
@@ -84,7 +87,12 @@ const GameCardCircular = ({
         onMouseLeave={handlePressEnd}
         onTouchStart={handlePressStart}
         onTouchEnd={handlePressEnd}
-        className="group relative cursor-pointer"
+        draggable={draggable}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+        onDragOver={onDragOver}
+        onDrop={onDrop}
+        className={`group relative ${isDeleteMode ? 'cursor-move' : 'cursor-pointer'}`}
       >
         {/* Circular image container */}
         <div className={`w-16 h-16 rounded-full overflow-hidden border-2 border-border hover:border-primary transition-all duration-300 hover:scale-105 bg-card ${shouldShake ? 'animate-shake' : ''}`}>
@@ -92,11 +100,12 @@ const GameCardCircular = ({
             src={image}
             alt={title}
             className="w-full h-full object-cover"
+            draggable={false}
           />
         </div>
 
-        {/* Remove button - only shows after 2 second hold */}
-        {canRemove && showRemove && (
+        {/* Remove button - shows in delete mode */}
+        {canRemove && isDeleteMode && (
           <button
             onClick={handleRemove}
             className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive hover:bg-destructive/90 flex items-center justify-center z-10 shadow-md animate-scale-in"
