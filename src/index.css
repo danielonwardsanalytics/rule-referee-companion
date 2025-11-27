@@ -115,46 +115,46 @@ All colors MUST be HSL.
   }
 
   .dark {
-    /* Dark Mode - Enhanced Blue + Multi-Game Colors */
-    --background: 220 20% 10%;
-    --foreground: 220 15% 95%;
+    /* Dark Mode - Dark Navy + Bright Accents */
+    --background: 220 35% 7%;
+    --foreground: 220 15% 96%;
     
-    --card: 220 20% 14%;
-    --card-foreground: 220 15% 95%;
+    --card: 220 30% 12%;
+    --card-foreground: 220 15% 96%;
 
-    --popover: 220 20% 14%;
-    --popover-foreground: 220 15% 95%;
+    --popover: 220 30% 12%;
+    --popover-foreground: 220 15% 96%;
 
-    --primary: 220 90% 56%;
+    --primary: 220 95% 65%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 15% 20%;
-    --secondary-foreground: 220 15% 95%;
+    --secondary: 220 20% 18%;
+    --secondary-foreground: 220 15% 96%;
 
-    --muted: 220 15% 20%;
-    --muted-foreground: 220 15% 65%;
+    --muted: 220 20% 18%;
+    --muted-foreground: 220 15% 70%;
 
-    --accent: 45 90% 60%;
-    --accent-foreground: 220 70% 15%;
+    --accent: 45 95% 65%;
+    --accent-foreground: 220 70% 10%;
 
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 220 15% 95%;
+    --destructive: 0 85% 62%;
+    --destructive-foreground: 220 15% 96%;
 
-    --border: 220 15% 22%;
-    --input: 220 15% 22%;
-    --ring: 220 90% 56%;
+    --border: 220 20% 20%;
+    --input: 220 20% 20%;
+    --ring: 220 95% 65%;
     
-    /* Game accent colors (same as light) */
-    --game-uno: 0 84% 60%;
-    --game-skipbo: 217 91% 60%;
-    --game-phase10: 142 76% 36%;
-    --game-monopoly: 158 64% 52%;
+    /* Game accent colors - bright versions */
+    --game-uno: 0 90% 65%;
+    --game-skipbo: 217 95% 65%;
+    --game-phase10: 142 80% 50%;
+    --game-monopoly: 158 70% 60%;
     
     /* Gradients */
-    --gradient-background: linear-gradient(180deg, hsl(220 20% 10%), hsl(220 20% 8%));
-    --gradient-hero: linear-gradient(135deg, hsl(220 40% 20%), hsl(220 50% 30%));
-    --gradient-card: linear-gradient(180deg, hsl(220 20% 14%), hsl(220 20% 12%));
-    --gradient-accent: linear-gradient(135deg, hsl(45 90% 60%), hsl(35 90% 65%));
+    --gradient-background: linear-gradient(180deg, hsl(220 35% 7%), hsl(220 35% 5%));
+    --gradient-hero: linear-gradient(135deg, hsl(220 95% 65%), hsl(220 85% 70%));
+    --gradient-card: linear-gradient(180deg, hsl(220 30% 12%), hsl(220 30% 10%));
+    --gradient-accent: linear-gradient(135deg, hsl(45 95% 65%), hsl(35 95% 68%));
     
     /* Shadows */
     --shadow-soft: 0 2px 8px -2px hsl(0 0% 0% / 0.4);
