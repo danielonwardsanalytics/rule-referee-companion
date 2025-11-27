@@ -4,6 +4,11 @@ import { Reorder } from "framer-motion";
 import SelectGameModal from "./SelectGameModal";
 import GameCardCircular from "./GameCardCircular";
 import { useUserGames } from "@/hooks/useUserGames";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel";
 
 const MyGames = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -70,65 +75,72 @@ const MyGames = () => {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="flex items-start gap-2 overflow-x-auto pb-4 scrollbar-hide">
-            <Reorder.Group
-              axis="x"
-              values={orderedGames}
-              onReorder={handleReorder}
-              className="flex gap-2"
-              style={{ pointerEvents: isDeleteMode ? 'auto' : 'none' }}
-            >
-              {orderedGames.map((game) => (
-                <Reorder.Item
-                  key={game.game_id}
-                  value={game}
-                  drag={isDeleteMode}
-                  dragListener={isDeleteMode}
-                  dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-                  whileDrag={{
-                    scale: 1.1,
-                    zIndex: 1000,
-                    boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
-                  }}
-                  className="flex-shrink-0"
-                  style={{ pointerEvents: 'auto' }}
-                >
-                  <GameCardCircular
-                    id={game.games.slug}
-                    title={game.games.name}
-                    image={game.games.image_url || ""}
-                    canRemove={true}
-                    onRemove={() => handleRemoveGame(game.game_id)}
-                    onLongPress={handleEnterDeleteMode}
-                    isDeleteMode={isDeleteMode}
-                    shouldShake={isDeleteMode}
-                  />
-                </Reorder.Item>
-              ))}
-            </Reorder.Group>
-
-            {/* Empty slots */}
-            {Array.from({ length: TOTAL_SLOTS - orderedGames.length }).map((_, index) => (
-              <div 
-                key={`empty-${index}`}
-                className="flex flex-col items-center gap-2 w-[80px] flex-shrink-0"
+          <Carousel
+            opts={{
+              align: "start",
+              dragFree: true,
+            }}
+            className="w-full"
+          >
+            <CarouselContent className="-ml-2">
+              <Reorder.Group
+                axis="x"
+                values={orderedGames}
+                onReorder={handleReorder}
+                className="flex gap-2 pl-2"
+                style={{ pointerEvents: isDeleteMode ? 'auto' : 'none' }}
               >
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="w-16 h-16 rounded-full border-2 border-dashed border-border hover:border-primary bg-muted/30 hover:bg-muted/50 transition-all duration-300 flex items-center justify-center group"
-                  aria-label="Add game to this slot"
-                >
-                  <Plus className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:scale-110 transition-all" />
-                </button>
-                {/* Only show "Add Game" on first empty slot */}
-                {index === 0 && (
-                  <span className="text-xs text-center text-muted-foreground group-hover:text-foreground font-medium">
-                    Add Game
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
+                {orderedGames.map((game) => (
+                  <Reorder.Item
+                    key={game.game_id}
+                    value={game}
+                    drag={isDeleteMode}
+                    dragListener={isDeleteMode}
+                    dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+                    whileDrag={{
+                      scale: 1.1,
+                      zIndex: 1000,
+                      boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
+                    }}
+                    className="flex-shrink-0"
+                    style={{ pointerEvents: 'auto' }}
+                  >
+                    <GameCardCircular
+                      id={game.games.slug}
+                      title={game.games.name}
+                      image={game.games.image_url || ""}
+                      canRemove={true}
+                      onRemove={() => handleRemoveGame(game.game_id)}
+                      onLongPress={handleEnterDeleteMode}
+                      isDeleteMode={isDeleteMode}
+                      shouldShake={isDeleteMode}
+                    />
+                  </Reorder.Item>
+                ))}
+              </Reorder.Group>
+
+              {/* Empty slots */}
+              {Array.from({ length: TOTAL_SLOTS - orderedGames.length }).map((_, index) => (
+                <CarouselItem key={`empty-${index}`} className="pl-2 basis-auto">
+                  <div className="flex flex-col items-center gap-2 w-[80px] flex-shrink-0">
+                    <button
+                      onClick={() => setIsModalOpen(true)}
+                      className="w-16 h-16 rounded-full border-2 border-dashed border-border hover:border-primary bg-muted/30 hover:bg-muted/50 transition-all duration-300 flex items-center justify-center group"
+                      aria-label="Add game to this slot"
+                    >
+                      <Plus className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:scale-110 transition-all" />
+                    </button>
+                    {/* Only show "Add Game" on first empty slot */}
+                    {index === 0 && (
+                      <span className="text-xs text-center text-muted-foreground group-hover:text-foreground font-medium">
+                        Add Game
+                      </span>
+                    )}
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
         )}
       </section>
 
