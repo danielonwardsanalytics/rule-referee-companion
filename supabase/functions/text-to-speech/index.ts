@@ -51,12 +51,24 @@ serve(async (req) => {
     const audioBuffer = await response.arrayBuffer();
     console.log("[TTS] Audio buffer size:", audioBuffer.byteLength);
 
-    return new Response(audioBuffer, {
-      headers: { 
-        ...corsHeaders, 
-        "Content-Type": "audio/mpeg" 
-      },
-    });
+    // Convert audio buffer to base64 for safe JSON transport
+    const uint8Array = new Uint8Array(audioBuffer);
+    let binary = '';
+    for (let i = 0; i < uint8Array.length; i++) {
+      binary += String.fromCharCode(uint8Array[i]);
+    }
+    const base64Audio = btoa(binary);
+    console.log("[TTS] Audio encoded to base64, length:", base64Audio.length);
+
+    return new Response(
+      JSON.stringify({ audioContent: base64Audio }),
+      {
+        headers: { 
+          ...corsHeaders, 
+          "Content-Type": "application/json" 
+        },
+      }
+    );
   } catch (error) {
     console.error("[TTS] Error:", error);
     return new Response(
