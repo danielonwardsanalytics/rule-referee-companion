@@ -42,16 +42,16 @@ export const MyTournaments = () => {
       >
         <CarouselContent className="-ml-3">
           {tournaments.map((tournament, index) => (
-            <CarouselItem key={tournament.id} className="pl-3 basis-[120px] shrink-0">
+            <CarouselItem key={tournament.id} className="pl-3 basis-[140px] shrink-0">
               <div
                 onClick={() => navigate(`/tournaments/${tournament.id}`)}
-                className="group relative w-[120px] h-[200px] rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl border border-border flex-shrink-0"
+                className="group relative w-[140px] h-[240px] rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl border border-border flex-shrink-0"
                 style={{
                   animationDelay: `${index * 0.05}s`,
                 }}
               >
-                {/* Image Section (Top ~45%) */}
-                <div className="relative h-[90px] overflow-hidden rounded-t-lg">
+                {/* Image Section (Top ~40%) */}
+                <div className="relative h-[96px] overflow-hidden rounded-t-lg">
                   {tournament.games.image_url ? (
                     <>
                       {/* Game Image */}
@@ -86,36 +86,42 @@ export const MyTournaments = () => {
                   </div>
                 </div>
 
-                {/* Info Section (Bottom ~55%) */}
-                <div className="p-2 flex flex-col gap-1.5 h-[110px] bg-card">
+                {/* Info Section (Bottom ~60%) */}
+                <div className="p-2.5 flex flex-col gap-1.5 h-[144px] bg-card">
                   {/* Tournament Title */}
-                  <h3 className="text-xs font-bold text-foreground line-clamp-2">
+                  <h3 className="text-xs font-bold text-foreground line-clamp-2 mb-0.5">
                     {tournament.name}
                   </h3>
 
-                  {/* Leader Card */}
-                  {tournament.leader && (
-                    <div
-                      className="rounded p-1.5 border"
-                      style={{
-                        backgroundColor: `${tournament.games.accent_color}15`,
-                        borderColor: `${tournament.games.accent_color}40`,
-                      }}
-                    >
-                      <div className="flex items-center gap-0.5 mb-0.5">
-                        <Trophy className="h-2.5 w-2.5" style={{ color: tournament.games.accent_color }} />
-                        <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide">
-                          Leader
-                        </span>
-                      </div>
-                      <p className="text-[11px] font-bold text-foreground line-clamp-1">
-                        {tournament.leader.display_name}
-                      </p>
-                      <p className="text-[9px] text-muted-foreground">
-                        {tournament.leader.wins} {tournament.leader.wins === 1 ? 'win' : 'wins'}
-                      </p>
+                  {/* Leader Card - Always show, even if no leader yet */}
+                  <div
+                    className="rounded p-1.5 border flex-shrink-0"
+                    style={{
+                      backgroundColor: `${tournament.games.accent_color}15`,
+                      borderColor: `${tournament.games.accent_color}40`,
+                    }}
+                  >
+                    <div className="flex items-center gap-0.5 mb-0.5">
+                      <Trophy className="h-2.5 w-2.5" style={{ color: tournament.games.accent_color }} />
+                      <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide">
+                        Leader
+                      </span>
                     </div>
-                  )}
+                    {tournament.leader ? (
+                      <>
+                        <p className="text-[11px] font-bold text-foreground line-clamp-1">
+                          {tournament.leader.display_name}
+                        </p>
+                        <p className="text-[9px] text-muted-foreground">
+                          {tournament.leader.wins} {tournament.leader.wins === 1 ? 'win' : 'wins'}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground italic">
+                        No games yet
+                      </p>
+                    )}
+                  </div>
 
                   {/* Stats */}
                   <div className="space-y-0.5 mt-auto">
