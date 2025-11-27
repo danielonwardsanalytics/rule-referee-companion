@@ -43,7 +43,7 @@ const Home = () => {
         </svg>
 
         {/* Logo Container Centered in Orange Section */}
-        <div className="absolute top-[50px] left-1/2 -translate-x-1/2 z-10">
+        <div className="absolute top-[30px] left-1/2 -translate-x-1/2 z-10">
           <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-[#2C3E50] border-4 border-white shadow-xl flex items-center justify-center p-3">
             <img 
               src={logo} 
@@ -54,8 +54,8 @@ const Home = () => {
         </div>
 
         {/* Title in White Space Below Arc */}
-        <div className="absolute bottom-12 left-0 right-0 text-center z-10 px-4">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+        <div className="absolute bottom-[60px] left-0 right-0 text-center z-10 px-4">
+          <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
             Play sunrise to sunset
           </h1>
         </div>
