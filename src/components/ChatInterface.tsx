@@ -44,14 +44,18 @@ const ChatInterface = ({
     }
   }, [messages]);
 
-  const handleSend = async () => {
-    if (!input.trim()) return;
+  const handleSend = async (messageOverride?: string) => {
+    const messageToSend = messageOverride || input;
+    if (!messageToSend.trim()) return;
+    
+    // Clear input if using state input (not override)
+    if (!messageOverride) {
+      setInput("");
+    }
     
     // If this is a house rules context and we have a voice command handler, use it
     if (contextType === "house-rules" && onVoiceCommand) {
-      const userMessage = input;
-      setInput("");
-      const response = await onVoiceCommand(userMessage);
+      const response = await onVoiceCommand(messageToSend);
       if (isVoiceChatMode) {
         await speakResponse(response);
       }
@@ -59,8 +63,7 @@ const ChatInterface = ({
     }
     
     // Otherwise use the normal chat flow
-    const messageText = contextPrompt + input;
-    setInput("");
+    const messageText = contextPrompt + messageToSend;
     
     await sendMessage(messageText, async (aiResponse) => {
       // Only speak response if voice chat mode is enabled
@@ -202,22 +205,15 @@ const ChatInterface = ({
         
         if (data?.text) {
           console.log("[ChatInterface] Transcribed text:", data.text);
-          setInput(data.text);
           
-          // Auto-send for house rules context
-          if (contextType === "house-rules" && onVoiceCommand) {
-            console.log("[ChatInterface] House rules context, calling voice command handler");
-            const response = await onVoiceCommand(data.text);
-            if (isVoiceChatMode) {
-              await speakResponse(response);
-            }
-            setInput("");
-          } else if (isVoiceChatMode) {
+          // In voice chat mode, auto-send immediately without updating input state
+          if (isVoiceChatMode) {
             console.log("[ChatInterface] Voice chat mode active, auto-sending message");
-            // In voice chat mode, auto-send the transcribed message
-            await handleSend();
+            await handleSend(data.text);
           } else {
+            // Not in voice chat mode, just set the input for manual sending
             console.log("[ChatInterface] Voice chat mode not active, text set in input");
+            setInput(data.text);
           }
         } else {
           console.log("[ChatInterface] No text in transcription response");
@@ -303,7 +299,7 @@ const ChatInterface = ({
           <Button 
             size="icon" 
             variant="ghost"
-            onClick={handleSend} 
+            onClick={() => handleSend()} 
             disabled={isLoading || isProcessingCommand || !input.trim()}
             className="rounded-full h-10 w-10"
           >
