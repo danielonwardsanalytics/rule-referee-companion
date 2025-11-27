@@ -8,6 +8,7 @@ import { useUserGames } from "@/hooks/useUserGames";
 const MyGames = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteMode, setIsDeleteMode] = useState(false);
+  const [hasReordered, setHasReordered] = useState(false);
   const { userGames, isLoading, removeGame, reorderGames } = useUserGames();
   const [orderedGames, setOrderedGames] = useState(userGames);
 
@@ -26,17 +27,21 @@ const MyGames = () => {
   const handleExitDeleteMode = () => {
     if (isDeleteMode) {
       setIsDeleteMode(false);
-      // Save the current order
-      const consolidatedGames = orderedGames.map((game, index) => ({
-        gameId: game.game_id,
-        order: index,
-      }));
-      reorderGames(consolidatedGames);
+      // Only save the order if user actually reordered games
+      if (hasReordered) {
+        const consolidatedGames = orderedGames.map((game, index) => ({
+          gameId: game.game_id,
+          order: index,
+        }));
+        reorderGames(consolidatedGames);
+        setHasReordered(false);
+      }
     }
   };
 
   const handleReorder = (newOrder: typeof userGames) => {
     setOrderedGames(newOrder);
+    setHasReordered(true);
   };
 
   const handleRemoveGame = (gameId: string) => {
