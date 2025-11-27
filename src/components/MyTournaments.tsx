@@ -40,9 +40,9 @@ export const MyTournaments = () => {
         }}
         className="w-full"
       >
-        <CarouselContent className="-ml-3">
+        <CarouselContent className="-ml-4">
           {tournaments.map((tournament, index) => (
-            <CarouselItem key={tournament.id} className="pl-3 basis-[140px] shrink-0">
+            <CarouselItem key={tournament.id} className="pl-4 basis-[140px] shrink-0">
               <div
                 onClick={() => navigate(`/tournaments/${tournament.id}`)}
                 className="group relative w-[140px] h-[240px] rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl border border-border flex-shrink-0"
