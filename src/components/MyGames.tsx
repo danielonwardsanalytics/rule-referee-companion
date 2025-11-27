@@ -65,7 +65,7 @@ const MyGames = () => {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="flex items-start gap-2 overflow-x-auto pb-4">
+          <div className="flex items-start gap-2 overflow-x-auto pb-4 scrollbar-hide">
             <Reorder.Group
               axis="x"
               values={orderedGames}
