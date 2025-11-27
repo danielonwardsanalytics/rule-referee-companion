@@ -42,10 +42,10 @@ export const MyTournaments = () => {
       >
         <CarouselContent className="-ml-3">
           {tournaments.map((tournament, index) => (
-            <CarouselItem key={tournament.id} className="pl-3 basis-auto">
+            <CarouselItem key={tournament.id} className="pl-3 basis-[120px] shrink-0">
               <div
                 onClick={() => navigate(`/tournaments/${tournament.id}`)}
-                className="group relative min-w-[120px] max-w-[120px] h-[200px] rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl border border-border"
+                className="group relative w-[120px] h-[200px] rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl border border-border flex-shrink-0"
                 style={{
                   animationDelay: `${index * 0.05}s`,
                 }}
