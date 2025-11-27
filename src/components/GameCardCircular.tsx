@@ -8,6 +8,8 @@ interface GameCardCircularProps {
   image: string;
   canRemove?: boolean;
   onRemove?: () => void;
+  onDeleteModeChange?: (isActive: boolean) => void;
+  shouldShake?: boolean;
 }
 
 const GameCardCircular = ({
@@ -16,6 +18,8 @@ const GameCardCircular = ({
   image,
   canRemove = false,
   onRemove,
+  onDeleteModeChange,
+  shouldShake = false,
 }: GameCardCircularProps) => {
   const navigate = useNavigate();
   const [showRemove, setShowRemove] = useState(false);
@@ -32,6 +36,9 @@ const GameCardCircular = ({
     if (onRemove) {
       onRemove();
       setShowRemove(false);
+      if (onDeleteModeChange) {
+        onDeleteModeChange(false);
+      }
     }
   };
 
@@ -39,7 +46,10 @@ const GameCardCircular = ({
     if (canRemove) {
       longPressTimer.current = setTimeout(() => {
         setShowRemove(true);
-      }, 3000); // 3 seconds
+        if (onDeleteModeChange) {
+          onDeleteModeChange(true);
+        }
+      }, 2000); // 2 seconds
     }
   };
 
@@ -70,7 +80,7 @@ const GameCardCircular = ({
         className="group relative cursor-pointer"
       >
         {/* Circular image container */}
-        <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-border hover:border-primary transition-all duration-300 hover:scale-105 bg-card">
+        <div className={`w-16 h-16 rounded-full overflow-hidden border-2 border-border hover:border-primary transition-all duration-300 hover:scale-105 bg-card ${shouldShake ? 'animate-shake' : ''}`}>
           <img
             src={image}
             alt={title}
@@ -78,7 +88,7 @@ const GameCardCircular = ({
           />
         </div>
 
-        {/* Remove button - only shows after 3 second hold */}
+        {/* Remove button - only shows after 2 second hold */}
         {canRemove && showRemove && (
           <button
             onClick={handleRemove}
