@@ -64,29 +64,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Original Hero Section */}
-      <section className="relative h-[35vh] min-h-[300px] overflow-hidden animate-slide-down" aria-label="Hero section">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 via-green-300 to-teal-400">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.3),transparent_50%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(255,255,255,0.2),transparent_50%)]" />
-        </div>
-        
-        <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center text-center">
-          <div className="animate-scale-in mb-6">
-            <img 
-              src={logo} 
-              alt="House Rules" 
-              className="h-32 sm:h-40 lg:h-48 w-auto drop-shadow-2xl"
-            />
-          </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4 animate-slide-up drop-shadow-lg">
-            <span className="block">Your rules.</span>
-            <span className="block">Your game.</span>
-            <span className="block">No debates.</span>
-          </h1>
-        </div>
-      </section>
-
       {/* Quick Fire Question Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up" style={{ animationDelay: '0.2s' }} aria-label="Quick questions">
         <div className="bg-card border border-border rounded-2xl shadow-[var(--shadow-card)] overflow-hidden backdrop-blur-sm hover-lift">
