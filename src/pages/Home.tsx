@@ -29,22 +29,22 @@ const Home = () => {
 
       {/* New Hero Section - Sunrise Arc */}
       <section className="relative h-[35vh] min-h-[300px] overflow-hidden bg-white" aria-label="New hero section">
-        {/* Orange Arc - Gentle Upward Curve */}
+        {/* Orange Arc - Corrected Downward Curve */}
         <svg 
-          className="absolute inset-x-0 top-0 w-full h-[45%]" 
-          viewBox="0 0 1200 135" 
+          className="absolute inset-x-0 bottom-0 w-full h-[60%]" 
+          viewBox="0 0 1200 180" 
           preserveAspectRatio="none"
           xmlns="http://www.w3.org/2000/svg"
         >
           <path 
-            d="M 0,0 Q 600,135 1200,0 L 1200,0 L 0,0 Z" 
+            d="M 0,180 Q 600,0 1200,180 L 1200,180 L 0,180 Z" 
             fill="#F5A623"
           />
         </svg>
 
-        {/* Circular Logo Container at Arc Apex */}
-        <div className="absolute top-[50px] left-1/2 -translate-x-1/2 z-10">
-          <div className="w-20 h-20 rounded-full bg-white border-4 border-white shadow-lg flex items-center justify-center p-2.5">
+        {/* Logo Container at Arc Apex */}
+        <div className="absolute bottom-[120px] left-1/2 -translate-x-1/2 z-10">
+          <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full bg-[#2C3E50] border-4 border-white shadow-xl flex items-center justify-center p-3">
             <img 
               src={logo} 
               alt="House Rules" 
@@ -53,8 +53,8 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Title in White Space Below Arc */}
-        <div className="absolute bottom-16 left-0 right-0 text-center z-10">
+        {/* Title in White Space Above Arc */}
+        <div className="absolute top-12 left-0 right-0 text-center z-10">
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">
             Play sunrise to sunset
           </h1>
