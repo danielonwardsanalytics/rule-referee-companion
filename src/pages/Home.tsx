@@ -71,18 +71,18 @@ const Home = () => {
 
       {/* Unlock Premium Button - Only shown for non-premium users (free + trial) */}
       {!hasPremiumAccess || isTrial ? (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-center">
             <Button
-              size="lg"
-              className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-semibold px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all"
+              size="default"
+              className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-semibold px-6 shadow-lg hover:shadow-xl transition-all"
               onClick={() => startCheckout()}
               disabled={isCheckoutLoading}
             >
               {isCheckoutLoading ? (
-                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
-                <Crown className="h-5 w-5 mr-2" />
+                <Crown className="h-4 w-4 mr-2" />
               )}
               {isTrial ? "Continue After Trial" : "Unlock Unlimited House Rules"}
             </Button>
@@ -91,7 +91,7 @@ const Home = () => {
       ) : null}
 
       {/* Quick Fire Question Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8 animate-slide-up" style={{ animationDelay: '0.2s' }} aria-label="Quick questions">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 animate-slide-up" style={{ animationDelay: '0.2s' }} aria-label="Quick questions">
         <div className="bg-card border border-border rounded-2xl shadow-[var(--shadow-card)] overflow-hidden backdrop-blur-sm hover-lift">
           <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-5">
             <h2 className="text-2xl font-bold text-white">Quick Fire Question</h2>
