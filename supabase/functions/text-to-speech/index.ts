@@ -12,15 +12,22 @@ serve(async (req) => {
   }
 
   try {
+    console.log("[TTS] Function started");
     const { text, voice = "alloy" } = await req.json();
+    console.log("[TTS] Request received:", { textLength: text?.length, voice });
 
     if (!text) {
+      console.error("[TTS] No text provided");
       throw new Error("No text provided");
     }
 
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured");
+    if (!OPENAI_API_KEY) {
+      console.error("[TTS] OPENAI_API_KEY not configured");
+      throw new Error("OPENAI_API_KEY is not configured");
+    }
 
+    console.log("[TTS] Calling OpenAI API...");
     const response = await fetch("https://api.openai.com/v1/audio/speech", {
       method: "POST",
       headers: {
@@ -35,10 +42,14 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${await response.text()}`);
+      const errorText = await response.text();
+      console.error("[TTS] OpenAI API error:", response.status, errorText);
+      throw new Error(`OpenAI API error: ${errorText}`);
     }
 
+    console.log("[TTS] OpenAI API success, converting to buffer...");
     const audioBuffer = await response.arrayBuffer();
+    console.log("[TTS] Audio buffer size:", audioBuffer.byteLength);
 
     return new Response(audioBuffer, {
       headers: { 
@@ -47,7 +58,7 @@ serve(async (req) => {
       },
     });
   } catch (error) {
-    console.error("TTS error:", error);
+    console.error("[TTS] Error:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       {
