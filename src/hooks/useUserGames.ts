@@ -106,12 +106,44 @@ export const useUserGames = () => {
     },
   });
 
+  const reorderGamesMutation = useMutation({
+    mutationFn: async (games: { gameId: string; order: number }[]) => {
+      if (!user) throw new Error("User not authenticated");
+
+      // Update added_at timestamps to reflect new order
+      // Use descending timestamps so newest order = most recent
+      const baseTime = Date.now();
+      
+      const updates = games.map((game, index) => 
+        supabase
+          .from("user_games")
+          .update({ 
+            added_at: new Date(baseTime - (games.length - index) * 1000).toISOString() 
+          })
+          .eq("user_id", user.id)
+          .eq("game_id", game.gameId)
+      );
+
+      const results = await Promise.all(updates);
+      const error = results.find(r => r.error)?.error;
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-games"] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to reorder games");
+    },
+  });
+
   return {
     userGames,
     isLoading,
     addGame: addGameMutation.mutate,
     removeGame: removeGameMutation.mutate,
+    reorderGames: reorderGamesMutation.mutate,
     isAddingGame: addGameMutation.isPending,
     isRemovingGame: removeGameMutation.isPending,
+    isReordering: reorderGamesMutation.isPending,
   };
 };
