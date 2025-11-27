@@ -13,6 +13,13 @@ const MyGames = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { userGames, isLoading, removeGame } = useUserGames();
 
+  // Create 10 fixed slots
+  const TOTAL_SLOTS = 10;
+  const slots = Array.from({ length: TOTAL_SLOTS }, (_, index) => {
+    const userGame = userGames[index];
+    return userGame || null;
+  });
+
   return (
     <>
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -24,16 +31,6 @@ const MyGames = () => {
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        ) : userGames.length === 0 ? (
-          <div className="text-center py-12 bg-card rounded-xl border border-border">
-            <p className="text-muted-foreground mb-4">No games added yet</p>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="text-primary hover:text-primary/80 font-medium"
-            >
-              Add your first game
-            </button>
-          </div>
         ) : (
           <Carousel
             opts={{
@@ -43,34 +40,33 @@ const MyGames = () => {
             className="w-full"
           >
             <CarouselContent className="-ml-2">
-              {/* Game Cards */}
-              {userGames.map((userGame) => (
-                <CarouselItem key={userGame.games.id} className="pl-2 basis-auto">
-                  <GameCardCircular
-                    id={userGame.games.slug}
-                    title={userGame.games.name}
-                    image={userGame.games.image_url || ""}
-                    canRemove={true}
-                    onRemove={() => removeGame(userGame.game_id)}
-                  />
+              {/* 10 Fixed Slots */}
+              {slots.map((slot, index) => (
+                <CarouselItem key={index} className="pl-2 basis-auto">
+                  {slot ? (
+                    <GameCardCircular
+                      id={slot.games.slug}
+                      title={slot.games.name}
+                      image={slot.games.image_url || ""}
+                      canRemove={true}
+                      onRemove={() => removeGame(slot.game_id)}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 w-[80px]">
+                      <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="w-16 h-16 rounded-full border-2 border-dashed border-border hover:border-primary bg-muted/30 hover:bg-muted/50 transition-all duration-300 flex items-center justify-center group"
+                        aria-label="Add game to this slot"
+                      >
+                        <Plus className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:scale-110 transition-all" />
+                      </button>
+                      <span className="text-xs text-center text-muted-foreground font-medium">
+                        Empty
+                      </span>
+                    </div>
+                  )}
                 </CarouselItem>
               ))}
-
-              {/* Add Game Card - Now at the end */}
-              <CarouselItem className="pl-2 basis-auto">
-                <div className="flex flex-col items-center gap-2 w-[80px]">
-                  <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="w-16 h-16 rounded-full border-2 border-dashed border-border hover:border-primary bg-card/50 hover:bg-card transition-all duration-300 flex items-center justify-center group"
-                    aria-label="Add game"
-                  >
-                    <Plus className="h-6 w-6 text-primary group-hover:scale-110 transition-transform" />
-                  </button>
-                  <span className="text-xs text-center text-muted-foreground group-hover:text-foreground font-medium">
-                    Add Game
-                  </span>
-                </div>
-              </CarouselItem>
             </CarouselContent>
           </Carousel>
         )}
