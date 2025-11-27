@@ -33,13 +33,13 @@ export const MyTournaments = () => {
           <div
             key={tournament.id}
             onClick={() => navigate(`/tournaments/${tournament.id}`)}
-            className="group relative min-w-[160px] max-w-[160px] h-[260px] rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl snap-start border border-border flex-shrink-0"
+            className="group relative min-w-[120px] max-w-[120px] h-[200px] rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl snap-start border border-border flex-shrink-0"
             style={{
               animationDelay: `${index * 0.05}s`,
             }}
           >
             {/* Image Section (Top ~45%) */}
-            <div className="relative h-[120px] overflow-hidden rounded-t-lg">
+            <div className="relative h-[90px] overflow-hidden rounded-t-lg">
               {tournament.games.image_url ? (
                 <>
                   {/* Game Image */}
@@ -75,44 +75,44 @@ export const MyTournaments = () => {
             </div>
 
             {/* Info Section (Bottom ~55%) */}
-            <div className="p-3 flex flex-col gap-2 h-[140px] bg-card">
+            <div className="p-2 flex flex-col gap-1.5 h-[110px] bg-card">
               {/* Tournament Title */}
-              <h3 className="text-sm font-bold text-foreground line-clamp-2">
+              <h3 className="text-xs font-bold text-foreground line-clamp-2">
                 {tournament.name}
               </h3>
 
               {/* Leader Card */}
               {tournament.leader && (
                 <div
-                  className="rounded-md p-2 border"
+                  className="rounded p-1.5 border"
                   style={{
                     backgroundColor: `${tournament.games.accent_color}15`,
                     borderColor: `${tournament.games.accent_color}40`,
                   }}
                 >
-                  <div className="flex items-center gap-1 mb-0.5">
-                    <Trophy className="h-3 w-3" style={{ color: tournament.games.accent_color }} />
-                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                  <div className="flex items-center gap-0.5 mb-0.5">
+                    <Trophy className="h-2.5 w-2.5" style={{ color: tournament.games.accent_color }} />
+                    <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide">
                       Leader
                     </span>
                   </div>
-                  <p className="text-xs font-bold text-foreground line-clamp-1">
+                  <p className="text-[11px] font-bold text-foreground line-clamp-1">
                     {tournament.leader.display_name}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-[9px] text-muted-foreground">
                     {tournament.leader.wins} {tournament.leader.wins === 1 ? 'win' : 'wins'}
                   </p>
                 </div>
               )}
 
               {/* Stats */}
-              <div className="space-y-1 mt-auto">
-                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                  <Users className="h-2.5 w-2.5" />
+              <div className="space-y-0.5 mt-auto">
+                <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
+                  <Users className="h-2 w-2" />
                   <span>{tournament.total_games} {tournament.total_games === 1 ? 'game' : 'games'}</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                  <Clock className="h-2.5 w-2.5" />
+                <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
+                  <Clock className="h-2 w-2" />
                   <span>Updated {formatDistanceToNow(new Date(tournament.updated_at), { addSuffix: true })}</span>
                 </div>
               </div>
