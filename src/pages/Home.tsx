@@ -44,7 +44,7 @@ const Home = () => {
 
         {/* Logo Container Centered in Orange Section */}
         <div className="absolute top-[15px] left-1/2 -translate-x-1/2 z-10">
-          <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-[#2C3E50] border-4 border-[#D97706] shadow-xl flex items-center justify-center p-1">
+          <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-[#2C3E50] border-4 border-[#D97706] shadow-xl flex items-center justify-center p-0">
             <img 
               src={logo} 
               alt="House Rules" 
