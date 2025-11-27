@@ -12,9 +12,9 @@ export const MyTournaments = () => {
     return (
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up" style={{ animationDelay: '0.3s' }}>
         <h2 className="text-2xl font-bold text-foreground mb-4">My Tournaments</h2>
-        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+        <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
           {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} className="min-w-[200px] h-[280px] rounded-xl" />
+            <Skeleton key={i} className="min-w-[160px] h-[260px] rounded-xl" />
           ))}
         </div>
       </section>
@@ -26,20 +26,20 @@ export const MyTournaments = () => {
   }
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up" style={{ animationDelay: '0.3s' }}>
-      <h2 className="text-2xl font-bold text-foreground mb-4">My Tournaments</h2>
-      <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 animate-slide-up" style={{ animationDelay: '0.3s' }}>
+      <h2 className="text-xl font-bold text-foreground mb-3">My Tournaments</h2>
+      <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
         {tournaments.map((tournament, index) => (
           <div
             key={tournament.id}
             onClick={() => navigate(`/tournaments/${tournament.id}`)}
-            className="group relative min-w-[200px] max-w-[200px] h-[340px] rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl snap-start border border-border"
+            className="group relative min-w-[160px] max-w-[160px] h-[260px] rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl snap-start border border-border flex-shrink-0"
             style={{
               animationDelay: `${index * 0.05}s`,
             }}
           >
             {/* Image Section (Top ~45%) */}
-            <div className="relative h-[150px] overflow-hidden rounded-t-xl">
+            <div className="relative h-[120px] overflow-hidden rounded-t-lg">
               {tournament.games.image_url ? (
                 <>
                   {/* Game Image */}
@@ -63,56 +63,56 @@ export const MyTournaments = () => {
 
               {/* Game Name Badge - Bottom Left of Image */}
               <div
-                className="absolute bottom-2 left-2 px-3 py-1 rounded-md bg-black/70 backdrop-blur-sm border"
+                className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded bg-black/70 backdrop-blur-sm border"
                 style={{
                   borderColor: `${tournament.games.accent_color}60`,
                 }}
               >
-                <span className="text-xs font-semibold text-white">
+                <span className="text-[10px] font-semibold text-white">
                   {tournament.games.name}
                 </span>
               </div>
             </div>
 
             {/* Info Section (Bottom ~55%) */}
-            <div className="p-4 flex flex-col gap-3 h-[190px] bg-card">
+            <div className="p-3 flex flex-col gap-2 h-[140px] bg-card">
               {/* Tournament Title */}
-              <h3 className="text-base font-bold text-foreground line-clamp-2">
+              <h3 className="text-sm font-bold text-foreground line-clamp-2">
                 {tournament.name}
               </h3>
 
               {/* Leader Card */}
               {tournament.leader && (
                 <div
-                  className="rounded-lg p-2.5 border"
+                  className="rounded-md p-2 border"
                   style={{
                     backgroundColor: `${tournament.games.accent_color}15`,
                     borderColor: `${tournament.games.accent_color}40`,
                   }}
                 >
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Trophy className="h-3.5 w-3.5" style={{ color: tournament.games.accent_color }} />
-                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  <div className="flex items-center gap-1 mb-0.5">
+                    <Trophy className="h-3 w-3" style={{ color: tournament.games.accent_color }} />
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
                       Leader
                     </span>
                   </div>
-                  <p className="text-sm font-bold text-foreground line-clamp-1">
+                  <p className="text-xs font-bold text-foreground line-clamp-1">
                     {tournament.leader.display_name}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[10px] text-muted-foreground">
                     {tournament.leader.wins} {tournament.leader.wins === 1 ? 'win' : 'wins'}
                   </p>
                 </div>
               )}
 
               {/* Stats */}
-              <div className="space-y-1.5 mt-auto">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Users className="h-3 w-3" />
-                  <span>{tournament.total_games} {tournament.total_games === 1 ? 'game' : 'games'} played</span>
+              <div className="space-y-1 mt-auto">
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <Users className="h-2.5 w-2.5" />
+                  <span>{tournament.total_games} {tournament.total_games === 1 ? 'game' : 'games'}</span>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3" />
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <Clock className="h-2.5 w-2.5" />
                   <span>Updated {formatDistanceToNow(new Date(tournament.updated_at), { addSuffix: true })}</span>
                 </div>
               </div>
