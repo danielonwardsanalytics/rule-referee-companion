@@ -32,6 +32,7 @@ const ChatInterface = ({
   const [isVoiceChatMode, setIsVoiceChatMode] = useState(false);
   const [voiceChatModeWhenRecording, setVoiceChatModeWhenRecording] = useState(false);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
+  const [realtimeMessages, setRealtimeMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -271,11 +272,39 @@ const ChatInterface = ({
         ? `You are a helpful card game rules expert specifically for ${gameName}. Answer questions clearly and concisely about ${gameName} rules, strategies, and common questions. Keep responses under 3 sentences unless more detail is requested.`
         : "You are a helpful card game rules expert. Answer questions clearly and concisely about game rules, strategies, and common questions. Keep responses under 3 sentences unless more detail is requested.";
 
+      let currentAssistantMessage = "";
+
       realtimeChatRef.current = new RealtimeChat(
         (event) => {
           console.log("[ChatInterface] Realtime event:", event.type);
+          
+          // Handle user's speech transcription
+          if (event.type === 'conversation.item.input_audio_transcription.completed') {
+            const transcript = event.transcript || "";
+            if (transcript.trim()) {
+              setRealtimeMessages(prev => [...prev, { role: 'user', content: transcript }]);
+            }
+          }
+          
+          // Handle assistant's response transcript (streaming)
           if (event.type === 'response.audio_transcript.delta') {
-            // Handle transcript if needed
+            const delta = event.delta || "";
+            currentAssistantMessage += delta;
+            
+            // Update or create assistant message
+            setRealtimeMessages(prev => {
+              const lastMsg = prev[prev.length - 1];
+              if (lastMsg?.role === 'assistant') {
+                return [...prev.slice(0, -1), { role: 'assistant', content: currentAssistantMessage }];
+              } else {
+                return [...prev, { role: 'assistant', content: currentAssistantMessage }];
+              }
+            });
+          }
+          
+          // Reset assistant message on response completion
+          if (event.type === 'response.audio_transcript.done') {
+            currentAssistantMessage = "";
           }
         },
         contextInstructions,
@@ -297,6 +326,7 @@ const ChatInterface = ({
     realtimeChatRef.current?.disconnect();
     realtimeChatRef.current = null;
     setIsRealtimeConnected(false);
+    setRealtimeMessages([]);
     toast.success("Voice chat disconnected");
   };
 
@@ -315,12 +345,28 @@ const ChatInterface = ({
         </div>
       </div>
 
-      {messages.length > 0 && (
+      {(messages.length > 0 || realtimeMessages.length > 0) && (
         <ScrollArea className="h-[300px] mb-4" ref={scrollRef}>
           <div className="space-y-4 p-4">
             {messages.map((msg, idx) => (
               <div
-                key={idx}
+                key={`msg-${idx}`}
+                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+              >
+                <div
+                  className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                    msg.role === "user"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground"
+                  }`}
+                >
+                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                </div>
+              </div>
+            ))}
+            {realtimeMessages.map((msg, idx) => (
+              <div
+                key={`rt-${idx}`}
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
