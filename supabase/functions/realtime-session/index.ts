@@ -17,7 +17,7 @@ serve(async (req) => {
       throw new Error('OPENAI_API_KEY is not set');
     }
 
-    const { instructions, voice = "alloy" } = await req.json();
+    const { instructions, voice = "alloy", gameName, houseRules } = await req.json();
 
     // Request an ephemeral token from OpenAI Realtime API
     const response = await fetch("https://api.openai.com/v1/realtime/sessions", {
@@ -29,7 +29,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "gpt-4o-realtime-preview-2024-12-17",
         voice: voice,
-        instructions: instructions || "You are a helpful card game rules expert. Answer questions clearly and concisely about game rules, strategies, and common questions. Keep responses under 3 sentences unless more detail is requested."
+        instructions: instructions || buildInstructions(gameName, houseRules)
       }),
     });
 
@@ -53,3 +53,27 @@ serve(async (req) => {
     });
   }
 });
+
+function buildInstructions(gameName?: string, houseRules?: string[]): string {
+  let instructions = "You are a helpful card game rules expert. ";
+  
+  if (gameName) {
+    instructions += `You are specifically answering questions about ${gameName}. `;
+  }
+  
+  instructions += "Answer questions clearly and concisely about game rules, strategies, and common questions. ";
+  
+  if (houseRules && houseRules.length > 0) {
+    instructions += `\n\nIMPORTANT: The user has these custom HOUSE RULES active for ${gameName || "this game"}:\n`;
+    houseRules.forEach((rule, idx) => {
+      instructions += `${idx + 1}. ${rule}\n`;
+    });
+    instructions += "\nWhen answering questions, consider BOTH the official rules AND these house rules. ";
+    instructions += "If a house rule contradicts an official rule, the house rule takes precedence. ";
+    instructions += "Always mention when you're referencing a house rule vs. an official rule. ";
+  }
+  
+  instructions += "Keep responses under 3 sentences unless more detail is requested.";
+  
+  return instructions;
+}
