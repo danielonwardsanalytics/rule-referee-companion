@@ -9,7 +9,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages } = await req.json();
+    const { messages, gameName, houseRules } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -24,7 +24,7 @@ serve(async (req) => {
         messages: [
           { 
             role: "system", 
-            content: "You are a helpful card game rules expert. You know all the official rules for popular card games like Uno, Phase 10, Monopoly Deal, and Skip-Bo. Provide clear, concise answers about game rules and help resolve disputes. If you're not sure about a specific rule, recommend checking the official rulebook." 
+            content: buildSystemPrompt(gameName, houseRules)
           },
           ...messages,
         ],
@@ -64,3 +64,28 @@ serve(async (req) => {
     });
   }
 });
+
+function buildSystemPrompt(gameName?: string, houseRules?: string[]): string {
+  let prompt = "You are a helpful card game rules expert. ";
+  
+  if (gameName) {
+    prompt += `You are specifically answering questions about ${gameName}. `;
+  }
+  
+  prompt += "You know all the official rules for popular card games like Uno, Phase 10, Monopoly Deal, and Skip-Bo. ";
+  
+  if (houseRules && houseRules.length > 0) {
+    prompt += `\n\nIMPORTANT: The user has these custom HOUSE RULES active for ${gameName || "this game"}:\n`;
+    houseRules.forEach((rule, idx) => {
+      prompt += `${idx + 1}. ${rule}\n`;
+    });
+    prompt += "\nWhen answering questions, consider BOTH the official rules AND these house rules. ";
+    prompt += "If a house rule contradicts an official rule, the house rule takes precedence. ";
+    prompt += "Always mention when you're referencing a house rule vs. an official rule.";
+  } else {
+    prompt += "Provide clear, concise answers about game rules and help resolve disputes. ";
+    prompt += "If you're not sure about a specific rule, recommend checking the official rulebook.";
+  }
+  
+  return prompt;
+}

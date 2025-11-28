@@ -123,7 +123,7 @@ const TournamentDetail = () => {
             </p>
           </CardHeader>
           <CardContent>
-            <ChatInterface gameName={tournament.games.name} />
+            <ChatInterface gameName={tournament.games.name} gameId={tournament.game_id} />
           </CardContent>
         </Card>
 

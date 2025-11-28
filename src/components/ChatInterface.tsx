@@ -7,9 +7,11 @@ import { toast } from "sonner";
 import { useRealtimeChat } from "@/hooks/useRealtimeChat";
 import { supabase } from "@/integrations/supabase/client";
 import { RealtimeChat } from "@/utils/RealtimeAudio";
+import { useActiveHouseRules } from "@/hooks/useActiveHouseRules";
 
 interface ChatInterfaceProps {
   gameName?: string;
+  gameId?: string;
   voice?: string;
   onVoiceCommand?: (command: string) => Promise<string>;
   isProcessingCommand?: boolean;
@@ -18,14 +20,17 @@ interface ChatInterfaceProps {
 }
 
 const ChatInterface = ({ 
-  gameName, 
+  gameName,
+  gameId,
   voice = "alloy",
   onVoiceCommand,
   isProcessingCommand = false,
   contextType = "game",
   contextId
 }: ChatInterfaceProps) => {
-  const { messages, sendMessage, isLoading, clearMessages } = useRealtimeChat();
+  const { data: houseRulesData } = useActiveHouseRules(gameId);
+  const houseRules = houseRulesData?.rules || [];
+  const { messages, sendMessage, isLoading, clearMessages } = useRealtimeChat(gameName, houseRules);
   const [input, setInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -308,7 +313,9 @@ const ChatInterface = ({
           }
         },
         contextInstructions,
-        voice
+        voice,
+        gameName,
+        houseRules
       );
 
       await realtimeChatRef.current.init();
@@ -339,6 +346,19 @@ const ChatInterface = ({
   return (
     <div className="w-full flex flex-col">
       <audio ref={audioRef} onEnded={() => setIsSpeaking(false)} />
+      
+      {/* House Rules Active Indicator */}
+      {houseRulesData && houseRules.length > 0 && (
+        <div className="mb-3 px-3 py-2 bg-primary/10 border border-primary/20 rounded-lg">
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+            <span className="text-sm font-medium text-primary">
+              🏠 House Rules Active: {houseRulesData.ruleSetName}
+            </span>
+          </div>
+        </div>
+      )}
+      
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           {isSpeaking && <Volume2 className="h-5 w-5 text-primary animate-pulse" />}

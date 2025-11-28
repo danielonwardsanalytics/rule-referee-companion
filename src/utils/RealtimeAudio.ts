@@ -69,7 +69,9 @@ export class RealtimeChat {
   constructor(
     private onMessage: (message: any) => void,
     private instructions?: string,
-    private voice?: string
+    private voice?: string,
+    private gameName?: string,
+    private houseRules?: string[]
   ) {
     this.audioEl = document.createElement("audio");
     this.audioEl.autoplay = true;
@@ -83,7 +85,9 @@ export class RealtimeChat {
       const { data, error } = await supabase.functions.invoke("realtime-session", {
         body: { 
           instructions: this.instructions,
-          voice: this.voice 
+          voice: this.voice,
+          gameName: this.gameName,
+          houseRules: this.houseRules
         }
       });
 
