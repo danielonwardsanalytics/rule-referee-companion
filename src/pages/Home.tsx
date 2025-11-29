@@ -50,7 +50,7 @@ const Home = () => {
             Play sunrise to sunset...
           </h1>
           <p className="text-sm sm:text-base font-normal text-muted-foreground mt-1">
-            Lets Play!
+            Your game. No debates.
           </p>
         </div>
       </section>
