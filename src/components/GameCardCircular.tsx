@@ -69,7 +69,7 @@ const GameCardCircular = ({
   }, []);
 
   return (
-    <div className="flex flex-col items-center gap-2 w-[80px] pt-2">
+    <div className="flex flex-col items-center gap-2 w-[90px] pt-2">
       <div
         onClick={handleClick}
         onMouseDown={handlePressStart}
@@ -80,7 +80,7 @@ const GameCardCircular = ({
         className={`group relative ${isDeleteMode ? 'cursor-move' : 'cursor-pointer'}`}
       >
         {/* Circular image container */}
-        <div className={`w-16 h-16 rounded-full overflow-hidden border-2 border-border hover:border-primary transition-all duration-300 hover:scale-105 bg-card ${shouldShake ? 'animate-shake' : ''}`}>
+        <div className={`w-20 h-20 rounded-full overflow-hidden border-2 border-border hover:border-primary transition-all duration-300 hover:scale-105 bg-card ${shouldShake ? 'animate-shake' : ''}`}>
           <img
             src={image}
             alt={title}
