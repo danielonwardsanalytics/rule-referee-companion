@@ -106,7 +106,7 @@ export const MyTournaments = () => {
                   }}
                 >
                   {/* Tournament Title */}
-                  <h3 className="text-base font-semibold line-clamp-2" style={{ color: 'rgba(255,255,255,0.95)' }}>
+                  <h3 className="text-base font-semibold line-clamp-2 leading-relaxed pb-1" style={{ color: 'rgba(255,255,255,0.95)' }}>
                     {tournament.name}
                   </h3>
 
