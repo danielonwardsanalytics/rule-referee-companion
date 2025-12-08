@@ -20,7 +20,7 @@ export const MyTournaments = () => {
         <h2 className="text-2xl font-bold text-foreground mb-4">My Tournaments</h2>
         <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
           {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} className="min-w-[160px] h-[260px] rounded-xl" />
+            <Skeleton key={i} className="min-w-[160px] h-[290px] rounded-xl" />
           ))}
         </div>
       </section>
@@ -56,7 +56,7 @@ export const MyTournaments = () => {
             <CarouselItem key={tournament.id} className="pl-4 basis-[140px] shrink-0">
               <div
                 onClick={() => navigate(`/tournaments/${tournament.id}`)}
-                className="group relative w-[140px] h-[260px] rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl border border-border flex-shrink-0"
+                className="group relative w-[140px] h-[290px] rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl border border-border flex-shrink-0"
                 style={{
                   animationDelay: `${index * 0.05}s`,
                 }}
@@ -99,7 +99,7 @@ export const MyTournaments = () => {
 
                 {/* Info Section (Bottom ~60%) */}
                 <div 
-                  className="px-4 py-4 flex flex-col gap-2 h-[164px] rounded-b-lg border border-white/[0.08]"
+                  className="px-4 py-4 flex flex-col gap-2 h-[194px] rounded-b-lg border border-white/[0.08]"
                   style={{
                     backgroundColor: '#151820',
                     boxShadow: '0 2px 6px rgba(0,0,0,0.35)',
