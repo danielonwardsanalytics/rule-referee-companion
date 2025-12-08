@@ -133,13 +133,13 @@ const MyGames = () => {
               {/* Empty slots */}
               {Array.from({ length: TOTAL_SLOTS - orderedGames.length }).map((_, index) => (
                 <CarouselItem key={`empty-${index}`} className="pl-2 basis-auto">
-                  <div className="flex flex-col items-center gap-2 w-[80px] flex-shrink-0">
+                  <div className="flex flex-col items-center gap-2 w-[90px] pt-2 flex-shrink-0">
                     <button
                       onClick={() => setIsModalOpen(true)}
-                      className="w-16 h-16 rounded-full border-2 border-dashed border-border hover:border-primary bg-muted/30 hover:bg-muted/50 transition-all duration-300 flex items-center justify-center group"
+                      className="w-20 h-20 rounded-full border-2 border-dashed border-border hover:border-primary bg-muted/30 hover:bg-muted/50 transition-all duration-300 flex items-center justify-center group"
                       aria-label="Add game to this slot"
                     >
-                      <Plus className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:scale-110 transition-all" />
+                      <Plus className="h-6 w-6 text-muted-foreground group-hover:text-primary group-hover:scale-110 transition-all" />
                     </button>
                     {/* Only show "Add Game" on first empty slot */}
                     {index === 0 && (
