@@ -6,10 +6,13 @@ const corsHeaders = {
 };
 
 interface RuleCommand {
-  action: "add" | "edit" | "delete" | "reorder";
+  action: "add" | "edit" | "delete" | "reorder" | "none";
   ruleText?: string;
   ruleIndex?: number;
   newPosition?: number;
+  ruleSetName?: string;
+  elaboration?: string;
+  needsConfirmation?: boolean;
 }
 
 Deno.serve(async (req) => {
@@ -48,10 +51,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { command, ruleSetId, currentRules } = await req.json();
+    const { command, ruleSetId, currentRules, userRuleSets, mode = "parse" } = await req.json();
+
+    // Build context about user's rule sets for name matching
+    const ruleSetContext = userRuleSets && userRuleSets.length > 0 
+      ? `\nUser's available rule sets:\n${userRuleSets.map((rs: any) => `- "${rs.name}" (ID: ${rs.id}, Game: ${rs.game_name})`).join("\n")}`
+      : "";
 
     // Use Lovable AI to parse the natural language command
-    const parseResponse = await fetch("https://api.lovable.app/ai/chat", {
+    const parseResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -62,22 +70,66 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a house rules command parser. Parse natural language commands about card game house rules.
-            
-Current rules in the set:
-${currentRules.map((r: any, i: number) => `${i + 1}. ${r.rule_text}`).join("\n")}
+            content: `You are an intelligent house rules command parser for a card game app. You understand natural language requests about managing custom game rules.
 
-Parse the user's command and return a JSON object with:
-- action: "add" | "edit" | "delete" | "reorder"
-- ruleText: the full rule text (for add/edit)
-- ruleIndex: the rule number (0-based, for edit/delete/reorder)
-- newPosition: the new position (0-based, for reorder)
+IMPORTANT: Users can phrase their requests in many different ways. Understand the INTENT, not just specific keywords.
 
-Examples:
-"add a rule: no skipping turns" -> {"action": "add", "ruleText": "No skipping turns"}
-"change rule 2 to draw 4 cards" -> {"action": "edit", "ruleIndex": 1, "ruleText": "Draw 4 cards"}
-"remove rule 3" -> {"action": "delete", "ruleIndex": 2}
-"move rule 1 to position 3" -> {"action": "reorder", "ruleIndex": 0, "newPosition": 2}
+Current rule set being edited:
+${currentRules && currentRules.length > 0 
+  ? currentRules.map((r: any, i: number) => `${i + 1}. ${r.rule_text}`).join("\n")
+  : "(No rules yet)"}
+${ruleSetContext}
+
+UNDERSTAND THESE TYPES OF REQUESTS:
+
+ADD RULES - User wants to create a new rule:
+- "add a rule: no skipping turns"
+- "can you add that players must draw 2 cards when they skip?"
+- "I want a new rule where you can't stack draw fours"
+- "put in a rule about..."
+- "create a rule for..."
+- "we should have a rule that..."
+
+EDIT RULES - User wants to change an existing rule:
+- "change rule 2 to draw 4 cards instead"
+- "update the rule about stacking"
+- "can you modify rule 3 to say..."
+- "fix the second rule to..."
+- "edit rule 1"
+
+DELETE RULES - User wants to remove a rule:
+- "remove rule 3"
+- "delete the stacking rule"
+- "get rid of rule 1"
+- "take out the rule about..."
+
+REORDER RULES - User wants to move a rule:
+- "move rule 1 to position 3"
+- "put the first rule at the end"
+- "reorder so rule 2 comes first"
+
+RULE SET SWITCHING - User mentions a different rule set:
+- "in Dan's rules, add..."
+- "for my Friday night UNO rules..."
+- "switch to the family rules and..."
+
+Parse the command and return a JSON object:
+{
+  "action": "add" | "edit" | "delete" | "reorder" | "none",
+  "ruleText": "the full rule text (for add/edit)",
+  "ruleIndex": 0, // 0-based index (for edit/delete/reorder)
+  "newPosition": 0, // 0-based position (for reorder)
+  "ruleSetName": "name of rule set if user mentions one different from current",
+  "elaboration": "A friendly confirmation message describing what you understood. Example: 'I understood you want to add the rule: Players must draw 2 cards when they skip a turn. Should I add this?'",
+  "needsConfirmation": true // always true for parse mode
+}
+
+If you can't understand the request or it's not about rule management, return:
+{
+  "action": "none",
+  "elaboration": "I'm not sure what you'd like me to do. Could you try rephrasing? For example, you can say 'add a rule about...' or 'change rule 2 to...'",
+  "needsConfirmation": false
+}
 
 Return ONLY the JSON object, no other text.`,
           },
@@ -90,15 +142,54 @@ Return ONLY the JSON object, no other text.`,
     });
 
     if (!parseResponse.ok) {
+      const errorText = await parseResponse.text();
+      console.error("AI parse error:", errorText);
       throw new Error("Failed to parse command");
     }
 
     const aiResult = await parseResponse.json();
-    const parsedCommand: RuleCommand = JSON.parse(
-      aiResult.choices[0].message.content
-    );
+    let parsedCommand: RuleCommand;
+    
+    try {
+      const content = aiResult.choices[0].message.content;
+      // Handle potential markdown code blocks
+      const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/```\s*([\s\S]*?)\s*```/);
+      const jsonStr = jsonMatch ? jsonMatch[1] : content;
+      parsedCommand = JSON.parse(jsonStr.trim());
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError, aiResult.choices[0].message.content);
+      throw new Error("Failed to parse AI response");
+    }
 
-    // Execute the command
+    // If mode is "parse", return the parsed command without executing
+    if (mode === "parse") {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          needsConfirmation: true,
+          elaboration: parsedCommand.elaboration || `I understood you want to ${parsedCommand.action} a rule. Should I proceed?`,
+          command: parsedCommand,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Mode is "execute" - carry out the command
+    if (parsedCommand.action === "none") {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: parsedCommand.elaboration || "I couldn't understand that command.",
+          command: parsedCommand,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     let result;
     let responseMessage = "";
 
@@ -116,7 +207,7 @@ Return ONLY the JSON object, no other text.`,
 
         if (error) throw error;
         result = data;
-        responseMessage = `I've added the new rule: "${parsedCommand.ruleText}"`;
+        responseMessage = `Done! I've added the rule: "${parsedCommand.ruleText}"`;
         break;
       }
 
@@ -133,7 +224,7 @@ Return ONLY the JSON object, no other text.`,
 
         if (error) throw error;
         result = data;
-        responseMessage = `I've updated rule ${parsedCommand.ruleIndex! + 1} to: "${parsedCommand.ruleText}"`;
+        responseMessage = `Done! I've updated rule ${parsedCommand.ruleIndex! + 1} to: "${parsedCommand.ruleText}"`;
         break;
       }
 
@@ -159,7 +250,7 @@ Return ONLY the JSON object, no other text.`,
             .eq("id", remainingRules[i].id);
         }
 
-        responseMessage = `I've removed rule ${parsedCommand.ruleIndex! + 1}`;
+        responseMessage = `Done! I've removed rule ${parsedCommand.ruleIndex! + 1}`;
         break;
       }
 
@@ -179,7 +270,7 @@ Return ONLY the JSON object, no other text.`,
             .eq("id", updatedRules[i].id);
         }
 
-        responseMessage = `I've moved rule ${parsedCommand.ruleIndex! + 1} to position ${parsedCommand.newPosition! + 1}`;
+        responseMessage = `Done! I've moved rule ${parsedCommand.ruleIndex! + 1} to position ${parsedCommand.newPosition! + 1}`;
         break;
       }
     }
