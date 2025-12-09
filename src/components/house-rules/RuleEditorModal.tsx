@@ -590,7 +590,7 @@ ${ruleText ? `Current rule being edited: "${ruleText}"` : "Creating a new rule."
                     variant={isVoiceChatActive ? "default" : "ghost"}
                     onClick={toggleVoiceChat}
                     disabled={isProcessing || isSaving || isVoiceChatConnecting}
-                    className={`rounded-full h-7 w-7 ${isVoiceChatActive ? "bg-primary animate-pulse" : ""}`}
+                    className={`rounded-full h-7 w-7 ${isVoiceChatActive ? "bg-primary animate-pulse-glow" : ""}`}
                     title={isVoiceChatActive ? "Stop voice chat" : "Start voice chat"}
                   >
                     {isVoiceChatConnecting ? (
@@ -602,12 +602,11 @@ ${ruleText ? `Current rule being edited: "${ruleText}"` : "Creating a new rule."
                             key={i}
                             className={`w-[2px] rounded-full transition-all ${
                               isVoiceChatActive 
-                                ? "bg-primary-foreground animate-pulse" 
+                                ? "bg-primary-foreground" 
                                 : "bg-current"
                             }`}
                             style={{
                               height: `${[4, 8, 12, 8, 4][i - 1]}px`,
-                              animationDelay: `${i * 0.1}s`
                             }}
                           />
                         ))}
