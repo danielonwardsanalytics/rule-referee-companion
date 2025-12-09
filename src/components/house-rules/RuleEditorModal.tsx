@@ -309,16 +309,48 @@ Keep rules clear, concise, and unambiguous. Rules should be actionable during ga
         return [...prev, { role: "assistant", content: event.delta }];
       });
     } else if (event.type === "response.audio_transcript.done") {
-      // Full transcript received - check if it's a rule
+      // Full transcript received - only update rule if it's ACTUALLY defining a rule
       const transcript = event.transcript || "";
-      const looksLikeRule = !transcript.includes('?') && transcript.length > 10 && transcript.length < 500;
       
-      if (looksLikeRule) {
-        // Extract the rule from the response
-        const ruleMatch = transcript.match(/(?:rule[:\s]*|updated[:\s]*|created[:\s]*)?["']?([^"']+)["']?/i);
-        if (ruleMatch) {
-          setRuleText(transcript.trim());
+      // Only update rule text if the AI is explicitly defining/creating a rule
+      // Look for specific rule-creation patterns
+      const isDefiningRule = 
+        transcript.toLowerCase().includes("the rule is:") ||
+        transcript.toLowerCase().includes("here's the rule:") ||
+        transcript.toLowerCase().includes("your rule is:") ||
+        transcript.toLowerCase().includes("i've created:") ||
+        transcript.toLowerCase().includes("i've updated the rule to:") ||
+        transcript.toLowerCase().includes("the new rule is:") ||
+        transcript.toLowerCase().includes("rule text:") ||
+        // Check if it starts with common rule patterns
+        /^(when|if|players? (can|cannot|must|may)|during|at the|after|before)/i.test(transcript.trim());
+      
+      // Also check it's NOT a conversational response
+      const isConversational = 
+        transcript.toLowerCase().includes("you're welcome") ||
+        transcript.toLowerCase().includes("no problem") ||
+        transcript.toLowerCase().includes("is there anything else") ||
+        transcript.toLowerCase().includes("let me know") ||
+        transcript.toLowerCase().includes("happy to help") ||
+        transcript.toLowerCase().includes("glad") ||
+        transcript.toLowerCase().includes("sure") ||
+        transcript.toLowerCase().includes("okay") ||
+        transcript.toLowerCase().includes("great!") ||
+        transcript.includes("?") ||
+        transcript.length < 20;
+      
+      if (isDefiningRule && !isConversational) {
+        // Extract the actual rule text, removing prefixes like "The rule is:"
+        let ruleContent = transcript
+          .replace(/^(the rule is:|here's the rule:|your rule is:|i've created:|i've updated the rule to:|the new rule is:|rule text:)/i, "")
+          .trim();
+        
+        if (ruleContent.length > 10) {
+          setRuleText(ruleContent);
+          console.log("[RuleEditorModal] Updated rule text to:", ruleContent);
         }
+      } else {
+        console.log("[RuleEditorModal] Not updating rule - conversational response detected");
       }
     } else if (event.type === "conversation.item.input_audio_transcription.completed") {
       // User's speech transcribed

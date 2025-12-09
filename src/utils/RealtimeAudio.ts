@@ -65,6 +65,7 @@ export class RealtimeChat {
   private dc: RTCDataChannel | null = null;
   private audioEl: HTMLAudioElement;
   private recorder: AudioRecorder | null = null;
+  private mediaStream: MediaStream | null = null;
 
   constructor(
     private onMessage: (message: any) => void,
@@ -114,8 +115,8 @@ export class RealtimeChat {
       };
 
       // Add local audio track
-      const ms = await navigator.mediaDevices.getUserMedia({ audio: true });
-      this.pc.addTrack(ms.getTracks()[0]);
+      this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.pc.addTrack(this.mediaStream.getTracks()[0]);
 
       // Set up data channel
       this.dc = this.pc.createDataChannel("oai-events");
@@ -183,9 +184,23 @@ export class RealtimeChat {
   }
 
   disconnect() {
+    console.log("[RealtimeChat] Disconnecting...");
     this.recorder?.stop();
+    
+    // Stop the media stream to release microphone
+    if (this.mediaStream) {
+      this.mediaStream.getTracks().forEach(track => {
+        track.stop();
+        console.log("[RealtimeChat] Stopped track:", track.kind);
+      });
+      this.mediaStream = null;
+    }
+    
     this.dc?.close();
     this.pc?.close();
     this.audioEl.srcObject = null;
+    this.audioEl.pause();
+    
+    console.log("[RealtimeChat] Disconnected successfully");
   }
 }
