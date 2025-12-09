@@ -275,7 +275,7 @@ const QuickFireSection = ({
               disabled={isLoading || isRecording}
               className={`w-32 h-32 rounded-full border-2 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed ${
                 isRealtimeConnected 
-                  ? "bg-primary border-primary" 
+                  ? "bg-primary border-primary animate-pulse-glow" 
                   : "bg-primary border-primary/50 hover:border-primary hover:shadow-lg hover:shadow-primary/30"
               }`}
             >
