@@ -262,7 +262,7 @@ Keep responses under 3 sentences unless more detail is requested.`;
       <div className="bg-card border border-border rounded-2xl shadow-[var(--shadow-card)] overflow-hidden backdrop-blur-sm hover-lift">
         <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-5">
           <h2 className="text-2xl font-bold text-white">{ruleSetName} AI Adjudicator</h2>
-          <p className="text-white/90 text-sm mt-1">Use this rule set for a quick game without creating a tournament</p>
+          <p className="text-white/90 text-sm mt-1">Use this rule set for casual game play now.<br />You can also find an existing, or start a new, tournament below.</p>
         </div>
         
         <div className="p-6">
