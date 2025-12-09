@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Users, Check } from "lucide-react";
+import { Clock, Users, Check, Gamepad2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface RuleSetCardProps {
@@ -11,15 +11,17 @@ interface RuleSetCardProps {
     is_public: boolean;
     save_count: number;
     updated_at: string;
+    created_at?: string;
     games: {
       name: string;
       accent_color: string;
     };
   };
   onClick: () => void;
+  showGameName?: boolean;
 }
 
-export const RuleSetCard = ({ ruleSet, onClick }: RuleSetCardProps) => {
+export const RuleSetCard = ({ ruleSet, onClick, showGameName = false }: RuleSetCardProps) => {
   return (
     <Card
       className="card-interactive animate-scale-in border-border"
@@ -27,7 +29,15 @@ export const RuleSetCard = ({ ruleSet, onClick }: RuleSetCardProps) => {
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-lg line-clamp-2 flex-1">{ruleSet.name}</CardTitle>
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-lg line-clamp-2">{ruleSet.name}</CardTitle>
+            {showGameName && (
+              <div className="flex items-center gap-1.5 mt-1 text-sm text-muted-foreground">
+                <Gamepad2 className="h-3.5 w-3.5 shrink-0" style={{ color: ruleSet.games.accent_color }} />
+                <span className="truncate">{ruleSet.games.name}</span>
+              </div>
+            )}
+          </div>
           {ruleSet.is_active && (
             <Badge
               variant="secondary"

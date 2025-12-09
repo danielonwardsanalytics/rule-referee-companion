@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, FileText, BookOpen } from "lucide-react";
+import { Plus, FileText, BookOpen, ChevronDown } from "lucide-react";
 import { useHouseRuleSets } from "@/hooks/useHouseRuleSets";
 import { useAllGames } from "@/hooks/useAllGames";
 import { usePremium } from "@/hooks/usePremium";
@@ -12,6 +12,20 @@ import { PremiumGate } from "@/components/premium/PremiumGate";
 import { TrialBanner } from "@/components/premium/TrialBanner";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { EmptyState } from "@/components/EmptyState";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+type SortOption = "game" | "date_added" | "date_updated";
+
+const sortLabels: Record<SortOption, string> = {
+  game: "Game",
+  date_added: "Date Added",
+  date_updated: "Date Updated",
+};
 
 const HouseRules = () => {
   const navigate = useNavigate();
@@ -19,18 +33,43 @@ const HouseRules = () => {
   const { games, isLoading: gamesLoading } = useAllGames();
   const { hasPremiumAccess } = usePremium();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>("game");
 
   const isLoading = ruleSetsLoading || gamesLoading;
 
-  // Group rule sets by game
-  const ruleSetsByGame = ruleSets.reduce((acc, ruleSet) => {
-    const gameId = ruleSet.game_id;
-    if (!acc[gameId]) {
-      acc[gameId] = [];
-    }
-    acc[gameId].push(ruleSet);
-    return acc;
-  }, {} as Record<string, typeof ruleSets>);
+  // Group rule sets by game (for "game" sort)
+  const ruleSetsByGame = useMemo(() => {
+    return ruleSets.reduce((acc, ruleSet) => {
+      const gameId = ruleSet.game_id;
+      if (!acc[gameId]) {
+        acc[gameId] = [];
+      }
+      acc[gameId].push(ruleSet);
+      return acc;
+    }, {} as Record<string, typeof ruleSets>);
+  }, [ruleSets]);
+
+  // Sorted rule sets for date-based sorting
+  const sortedRuleSets = useMemo(() => {
+    if (sortBy === "game") return [];
+    
+    return [...ruleSets].sort((a, b) => {
+      if (sortBy === "date_added") {
+        return new Date(b.created_at || b.updated_at).getTime() - new Date(a.created_at || a.updated_at).getTime();
+      }
+      // date_updated
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    });
+  }, [ruleSets, sortBy]);
+
+  // Sorted game entries for alphabetical game grouping
+  const sortedGameEntries = useMemo(() => {
+    return Object.entries(ruleSetsByGame).sort(([, setsA], [, setsB]) => {
+      const gameA = setsA[0]?.games?.name || "";
+      const gameB = setsB[0]?.games?.name || "";
+      return gameA.localeCompare(gameB);
+    });
+  }, [ruleSetsByGame]);
 
   if (isLoading) {
     return (
@@ -65,7 +104,32 @@ const HouseRules = () => {
           </div>
         </div>
 
-        {/* Rule Sets by Game */}
+        {/* Sort By Dropdown */}
+        {ruleSets.length > 0 && (
+          <div className="flex justify-center sm:justify-start">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="button-press">
+                  Sort By: {sortLabels[sortBy]}
+                  <ChevronDown className="h-4 w-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="bg-background border-border">
+                {(Object.keys(sortLabels) as SortOption[]).map((option) => (
+                  <DropdownMenuItem
+                    key={option}
+                    onClick={() => setSortBy(option)}
+                    className={sortBy === option ? "bg-accent" : ""}
+                  >
+                    {sortLabels[option]}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
+
+        {/* Rule Sets */}
         <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
           {ruleSets.length === 0 ? (
             <Card>
@@ -79,9 +143,10 @@ const HouseRules = () => {
                 </Button>
               </CardContent>
             </Card>
-          ) : (
+          ) : sortBy === "game" ? (
+            // Grouped by game (alphabetically)
             <div className="space-y-8">
-              {Object.entries(ruleSetsByGame).map(([gameId, sets]) => {
+              {sortedGameEntries.map(([gameId, sets]) => {
                 const game = games.find((g) => g.id === gameId);
                 if (!game) return null;
 
@@ -100,6 +165,7 @@ const HouseRules = () => {
                           <RuleSetCard
                             ruleSet={ruleSet}
                             onClick={() => navigate(`/house-rules/${ruleSet.id}`)}
+                            showGameName={false}
                           />
                         </div>
                       ))}
@@ -107,6 +173,19 @@ const HouseRules = () => {
                   </div>
                 );
               })}
+            </div>
+          ) : (
+            // Flat list sorted by date
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {sortedRuleSets.map((ruleSet, index) => (
+                <div key={ruleSet.id} style={{ animationDelay: `${index * 0.05}s` }}>
+                  <RuleSetCard
+                    ruleSet={ruleSet}
+                    onClick={() => navigate(`/house-rules/${ruleSet.id}`)}
+                    showGameName={true}
+                  />
+                </div>
+              ))}
             </div>
           )}
         </div>
