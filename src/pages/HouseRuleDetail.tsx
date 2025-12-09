@@ -2,17 +2,18 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Plus, Loader2, AlertTriangle, Trash2 } from "lucide-react";
 import { useRuleSetDetail, useHouseRuleSets } from "@/hooks/useHouseRuleSets";
-import { useHouseRules } from "@/hooks/useHouseRules";
+import { useHouseRules, type HouseRule } from "@/hooks/useHouseRules";
 import { useRuleSetEditors } from "@/hooks/useRuleSetEditors";
 import { useSavedRuleSets } from "@/hooks/useSavedRuleSets";
 import { useAuth } from "@/hooks/useAuth";
-import { RuleItem } from "@/components/house-rules/RuleItem";
 import { RuleSetInfoPanel } from "@/components/house-rules/RuleSetInfoPanel";
+import { RuleSetAIAdjudicator } from "@/components/house-rules/RuleSetAIAdjudicator";
+import { LinkedTournamentsSection } from "@/components/house-rules/LinkedTournamentsSection";
+import { CollapsibleRuleCard } from "@/components/house-rules/CollapsibleRuleCard";
+import { RuleEditorModal } from "@/components/house-rules/RuleEditorModal";
 import { AddEditorModal } from "@/components/house-rules/AddEditorModal";
-import { VoiceRuleEditor } from "@/components/house-rules/VoiceRuleEditor";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,7 +32,7 @@ const HouseRuleDetail = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { ruleSet, isLoading: ruleSetLoading } = useRuleSetDetail(ruleSetId);
-  const { rules, isLoading: rulesLoading, addRule } = useHouseRules(ruleSetId);
+  const { rules, isLoading: rulesLoading, addRule, updateRule, deleteRule } = useHouseRules(ruleSetId);
   const { isEditor, removeSelfAsEditor } = useRuleSetEditors(ruleSetId);
   const { isSaved, unsaveRuleSet } = useSavedRuleSets(ruleSetId);
   const {
@@ -40,10 +41,12 @@ const HouseRuleDetail = () => {
     duplicateRuleSet,
   } = useHouseRuleSets();
 
-  const [newRuleText, setNewRuleText] = useState("");
-  const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(0); // 0 = closed, 1 = first warning, 2 = final confirm
+  const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(0);
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
   const [isAddEditorModalOpen, setIsAddEditorModalOpen] = useState(false);
+  const [expandedRuleId, setExpandedRuleId] = useState<string | null>(null);
+  const [isRuleEditorOpen, setIsRuleEditorOpen] = useState(false);
+  const [editingRule, setEditingRule] = useState<HouseRule | null>(null);
 
   const isLoading = ruleSetLoading || rulesLoading;
   const isOwner = ruleSet?.user_id === user?.id;
@@ -70,18 +73,6 @@ const HouseRuleDetail = () => {
     if (ruleSet) {
       updateRuleSet({ id: ruleSet.id, name });
     }
-  };
-
-  const handleAddRule = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!ruleSetId || !newRuleText.trim()) return;
-
-    addRule(
-      { ruleSetId, ruleText: newRuleText.trim() },
-      {
-        onSuccess: () => setNewRuleText(""),
-      }
-    );
   };
 
   const handleTogglePublic = () => {
@@ -118,6 +109,51 @@ const HouseRuleDetail = () => {
       });
     }
     setIsRemoveDialogOpen(false);
+  };
+
+  const handleToggleRule = (ruleId: string) => {
+    setExpandedRuleId(expandedRuleId === ruleId ? null : ruleId);
+  };
+
+  const handleEditRule = (rule: HouseRule) => {
+    setEditingRule(rule);
+    setIsRuleEditorOpen(true);
+  };
+
+  const handleAddNewRule = () => {
+    setEditingRule(null);
+    setIsRuleEditorOpen(true);
+  };
+
+  const handleSaveRule = async (data: { ruleText: string; title?: string }) => {
+    if (!ruleSetId) return;
+
+    if (editingRule) {
+      // Update existing rule
+      updateRule({
+        id: editingRule.id,
+        ruleText: data.ruleText,
+        title: data.title,
+        ruleSetId,
+      });
+    } else {
+      // Add new rule
+      await addRule({
+        ruleSetId,
+        ruleText: data.ruleText,
+        title: data.title,
+      });
+    }
+  };
+
+  const handleDeleteRule = (ruleId: string) => {
+    if (!ruleSetId) return;
+    deleteRule({ id: ruleId, ruleSetId });
+  };
+
+  const handleUpdateRuleTitle = (ruleId: string, title: string) => {
+    if (!ruleSetId) return;
+    updateRule({ id: ruleId, title, ruleSetId });
   };
 
   if (isLoading) {
@@ -158,7 +194,7 @@ const HouseRuleDetail = () => {
           Back to House Rules
         </Button>
 
-        {/* Info Panel */}
+        {/* Section 1: Info Panel */}
         <RuleSetInfoPanel
           ruleSet={ruleSet}
           isOwner={isOwner}
@@ -173,58 +209,68 @@ const HouseRuleDetail = () => {
           onAddEditor={() => setIsAddEditorModalOpen(true)}
         />
 
-        {/* Rules List */}
-        <Card>
-          <CardHeader>
+        {/* Section 2: AI Adjudicator */}
+        <RuleSetAIAdjudicator
+          ruleSetName={ruleSet.name}
+          gameName={ruleSet.games.name}
+          rules={rules}
+        />
+
+        {/* Section 3: Linked Tournaments */}
+        <LinkedTournamentsSection
+          ruleSetId={ruleSet.id}
+          ruleSetName={ruleSet.name}
+        />
+
+        {/* Section 4: Rules */}
+        <Card className="border border-border">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Rules</CardTitle>
+            {canEditRules && (
+              <Button onClick={handleAddNewRule} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add New Rule
+              </Button>
+            )}
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             {rules.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">
-                No rules added yet. {canEditRules ? "Add your first rule below." : ""}
+                No rules added yet. {canEditRules ? "Click 'Add New Rule' to create your first rule." : ""}
               </p>
             ) : (
-              <div className="space-y-2">
-                {rules.map((rule, index) => (
-                  <RuleItem
-                    key={rule.id}
-                    rule={rule}
-                    index={index}
-                    ruleSetId={ruleSet.id}
-                    canEdit={canEditRules}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Add New Rule - only for those who can edit */}
-            {canEditRules && (
-              <form onSubmit={handleAddRule} className="space-y-2 pt-4">
-                <Textarea
-                  value={newRuleText}
-                  onChange={(e) => setNewRuleText(e.target.value)}
-                  placeholder="Enter a new rule..."
-                  rows={2}
+              rules.map((rule, index) => (
+                <CollapsibleRuleCard
+                  key={rule.id}
+                  rule={rule}
+                  index={index}
+                  isExpanded={expandedRuleId === rule.id}
+                  canEdit={canEditRules}
+                  onToggle={() => handleToggleRule(rule.id)}
+                  onEdit={() => handleEditRule(rule)}
+                  onDelete={() => handleDeleteRule(rule.id)}
+                  onUpdateTitle={(title) => handleUpdateRuleTitle(rule.id, title)}
                 />
-                <Button type="submit" disabled={!newRuleText.trim()}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Rule
-                </Button>
-              </form>
+              ))
             )}
           </CardContent>
         </Card>
-
-        {/* Voice Rule Editor - only for those who can edit */}
-        {canEditRules && (
-          <VoiceRuleEditor 
-            ruleSetId={ruleSet.id}
-            ruleSetName={ruleSet.name}
-            gameName={ruleSet.games.name}
-            currentRules={rules}
-          />
-        )}
       </div>
+
+      {/* Rule Editor Modal */}
+      <RuleEditorModal
+        isOpen={isRuleEditorOpen}
+        onClose={() => {
+          setIsRuleEditorOpen(false);
+          setEditingRule(null);
+        }}
+        ruleSetId={ruleSet.id}
+        ruleSetName={ruleSet.name}
+        gameName={ruleSet.games.name}
+        existingRule={editingRule}
+        currentRules={rules}
+        onSave={handleSaveRule}
+      />
 
       {/* Delete Step 1 - Initial Warning */}
       <AlertDialog open={deleteStep === 1} onOpenChange={(open) => !open && setDeleteStep(0)}>

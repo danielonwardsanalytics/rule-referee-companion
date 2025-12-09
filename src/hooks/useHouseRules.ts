@@ -2,10 +2,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-interface HouseRule {
+export interface HouseRule {
   id: string;
   rule_set_id: string;
   rule_text: string;
+  title: string | null;
   sort_order: number;
   created_at: string;
 }
@@ -31,7 +32,7 @@ export const useHouseRules = (ruleSetId: string | undefined) => {
   });
 
   const addRuleMutation = useMutation({
-    mutationFn: async (data: { ruleSetId: string; ruleText: string }) => {
+    mutationFn: async (data: { ruleSetId: string; ruleText: string; title?: string }) => {
       // Get the highest sort_order
       const { data: existingRules } = await supabase
         .from("house_rules")
@@ -44,13 +45,16 @@ export const useHouseRules = (ruleSetId: string | undefined) => {
         ? existingRules[0].sort_order + 1 
         : 0;
 
-      const { error } = await supabase
+      const { data: insertedRule, error } = await supabase
         .from("house_rules")
         .insert({
           rule_set_id: data.ruleSetId,
           rule_text: data.ruleText,
+          title: data.title || null,
           sort_order: nextSortOrder,
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
@@ -59,6 +63,8 @@ export const useHouseRules = (ruleSetId: string | undefined) => {
         .from("house_rule_sets")
         .update({ updated_at: new Date().toISOString() })
         .eq("id", data.ruleSetId);
+
+      return insertedRule;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["house-rules"] });
@@ -71,10 +77,14 @@ export const useHouseRules = (ruleSetId: string | undefined) => {
   });
 
   const updateRuleMutation = useMutation({
-    mutationFn: async (data: { id: string; ruleText: string; ruleSetId: string }) => {
+    mutationFn: async (data: { id: string; ruleText?: string; title?: string; ruleSetId: string }) => {
+      const updateData: { rule_text?: string; title?: string } = {};
+      if (data.ruleText !== undefined) updateData.rule_text = data.ruleText;
+      if (data.title !== undefined) updateData.title = data.title;
+
       const { error } = await supabase
         .from("house_rules")
-        .update({ rule_text: data.ruleText })
+        .update(updateData)
         .eq("id", data.id);
 
       if (error) throw error;
@@ -148,7 +158,7 @@ export const useHouseRules = (ruleSetId: string | undefined) => {
   return {
     rules,
     isLoading,
-    addRule: addRuleMutation.mutate,
+    addRule: addRuleMutation.mutateAsync,
     updateRule: updateRuleMutation.mutate,
     deleteRule: deleteRuleMutation.mutate,
     reorderRules: reorderRulesMutation.mutate,
