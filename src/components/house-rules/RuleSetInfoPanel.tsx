@@ -169,47 +169,49 @@ export const RuleSetInfoPanel = ({
         </div>
 
         {/* Actions */}
-        <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
-          {/* Owner-only actions */}
-          {isOwner && (
-            <>
-              {!ruleSet.is_active && (
-                <Button onClick={onSetActive} size="sm">
-                  <Check className="h-4 w-4 mr-2" />
-                  Set as Active
-                </Button>
-              )}
-              <Button onClick={onTogglePublic} variant="outline" size="sm">
-                {ruleSet.is_public ? (
-                  <>
-                    <Users className="h-4 w-4 mr-2" />
-                    Make Private
-                  </>
-                ) : (
-                  <>
-                    <Globe className="h-4 w-4 mr-2" />
-                    Make Public
-                  </>
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border">
+          <div className="flex flex-wrap gap-2">
+            {/* Owner-only actions */}
+            {isOwner && (
+              <>
+                {!ruleSet.is_active && (
+                  <Button onClick={onSetActive} size="sm">
+                    <Check className="h-4 w-4 mr-2" />
+                    Set as Active
+                  </Button>
                 )}
-              </Button>
-              <Button onClick={onAddEditor} variant="outline" size="sm">
-                <UserPlus className="h-4 w-4 mr-2" />
-                Add Editor
-              </Button>
-            </>
-          )}
+                <Button onClick={onTogglePublic} variant="outline" size="sm">
+                  {ruleSet.is_public ? (
+                    <>
+                      <Users className="h-4 w-4 mr-2" />
+                      Make Private
+                    </>
+                  ) : (
+                    <>
+                      <Globe className="h-4 w-4 mr-2" />
+                      Make Public
+                    </>
+                  )}
+                </Button>
+                <Button onClick={onAddEditor} variant="outline" size="sm">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Add Editor
+                </Button>
+              </>
+            )}
 
-          {/* Available to all with access */}
-          <Button onClick={onDuplicate} variant="outline" size="sm">
-            <Copy className="h-4 w-4 mr-2" />
-            Duplicate
-          </Button>
+            {/* Available to all with access */}
+            <Button onClick={onDuplicate} variant="outline" size="sm">
+              <Copy className="h-4 w-4 mr-2" />
+              Duplicate
+            </Button>
+          </div>
 
-          {/* Delete/Remove button - conditional */}
+          {/* Delete/Remove button - aligned right */}
           {isOwner ? (
             <Button onClick={onDelete} variant="destructive" size="sm">
               <Trash2 className="h-4 w-4 mr-2" />
-              Delete
+              Delete Set
             </Button>
           ) : (isEditor || isSaved) ? (
             <Button onClick={onRemove} variant="destructive" size="sm">
