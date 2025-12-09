@@ -269,7 +269,7 @@ const QuickFireSection = ({
 
 
           {/* Big Voice Chat Button - Sound Wave Style */}
-          <div className="flex flex-col items-center mb-6">
+          <div className="flex flex-col items-center py-6 mb-6">
             <button
               onClick={isRealtimeConnected ? endRealtimeChat : startRealtimeChat}
               disabled={isLoading || isRecording}
