@@ -217,6 +217,38 @@ export type Database = {
         }
         Relationships: []
       }
+      house_rule_set_editors: {
+        Row: {
+          added_at: string | null
+          added_by: string
+          id: string
+          rule_set_id: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string | null
+          added_by: string
+          id?: string
+          rule_set_id: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string | null
+          added_by?: string
+          id?: string
+          rule_set_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "house_rule_set_editors_rule_set_id_fkey"
+            columns: ["rule_set_id"]
+            isOneToOne: false
+            referencedRelation: "house_rule_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       house_rule_sets: {
         Row: {
           created_at: string | null
@@ -403,6 +435,35 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      saved_house_rule_sets: {
+        Row: {
+          id: string
+          rule_set_id: string
+          saved_at: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          rule_set_id: string
+          saved_at?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          rule_set_id?: string
+          saved_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_house_rule_sets_rule_set_id_fkey"
+            columns: ["rule_set_id"]
+            isOneToOne: false
+            referencedRelation: "house_rule_sets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tournament_players: {
         Row: {
