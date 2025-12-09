@@ -14,6 +14,7 @@ import { Mic, MicOff, Send, Loader2, Volume2, Check, X, Pencil } from "lucide-re
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { RealtimeChat } from "@/utils/RealtimeAudio";
 import type { HouseRule } from "@/hooks/useHouseRules";
 
 interface RuleEditorModalProps {
@@ -47,12 +48,15 @@ export const RuleEditorModal = ({
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
+  const [isVoiceChatActive, setIsVoiceChatActive] = useState(false);
+  const [isVoiceChatConnecting, setIsVoiceChatConnecting] = useState(false);
   const [messages, setMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const realtimeChatRef = useRef<RealtimeChat | null>(null);
 
   const isEditing = !!existingRule;
 
@@ -68,8 +72,19 @@ export const RuleEditorModal = ({
       setMessages([]);
       setIsManualEditMode(false);
       setIsAudioEnabled(false);
+      setIsVoiceChatActive(false);
     }
   }, [isOpen, existingRule]);
+
+  // Cleanup voice chat on unmount or close
+  useEffect(() => {
+    return () => {
+      if (realtimeChatRef.current) {
+        realtimeChatRef.current.disconnect();
+        realtimeChatRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -280,6 +295,96 @@ Keep rules clear, concise, and unambiguous. Rules should be actionable during ga
     }
   };
 
+  // Voice Chat Functions
+  const handleRealtimeMessage = (event: any) => {
+    console.log("[RuleEditorModal] Realtime event:", event.type);
+
+    if (event.type === "response.audio_transcript.delta") {
+      // Streaming transcript from AI
+      setMessages(prev => {
+        const lastMessage = prev[prev.length - 1];
+        if (lastMessage?.role === "assistant" && !lastMessage.content.includes("I've updated")) {
+          return [...prev.slice(0, -1), { ...lastMessage, content: lastMessage.content + event.delta }];
+        }
+        return [...prev, { role: "assistant", content: event.delta }];
+      });
+    } else if (event.type === "response.audio_transcript.done") {
+      // Full transcript received - check if it's a rule
+      const transcript = event.transcript || "";
+      const looksLikeRule = !transcript.includes('?') && transcript.length > 10 && transcript.length < 500;
+      
+      if (looksLikeRule) {
+        // Extract the rule from the response
+        const ruleMatch = transcript.match(/(?:rule[:\s]*|updated[:\s]*|created[:\s]*)?["']?([^"']+)["']?/i);
+        if (ruleMatch) {
+          setRuleText(transcript.trim());
+        }
+      }
+    } else if (event.type === "conversation.item.input_audio_transcription.completed") {
+      // User's speech transcribed
+      const userText = event.transcript || "";
+      if (userText.trim()) {
+        setMessages(prev => [...prev, { role: "user", content: userText }]);
+      }
+    } else if (event.type === "response.audio.delta") {
+      setIsSpeaking(true);
+    } else if (event.type === "response.audio.done") {
+      setIsSpeaking(false);
+    }
+  };
+
+  const startVoiceChat = async () => {
+    try {
+      setIsVoiceChatConnecting(true);
+      
+      const instructions = `You are a helpful assistant for creating and editing house rules for the card game ${gameName}.
+      
+When the user asks you to create or modify a rule, respond with ONLY the rule text itself - no explanations, no prefixes like "Here's the rule:", just the actual rule.
+
+If the user asks a question or wants clarification, respond normally.
+
+Keep rules clear, concise, and unambiguous. Rules should be actionable during gameplay.
+
+Current rule set: "${ruleSetName}"
+${ruleText ? `Current rule being edited: "${ruleText}"` : "Creating a new rule."}`;
+
+      realtimeChatRef.current = new RealtimeChat(
+        handleRealtimeMessage,
+        instructions,
+        "alloy",
+        gameName,
+        currentRules.map(r => r.rule_text)
+      );
+
+      await realtimeChatRef.current.init();
+      setIsVoiceChatActive(true);
+      setIsAudioEnabled(true);
+      toast.success("Voice chat connected - speak now!");
+    } catch (error) {
+      console.error("[RuleEditorModal] Voice chat error:", error);
+      toast.error("Failed to connect voice chat");
+    } finally {
+      setIsVoiceChatConnecting(false);
+    }
+  };
+
+  const stopVoiceChat = () => {
+    if (realtimeChatRef.current) {
+      realtimeChatRef.current.disconnect();
+      realtimeChatRef.current = null;
+    }
+    setIsVoiceChatActive(false);
+    toast.info("Voice chat disconnected");
+  };
+
+  const toggleVoiceChat = () => {
+    if (isVoiceChatActive) {
+      stopVoiceChat();
+    } else {
+      startVoiceChat();
+    }
+  };
+
   const handleSave = async () => {
     if (!ruleText.trim()) {
       toast.error("Please enter a rule");
@@ -393,11 +498,32 @@ Keep rules clear, concise, and unambiguous. Rules should be actionable during ga
               </ScrollArea>
             )}
 
-            {/* Speaking Indicator */}
-            {isSpeaking && (
+            {/* Voice Chat / Speaking Indicator */}
+            {(isSpeaking || isVoiceChatActive) && (
               <div className="flex items-center justify-center gap-2 py-2 border-t border-border">
-                <Volume2 className="h-4 w-4 text-primary animate-pulse" />
-                <span className="text-xs text-primary">Speaking...</span>
+                {isVoiceChatActive && !isSpeaking && (
+                  <>
+                    <div className="flex items-center gap-[2px]">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <div
+                          key={i}
+                          className="w-1 bg-primary rounded-full animate-pulse"
+                          style={{
+                            height: `${[6, 10, 14, 10, 6][i - 1]}px`,
+                            animationDelay: `${i * 0.1}s`
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-xs text-primary">Voice Chat Active - Speak now</span>
+                  </>
+                )}
+                {isSpeaking && (
+                  <>
+                    <Volume2 className="h-4 w-4 text-primary animate-pulse" />
+                    <span className="text-xs text-primary">Speaking...</span>
+                  </>
+                )}
               </div>
             )}
 
@@ -426,22 +552,57 @@ Keep rules clear, concise, and unambiguous. Rules should be actionable during ga
                 />
                 
                 <div className="absolute bottom-2 right-2 flex items-center gap-1">
+                  {/* Voice Chat Button - mini version */}
+                  <Button
+                    size="icon"
+                    variant={isVoiceChatActive ? "default" : "ghost"}
+                    onClick={toggleVoiceChat}
+                    disabled={isProcessing || isSaving || isVoiceChatConnecting}
+                    className={`rounded-full h-7 w-7 ${isVoiceChatActive ? "bg-primary animate-pulse" : ""}`}
+                    title={isVoiceChatActive ? "Stop voice chat" : "Start voice chat"}
+                  >
+                    {isVoiceChatConnecting ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <div className="flex items-center justify-center gap-[1px]">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                          <div
+                            key={i}
+                            className={`w-[2px] rounded-full transition-all ${
+                              isVoiceChatActive 
+                                ? "bg-primary-foreground animate-pulse" 
+                                : "bg-current"
+                            }`}
+                            style={{
+                              height: `${[4, 8, 12, 8, 4][i - 1]}px`,
+                              animationDelay: `${i * 0.1}s`
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </Button>
+
+                  {/* Dictate Button */}
                   <Button
                     size="icon"
                     variant={isRecording ? "default" : "ghost"}
                     onClick={isRecording ? stopRecording : startRecording}
-                    disabled={isProcessing || isSaving}
+                    disabled={isProcessing || isSaving || isVoiceChatActive}
                     className="rounded-full h-7 w-7"
+                    title={isRecording ? "Stop recording" : "Dictate"}
                   >
                     {isRecording ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
                   </Button>
                   
+                  {/* Send Button */}
                   <Button
                     size="icon"
                     variant="ghost"
                     onClick={handleChatSend}
-                    disabled={isProcessing || !chatInput.trim() || isSaving}
+                    disabled={isProcessing || !chatInput.trim() || isSaving || isVoiceChatActive}
                     className="rounded-full h-7 w-7"
+                    title="Send"
                   >
                     {isProcessing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
                   </Button>
