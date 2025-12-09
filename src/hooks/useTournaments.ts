@@ -52,7 +52,7 @@ export const useTournaments = () => {
   });
 
   const createTournamentMutation = useMutation({
-    mutationFn: async (data: { name: string; gameId: string }) => {
+    mutationFn: async (data: { name: string; gameId: string; houseRuleSetId?: string }) => {
       if (!user) throw new Error("User not authenticated");
 
       const { data: tournament, error } = await supabase
@@ -61,6 +61,7 @@ export const useTournaments = () => {
           name: data.name,
           game_id: data.gameId,
           admin_id: user.id,
+          house_rule_set_id: data.houseRuleSetId || null,
         })
         .select()
         .single();

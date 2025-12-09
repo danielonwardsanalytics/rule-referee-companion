@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,12 +14,25 @@ import { UpgradeModal } from "@/components/premium/UpgradeModal";
 
 const CreateTournament = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { games, isLoading: gamesLoading } = useAllGames();
   const { createTournament, isCreating, tournaments } = useTournaments();
   const { hasPremiumAccess } = usePremium();
+  
+  // Get pre-selected values from URL params
+  const preSelectedGameId = searchParams.get("gameId") || "";
+  const preSelectedRuleSetId = searchParams.get("ruleSetId") || "";
+  
   const [name, setName] = useState("");
-  const [gameId, setGameId] = useState("");
+  const [gameId, setGameId] = useState(preSelectedGameId);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  
+  // Update gameId when URL param changes
+  useEffect(() => {
+    if (preSelectedGameId) {
+      setGameId(preSelectedGameId);
+    }
+  }, [preSelectedGameId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +52,11 @@ const CreateTournament = () => {
     }
 
     createTournament(
-      { name, gameId },
+      { 
+        name, 
+        gameId,
+        houseRuleSetId: preSelectedRuleSetId || undefined,
+      },
       {
         onSuccess: (tournament) => {
           navigate(`/tournament/${tournament.id}`);

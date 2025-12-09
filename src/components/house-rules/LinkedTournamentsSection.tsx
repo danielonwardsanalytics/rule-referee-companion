@@ -2,12 +2,14 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Users, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Trophy, Users, Calendar, Plus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface LinkedTournamentsSectionProps {
   ruleSetId: string;
   ruleSetName: string;
+  gameId: string;
 }
 
 interface LinkedTournament {
@@ -18,8 +20,12 @@ interface LinkedTournament {
   tournament_players: Array<{ id: string; display_name: string; wins: number }>;
 }
 
-export const LinkedTournamentsSection = ({ ruleSetId, ruleSetName }: LinkedTournamentsSectionProps) => {
+export const LinkedTournamentsSection = ({ ruleSetId, ruleSetName, gameId }: LinkedTournamentsSectionProps) => {
   const navigate = useNavigate();
+  
+  const handleStartNewTournament = () => {
+    navigate(`/create-tournament?gameId=${gameId}&ruleSetId=${ruleSetId}`);
+  };
 
   const { data: tournaments = [], isLoading } = useQuery({
     queryKey: ["linked-tournaments", ruleSetId],
@@ -75,9 +81,9 @@ export const LinkedTournamentsSection = ({ ruleSetId, ruleSetName }: LinkedTourn
           {ruleSetName} Tournaments
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
         {tournaments.length === 0 ? (
-          <p className="text-muted-foreground text-center py-6">
+          <p className="text-muted-foreground text-center py-4">
             No tournaments are using this rule set yet.
           </p>
         ) : (
@@ -124,6 +130,16 @@ export const LinkedTournamentsSection = ({ ruleSetId, ruleSetName }: LinkedTourn
             })}
           </div>
         )}
+        
+        {/* Start New Tournament Button */}
+        <Button 
+          onClick={handleStartNewTournament}
+          className="w-full"
+          variant="outline"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Start New Tournament
+        </Button>
       </CardContent>
     </Card>
   );
