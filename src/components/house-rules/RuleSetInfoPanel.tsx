@@ -170,9 +170,9 @@ export const RuleSetInfoPanel = ({
         <div className="flex justify-end pt-2 border-t border-border">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-12 w-12">
-                <Settings className="h-8 w-8" />
-              </Button>
+              <button className="p-2 rounded-md hover:bg-muted transition-colors">
+                <Settings className="h-7 w-7 text-muted-foreground" />
+              </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 bg-popover border-[3px] border-white ring-2 ring-primary shadow-lg">
               {/* Owner-only actions */}
