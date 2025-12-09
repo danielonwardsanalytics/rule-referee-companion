@@ -300,6 +300,7 @@ export type Database = {
           rule_set_id: string
           rule_text: string
           sort_order: number | null
+          title: string | null
         }
         Insert: {
           created_at?: string | null
@@ -307,6 +308,7 @@ export type Database = {
           rule_set_id: string
           rule_text: string
           sort_order?: number | null
+          title?: string | null
         }
         Update: {
           created_at?: string | null
@@ -314,6 +316,7 @@ export type Database = {
           rule_set_id?: string
           rule_text?: string
           sort_order?: number | null
+          title?: string | null
         }
         Relationships: [
           {
