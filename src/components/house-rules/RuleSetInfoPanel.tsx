@@ -125,10 +125,15 @@ export const RuleSetInfoPanel = ({
 
           {/* Status Badges */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            {ruleSet.is_public && (
+            {ruleSet.is_public ? (
               <Badge variant="secondary">
                 <Globe className="h-3 w-3 mr-1" />
                 Public
+              </Badge>
+            ) : (
+              <Badge variant="outline">
+                <Users className="h-3 w-3 mr-1" />
+                Private
               </Badge>
             )}
             {isEditor && !isOwner && (
@@ -165,11 +170,11 @@ export const RuleSetInfoPanel = ({
         <div className="flex justify-end pt-2 border-t border-border">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Settings className="h-5 w-5" />
+              <Button variant="ghost" size="icon" className="h-10 w-10">
+                <Settings className="h-6 w-6" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-popover">
+            <DropdownMenuContent align="end" className="w-48 bg-popover border-[3px] border-white ring-2 ring-primary shadow-lg">
               {/* Owner-only actions */}
               {isOwner && (
                 <>
