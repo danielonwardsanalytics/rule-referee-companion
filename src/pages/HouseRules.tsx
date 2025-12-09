@@ -46,22 +46,21 @@ const HouseRules = () => {
       <PremiumGate feature="House Rules">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between animate-slide-down">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-slide-down">
+          <div className="text-center sm:text-left">
             <h1 className="text-3xl font-bold">My House Rules</h1>
             <p className="text-muted-foreground mt-1">
               Create and manage custom rule sets for your games
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate("/public-house-rules")} className="button-press hidden sm:flex">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={() => navigate("/public-house-rules")} className="button-press w-full sm:w-auto">
               <BookOpen className="h-4 w-4 mr-2" />
               Browse Public Rules
             </Button>
-            <Button onClick={() => setIsCreateModalOpen(true)} className="button-press">
+            <Button onClick={() => setIsCreateModalOpen(true)} className="button-press w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">New Rule Set</span>
-              <span className="sm:hidden">New</span>
+              Create New Rule Set
             </Button>
           </div>
         </div>
