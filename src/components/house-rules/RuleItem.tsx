@@ -12,9 +12,10 @@ interface RuleItemProps {
   };
   index: number;
   ruleSetId: string;
+  canEdit?: boolean;
 }
 
-export const RuleItem = ({ rule, index, ruleSetId }: RuleItemProps) => {
+export const RuleItem = ({ rule, index, ruleSetId, canEdit = true }: RuleItemProps) => {
   const { updateRule, deleteRule } = useHouseRules(ruleSetId);
   const [isEditing, setIsEditing] = useState(false);
   const [editedText, setEditedText] = useState(rule.rule_text);
@@ -39,7 +40,7 @@ export const RuleItem = ({ rule, index, ruleSetId }: RuleItemProps) => {
     }
   };
 
-  if (isEditing) {
+  if (isEditing && canEdit) {
     return (
       <div className="flex gap-2 items-start p-3 border rounded-lg">
         <span className="text-sm text-muted-foreground mt-2 min-w-[2rem]">
@@ -77,18 +78,20 @@ export const RuleItem = ({ rule, index, ruleSetId }: RuleItemProps) => {
         {index + 1}.
       </span>
       <p className="flex-1">{rule.rule_text}</p>
-      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Button
-          size="icon"
-          variant="ghost"
-          onClick={() => setIsEditing(true)}
-        >
-          <Edit2 className="h-4 w-4" />
-        </Button>
-        <Button size="icon" variant="ghost" onClick={handleDelete}>
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
+      {canEdit && (
+        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => setIsEditing(true)}
+          >
+            <Edit2 className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="ghost" onClick={handleDelete}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

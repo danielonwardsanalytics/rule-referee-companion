@@ -1,25 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import {
-  ArrowLeft,
-  Edit2,
-  Check,
-  X,
-  Plus,
-  Trash2,
-  Copy,
-  Loader2,
-  Globe,
-  Users,
-} from "lucide-react";
+import { ArrowLeft, Plus, Loader2 } from "lucide-react";
 import { useRuleSetDetail, useHouseRuleSets } from "@/hooks/useHouseRuleSets";
 import { useHouseRules } from "@/hooks/useHouseRules";
+import { useRuleSetEditors } from "@/hooks/useRuleSetEditors";
+import { useSavedRuleSets } from "@/hooks/useSavedRuleSets";
+import { useAuth } from "@/hooks/useAuth";
 import { RuleItem } from "@/components/house-rules/RuleItem";
+import { RuleSetInfoPanel } from "@/components/house-rules/RuleSetInfoPanel";
+import { AddEditorModal } from "@/components/house-rules/AddEditorModal";
 import { VoiceRuleEditor } from "@/components/house-rules/VoiceRuleEditor";
 import {
   AlertDialog,
@@ -31,12 +23,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 const HouseRuleDetail = () => {
   const { ruleSetId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { ruleSet, isLoading: ruleSetLoading } = useRuleSetDetail(ruleSetId);
   const { rules, isLoading: rulesLoading, addRule } = useHouseRules(ruleSetId);
+  const { isEditor, removeSelfAsEditor } = useRuleSetEditors(ruleSetId);
+  const { isSaved, unsaveRuleSet } = useSavedRuleSets(ruleSetId);
   const {
     updateRuleSet,
     setActiveRuleSet,
@@ -44,21 +41,35 @@ const HouseRuleDetail = () => {
     duplicateRuleSet,
   } = useHouseRuleSets();
 
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editedName, setEditedName] = useState("");
   const [newRuleText, setNewRuleText] = useState("");
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
+  const [isAddEditorModalOpen, setIsAddEditorModalOpen] = useState(false);
 
   const isLoading = ruleSetLoading || rulesLoading;
+  const isOwner = ruleSet?.user_id === user?.id;
 
-  const handleSaveName = () => {
-    if (ruleSet && editedName.trim()) {
-      updateRuleSet(
-        { id: ruleSet.id, name: editedName },
-        {
-          onSuccess: () => setIsEditingName(false),
-        }
-      );
+  // Fetch owner profile if not owner
+  const { data: ownerProfile } = useQuery({
+    queryKey: ["owner-profile", ruleSet?.user_id],
+    queryFn: async () => {
+      if (!ruleSet?.user_id || isOwner) return null;
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("display_name, email")
+        .eq("id", ruleSet.user_id)
+        .single();
+
+      if (error) return null;
+      return data;
+    },
+    enabled: !!ruleSet?.user_id && !isOwner,
+  });
+
+  const handleUpdateName = (name: string) => {
+    if (ruleSet) {
+      updateRuleSet({ id: ruleSet.id, name });
     }
   };
 
@@ -102,6 +113,18 @@ const HouseRuleDetail = () => {
     }
   };
 
+  const handleRemove = () => {
+    if (isEditor) {
+      removeSelfAsEditor(undefined, {
+        onSuccess: () => navigate("/house-rules"),
+      });
+    } else if (isSaved && ruleSetId) {
+      unsaveRuleSet(ruleSetId, {
+        onSuccess: () => navigate("/house-rules"),
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background pb-20 flex items-center justify-center">
@@ -123,111 +146,38 @@ const HouseRuleDetail = () => {
     );
   }
 
+  const canEditRules = isOwner || isEditor;
+  const ownerName = ownerProfile?.display_name || ownerProfile?.email;
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/house-rules")}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+        {/* Back Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate("/house-rules")}
+          className="gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to House Rules
+        </Button>
 
-          <div className="flex-1">
-            {isEditingName ? (
-              <div className="flex items-center gap-2">
-                <Input
-                  value={editedName}
-                  onChange={(e) => setEditedName(e.target.value)}
-                  className="max-w-md"
-                  autoFocus
-                />
-                <Button size="icon" variant="ghost" onClick={handleSaveName}>
-                  <Check className="h-4 w-4" />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => setIsEditingName(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-3xl font-bold">{ruleSet.name}</h1>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => {
-                    setEditedName(ruleSet.name);
-                    setIsEditingName(true);
-                  }}
-                >
-                  <Edit2 className="h-4 w-4" />
-                </Button>
-                {ruleSet.is_active && (
-                  <Badge
-                    variant="secondary"
-                    style={{
-                      backgroundColor: `${ruleSet.games.accent_color}20`,
-                      color: ruleSet.games.accent_color,
-                      borderColor: ruleSet.games.accent_color,
-                    }}
-                  >
-                    <Check className="h-3 w-3 mr-1" />
-                    Active
-                  </Badge>
-                )}
-                {ruleSet.is_public && (
-                  <Badge variant="secondary">
-                    <Globe className="h-3 w-3 mr-1" />
-                    Public
-                  </Badge>
-                )}
-              </div>
-            )}
-            <p className="text-muted-foreground mt-1">{ruleSet.games.name}</p>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <Card>
-          <CardContent className="pt-6 flex flex-wrap gap-2">
-            {!ruleSet.is_active && (
-              <Button onClick={handleSetActive} variant="default">
-                Set as Active
-              </Button>
-            )}
-            <Button onClick={handleTogglePublic} variant="outline">
-              {ruleSet.is_public ? (
-                <>
-                  <Users className="h-4 w-4 mr-2" />
-                  Make Private
-                </>
-              ) : (
-                <>
-                  <Globe className="h-4 w-4 mr-2" />
-                  Make Public
-                </>
-              )}
-            </Button>
-            <Button onClick={handleDuplicate} variant="outline">
-              <Copy className="h-4 w-4 mr-2" />
-              Duplicate
-            </Button>
-            <Button
-              onClick={() => setIsDeleteDialogOpen(true)}
-              variant="destructive"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete
-            </Button>
-          </CardContent>
-        </Card>
+        {/* Info Panel */}
+        <RuleSetInfoPanel
+          ruleSet={ruleSet}
+          isOwner={isOwner}
+          isEditor={isEditor}
+          isSaved={isSaved}
+          ownerName={ownerName}
+          onUpdateName={handleUpdateName}
+          onSetActive={handleSetActive}
+          onTogglePublic={handleTogglePublic}
+          onDuplicate={handleDuplicate}
+          onDelete={() => setIsDeleteDialogOpen(true)}
+          onRemove={() => setIsRemoveDialogOpen(true)}
+          onAddEditor={() => setIsAddEditorModalOpen(true)}
+        />
 
         {/* Rules List */}
         <Card>
@@ -237,7 +187,7 @@ const HouseRuleDetail = () => {
           <CardContent className="space-y-4">
             {rules.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">
-                No rules added yet. Add your first rule below.
+                No rules added yet. {canEditRules ? "Add your first rule below." : ""}
               </p>
             ) : (
               <div className="space-y-2">
@@ -247,33 +197,39 @@ const HouseRuleDetail = () => {
                     rule={rule}
                     index={index}
                     ruleSetId={ruleSet.id}
+                    canEdit={canEditRules}
                   />
                 ))}
               </div>
             )}
 
-            {/* Add New Rule */}
-            <form onSubmit={handleAddRule} className="space-y-2 pt-4">
-              <Textarea
-                value={newRuleText}
-                onChange={(e) => setNewRuleText(e.target.value)}
-                placeholder="Enter a new rule..."
-                rows={2}
-              />
-              <Button type="submit" disabled={!newRuleText.trim()}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Rule
-              </Button>
-            </form>
+            {/* Add New Rule - only for those who can edit */}
+            {canEditRules && (
+              <form onSubmit={handleAddRule} className="space-y-2 pt-4">
+                <Textarea
+                  value={newRuleText}
+                  onChange={(e) => setNewRuleText(e.target.value)}
+                  placeholder="Enter a new rule..."
+                  rows={2}
+                />
+                <Button type="submit" disabled={!newRuleText.trim()}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Rule
+                </Button>
+              </form>
+            )}
           </CardContent>
         </Card>
-        {/* Voice Rule Editor */}
-        <VoiceRuleEditor 
-          ruleSetId={ruleSet.id}
-          ruleSetName={ruleSet.name}
-          gameName={ruleSet.games.name}
-          currentRules={rules}
-        />
+
+        {/* Voice Rule Editor - only for those who can edit */}
+        {canEditRules && (
+          <VoiceRuleEditor 
+            ruleSetId={ruleSet.id}
+            ruleSetName={ruleSet.name}
+            gameName={ruleSet.games.name}
+            currentRules={rules}
+          />
+        )}
       </div>
 
       {/* Delete Confirmation Dialog */}
@@ -282,8 +238,7 @@ const HouseRuleDetail = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Rule Set</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this rule set? This action cannot be
-              undone.
+              Are you sure you want to permanently delete this rule set? This action cannot be undone. All rules and editor access will be removed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -292,6 +247,31 @@ const HouseRuleDetail = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Remove Confirmation Dialog */}
+      <AlertDialog open={isRemoveDialogOpen} onOpenChange={setIsRemoveDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove from My Rules</AlertDialogTitle>
+            <AlertDialogDescription>
+              {isEditor
+                ? "Are you sure you want to remove yourself as an editor? You will lose access to edit this rule set."
+                : "Are you sure you want to remove this rule set from your profile?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRemove}>Remove</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Add Editor Modal */}
+      <AddEditorModal
+        isOpen={isAddEditorModalOpen}
+        onClose={() => setIsAddEditorModalOpen(false)}
+        ruleSetId={ruleSet.id}
+      />
     </div>
   );
 };
