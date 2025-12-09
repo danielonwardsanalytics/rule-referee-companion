@@ -256,7 +256,7 @@ const QuickFireSection = ({
   const allMessages = [...messages, ...realtimeMessages];
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-4 animate-slide-up" style={{ animationDelay: '0.2s' }} aria-label="Quick questions">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 animate-slide-up" style={{ animationDelay: '0.2s' }} aria-label="Quick questions">
       <div className="bg-card border border-border rounded-2xl shadow-[var(--shadow-card)] overflow-hidden backdrop-blur-sm hover-lift">
         <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-5">
           <h2 className="text-2xl font-bold text-white">Quick Fire Question</h2>
@@ -314,7 +314,7 @@ const QuickFireSection = ({
               </div>
             </button>
             
-            <p className="mt-4 mb-8 text-sm text-muted-foreground text-center">
+            <p className="mt-4 text-sm text-muted-foreground text-center">
               Press to speak with House Rules AI.
             </p>
           </div>
