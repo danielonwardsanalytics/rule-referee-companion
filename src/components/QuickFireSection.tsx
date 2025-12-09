@@ -265,11 +265,8 @@ const QuickFireSection = ({
         
         <div className="p-6">
           <audio ref={audioRef} onEnded={() => setIsSpeaking(false)} />
-          
-          {/* AI CHAT Label */}
-          <div className="text-center mb-4">
-            <span className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">AI CHAT ↓</span>
-          </div>
+
+
 
           {/* Big Voice Chat Button - Sound Wave Style */}
           <div className="flex flex-col items-center mb-6">
