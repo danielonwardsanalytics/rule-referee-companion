@@ -220,6 +220,7 @@ const HouseRuleDetail = () => {
         <LinkedTournamentsSection
           ruleSetId={ruleSet.id}
           ruleSetName={ruleSet.name}
+          gameId={ruleSet.game_id}
         />
 
         {/* Section 4: Rules */}
