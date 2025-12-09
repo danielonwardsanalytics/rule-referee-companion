@@ -1,4 +1,4 @@
-import ChatInterface from "@/components/ChatInterface";
+import QuickFireSection from "@/components/QuickFireSection";
 import MyGames from "@/components/MyGames";
 import { MyTournaments } from "@/components/MyTournaments";
 import { MyHouseRules } from "@/components/MyHouseRules";
@@ -77,17 +77,7 @@ const Home = () => {
       ) : null}
 
       {/* Quick Fire Question Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 animate-slide-up" style={{ animationDelay: '0.2s' }} aria-label="Quick questions">
-        <div className="bg-card border border-border rounded-2xl shadow-[var(--shadow-card)] overflow-hidden backdrop-blur-sm hover-lift">
-          <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-5">
-            <h2 className="text-2xl font-bold text-white">Quick Fire Question</h2>
-            <p className="text-white/90 text-sm mt-1">Get instant answers about any game rule</p>
-          </div>
-          <div className="p-6">
-            <ChatInterface />
-          </div>
-        </div>
-      </section>
+      <QuickFireSection />
 
       {/* My Games Section */}
       <MyGames />
