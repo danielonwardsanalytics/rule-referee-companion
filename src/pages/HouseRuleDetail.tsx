@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, Loader2, AlertTriangle, Trash2 } from "lucide-react";
 import { useRuleSetDetail, useHouseRuleSets } from "@/hooks/useHouseRuleSets";
 import { useHouseRules } from "@/hooks/useHouseRules";
 import { useRuleSetEditors } from "@/hooks/useRuleSetEditors";
@@ -36,13 +36,12 @@ const HouseRuleDetail = () => {
   const { isSaved, unsaveRuleSet } = useSavedRuleSets(ruleSetId);
   const {
     updateRuleSet,
-    setActiveRuleSet,
     deleteRuleSet,
     duplicateRuleSet,
   } = useHouseRuleSets();
 
   const [newRuleText, setNewRuleText] = useState("");
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(0); // 0 = closed, 1 = first warning, 2 = final confirm
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
   const [isAddEditorModalOpen, setIsAddEditorModalOpen] = useState(false);
 
@@ -85,12 +84,6 @@ const HouseRuleDetail = () => {
     );
   };
 
-  const handleSetActive = () => {
-    if (ruleSet) {
-      setActiveRuleSet({ id: ruleSet.id, gameId: ruleSet.game_id });
-    }
-  };
-
   const handleTogglePublic = () => {
     if (ruleSet) {
       updateRuleSet({ id: ruleSet.id, isPublic: !ruleSet.is_public });
@@ -111,6 +104,7 @@ const HouseRuleDetail = () => {
         onSuccess: () => navigate("/house-rules"),
       });
     }
+    setDeleteStep(0);
   };
 
   const handleRemove = () => {
@@ -123,6 +117,7 @@ const HouseRuleDetail = () => {
         onSuccess: () => navigate("/house-rules"),
       });
     }
+    setIsRemoveDialogOpen(false);
   };
 
   if (isLoading) {
@@ -171,10 +166,9 @@ const HouseRuleDetail = () => {
           isSaved={isSaved}
           ownerName={ownerName}
           onUpdateName={handleUpdateName}
-          onSetActive={handleSetActive}
           onTogglePublic={handleTogglePublic}
           onDuplicate={handleDuplicate}
-          onDelete={() => setIsDeleteDialogOpen(true)}
+          onDelete={() => setDeleteStep(1)}
           onRemove={() => setIsRemoveDialogOpen(true)}
           onAddEditor={() => setIsAddEditorModalOpen(true)}
         />
@@ -232,18 +226,55 @@ const HouseRuleDetail = () => {
         )}
       </div>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      {/* Delete Step 1 - Initial Warning */}
+      <AlertDialog open={deleteStep === 1} onOpenChange={(open) => !open && setDeleteStep(0)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Rule Set</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to permanently delete this rule set? This action cannot be undone. All rules and editor access will be removed.
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+              </div>
+              <AlertDialogTitle>Delete Rule Set</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="pt-2 space-y-2">
+              <p>Once you delete this set, you can't regain it again. It's lost forever.</p>
+              <p className="text-muted-foreground">All rules and editor access will be permanently removed.</p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+            <AlertDialogCancel onClick={() => setDeleteStep(0)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => setDeleteStep(2)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Confirm Delete Set
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Step 2 - Final Confirmation */}
+      <AlertDialog open={deleteStep === 2} onOpenChange={(open) => !open && setDeleteStep(0)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
+                <Trash2 className="h-5 w-5 text-destructive" />
+              </div>
+              <AlertDialogTitle>Delete Permanently</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="pt-2">
+              This action is irreversible. Are you absolutely sure you want to delete "{ruleSet.name}"?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteStep(0)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Permanently
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -253,10 +284,12 @@ const HouseRuleDetail = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remove from My Rules</AlertDialogTitle>
-            <AlertDialogDescription>
-              {isEditor
-                ? "Are you sure you want to remove yourself as an editor? You will lose access to edit this rule set."
-                : "Are you sure you want to remove this rule set from your profile?"}
+            <AlertDialogDescription className="space-y-3">
+              <p>Are you sure you want to remove this set from your account?</p>
+              <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                <li>If the set is public, you can search for it again to access it</li>
+                <li>The original creator can re-invite you as an editor at any time</li>
+              </ul>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

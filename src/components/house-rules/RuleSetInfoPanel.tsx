@@ -4,6 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Check,
   X,
   Edit2,
@@ -14,6 +21,7 @@ import {
   UserPlus,
   Calendar,
   Gamepad2,
+  Settings,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -34,7 +42,6 @@ interface RuleSetInfoPanelProps {
   isEditor: boolean;
   isSaved: boolean;
   onUpdateName: (name: string) => void;
-  onSetActive: () => void;
   onTogglePublic: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
@@ -49,7 +56,6 @@ export const RuleSetInfoPanel = ({
   isEditor,
   isSaved,
   onUpdateName,
-  onSetActive,
   onTogglePublic,
   onDuplicate,
   onDelete,
@@ -119,19 +125,6 @@ export const RuleSetInfoPanel = ({
 
           {/* Status Badges */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            {ruleSet.is_active && (
-              <Badge
-                variant="secondary"
-                style={{
-                  backgroundColor: `${ruleSet.games.accent_color}20`,
-                  color: ruleSet.games.accent_color,
-                  borderColor: ruleSet.games.accent_color,
-                }}
-              >
-                <Check className="h-3 w-3 mr-1" />
-                Active
-              </Badge>
-            )}
             {ruleSet.is_public && (
               <Badge variant="secondary">
                 <Globe className="h-3 w-3 mr-1" />
@@ -168,57 +161,66 @@ export const RuleSetInfoPanel = ({
           )}
         </div>
 
-        {/* Actions */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border">
-          <div className="flex flex-wrap gap-2">
-            {/* Owner-only actions */}
-            {isOwner && (
-              <>
-                {!ruleSet.is_active && (
-                  <Button onClick={onSetActive} size="sm">
-                    <Check className="h-4 w-4 mr-2" />
-                    Set as Active
-                  </Button>
-                )}
-                <Button onClick={onTogglePublic} variant="outline" size="sm">
-                  {ruleSet.is_public ? (
-                    <>
-                      <Users className="h-4 w-4 mr-2" />
-                      Make Private
-                    </>
-                  ) : (
-                    <>
-                      <Globe className="h-4 w-4 mr-2" />
-                      Make Public
-                    </>
-                  )}
-                </Button>
-                <Button onClick={onAddEditor} variant="outline" size="sm">
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Add Editor
-                </Button>
-              </>
-            )}
+        {/* Settings Dropdown - Bottom Right */}
+        <div className="flex justify-end pt-2 border-t border-border">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Settings className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 bg-popover">
+              {/* Owner-only actions */}
+              {isOwner && (
+                <>
+                  <DropdownMenuItem onClick={onTogglePublic}>
+                    {ruleSet.is_public ? (
+                      <>
+                        <Users className="h-4 w-4 mr-2" />
+                        Make Private
+                      </>
+                    ) : (
+                      <>
+                        <Globe className="h-4 w-4 mr-2" />
+                        Make Public
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={onAddEditor}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Add Editor
+                  </DropdownMenuItem>
+                </>
+              )}
 
-            {/* Available to all with access */}
-            <Button onClick={onDuplicate} variant="outline" size="sm">
-              <Copy className="h-4 w-4 mr-2" />
-              Duplicate
-            </Button>
-          </div>
+              {/* Available to all with access */}
+              <DropdownMenuItem onClick={onDuplicate}>
+                <Copy className="h-4 w-4 mr-2" />
+                Duplicate
+              </DropdownMenuItem>
 
-          {/* Delete/Remove button - aligned right */}
-          {isOwner ? (
-            <Button onClick={onDelete} variant="destructive" size="sm">
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete Set
-            </Button>
-          ) : (isEditor || isSaved) ? (
-            <Button onClick={onRemove} variant="destructive" size="sm">
-              <X className="h-4 w-4 mr-2" />
-              Remove from My Rules
-            </Button>
-          ) : null}
+              <DropdownMenuSeparator />
+
+              {/* Delete/Remove action */}
+              {isOwner ? (
+                <DropdownMenuItem
+                  onClick={onDelete}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Set
+                </DropdownMenuItem>
+              ) : (isEditor || isSaved) ? (
+                <DropdownMenuItem
+                  onClick={onRemove}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Remove from My Rules
+                </DropdownMenuItem>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </CardContent>
     </Card>
