@@ -13,11 +13,12 @@ import { RealtimeChat } from "@/utils/RealtimeAudio";
 
 interface VoiceRuleEditorProps {
   ruleSetId: string;
+  ruleSetName: string;
   gameName: string;
   currentRules: Array<{ id: string; rule_text: string; sort_order: number }>;
 }
 
-export const VoiceRuleEditor = ({ ruleSetId, gameName, currentRules }: VoiceRuleEditorProps) => {
+export const VoiceRuleEditor = ({ ruleSetId, ruleSetName, gameName, currentRules }: VoiceRuleEditorProps) => {
   const queryClient = useQueryClient();
   const [isProcessing, setIsProcessing] = useState(false);
   const [input, setInput] = useState("");
@@ -220,17 +221,19 @@ export const VoiceRuleEditor = ({ ruleSetId, gameName, currentRules }: VoiceRule
       
       const currentRulesText = currentRules.map((r, i) => `Rule ${i + 1}: ${r.rule_text}`).join("\n");
       
-      const contextInstructions = `You are a voice assistant for managing house rules for ${gameName}. 
+      const contextInstructions = `You are a voice assistant for managing house rules. 
+You are currently editing the rule set called "${ruleSetName}" for the game ${gameName}.
 You can help users:
 - Add new rules to this rule set
 - Edit or change existing rules
 - Remove rules
 - Reorder rules
 
-Current rules in this set:
+Current rules in "${ruleSetName}":
 ${currentRulesText || "No rules yet."}
 
-When the user asks to modify rules, confirm what you understood and execute the command. Be concise and helpful.`;
+When the user asks to modify rules, confirm what you understood and execute the command. Be concise and helpful.
+Always remember you are editing "${ruleSetName}" - if the user refers to this rule set by name, you know which one they mean.`;
 
       let currentAssistantMessage = "";
 
@@ -319,7 +322,7 @@ When the user asks to modify rules, confirm what you understood and execute the 
       <div className="bg-card border border-border rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
         <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-5">
           <h2 className="text-2xl font-bold text-white">Voice Rule Editor</h2>
-          <p className="text-white/90 text-sm mt-1">Use commands to create and edit rules for {gameName}</p>
+          <p className="text-white/90 text-sm mt-1">Use commands to create and edit your rule set.</p>
         </div>
         
         <div className="p-6">
