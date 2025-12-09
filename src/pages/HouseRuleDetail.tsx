@@ -270,6 +270,7 @@ const HouseRuleDetail = () => {
         {/* Voice Rule Editor */}
         <VoiceRuleEditor 
           ruleSetId={ruleSet.id}
+          ruleSetName={ruleSet.name}
           gameName={ruleSet.games.name}
           currentRules={rules}
         />
