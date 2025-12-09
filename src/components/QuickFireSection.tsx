@@ -271,41 +271,55 @@ const QuickFireSection = ({
             <span className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">AI CHAT ↓</span>
           </div>
 
-          {/* Big Voice Chat Button */}
+          {/* Big Voice Chat Button - Sound Wave Style */}
           <div className="flex flex-col items-center mb-6">
-            <Button
-              size="lg"
-              variant={isRealtimeConnected ? "default" : "outline"}
+            <button
               onClick={isRealtimeConnected ? endRealtimeChat : startRealtimeChat}
               disabled={isLoading || isRecording}
-              className={`w-24 h-24 rounded-full border-2 transition-all ${
+              className={`w-32 h-32 rounded-full border-2 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed ${
                 isRealtimeConnected 
-                  ? "bg-primary border-primary animate-pulse" 
-                  : "border-border hover:border-primary hover:bg-primary/10"
+                  ? "bg-primary border-primary" 
+                  : "bg-primary border-primary/50 hover:border-primary hover:shadow-lg hover:shadow-primary/30"
               }`}
             >
-              {isRealtimeConnected ? (
-                <Volume2 className="h-10 w-10 text-primary-foreground" />
-              ) : (
-                <Mic className="h-10 w-10" />
-              )}
-            </Button>
+              {/* Sound wave bars like ChatGPT */}
+              <div className="flex items-center gap-1.5">
+                <div 
+                  className={`w-2 rounded-full bg-primary-foreground transition-all ${
+                    isRealtimeConnected ? "h-6 animate-pulse" : "h-6"
+                  }`}
+                  style={isRealtimeConnected ? { animation: 'soundWave 0.8s ease-in-out infinite' } : {}}
+                />
+                <div 
+                  className={`w-2 rounded-full bg-primary-foreground transition-all ${
+                    isRealtimeConnected ? "h-10 animate-pulse" : "h-10"
+                  }`}
+                  style={isRealtimeConnected ? { animation: 'soundWave 0.8s ease-in-out infinite 0.1s' } : {}}
+                />
+                <div 
+                  className={`w-2 rounded-full bg-primary-foreground transition-all ${
+                    isRealtimeConnected ? "h-14 animate-pulse" : "h-14"
+                  }`}
+                  style={isRealtimeConnected ? { animation: 'soundWave 0.8s ease-in-out infinite 0.2s' } : {}}
+                />
+                <div 
+                  className={`w-2 rounded-full bg-primary-foreground transition-all ${
+                    isRealtimeConnected ? "h-10 animate-pulse" : "h-10"
+                  }`}
+                  style={isRealtimeConnected ? { animation: 'soundWave 0.8s ease-in-out infinite 0.3s' } : {}}
+                />
+                <div 
+                  className={`w-2 rounded-full bg-primary-foreground transition-all ${
+                    isRealtimeConnected ? "h-6 animate-pulse" : "h-6"
+                  }`}
+                  style={isRealtimeConnected ? { animation: 'soundWave 0.8s ease-in-out infinite 0.4s' } : {}}
+                />
+              </div>
+            </button>
             
             <p className="mt-4 text-sm text-muted-foreground text-center">
               Press to speak with House Rules AI.
             </p>
-          </div>
-
-          {/* Audio Response Toggle */}
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <Switch
-              checked={isAudioEnabled}
-              onCheckedChange={setIsAudioEnabled}
-              className={`${isAudioEnabled ? "bg-green-500" : "bg-red-500"}`}
-            />
-            <span className={`text-sm font-medium ${isAudioEnabled ? "text-green-500" : "text-red-500"}`}>
-              Audio response {isAudioEnabled ? "on" : "off"}
-            </span>
           </div>
 
           {/* Speaking Indicator */}
@@ -340,8 +354,20 @@ const QuickFireSection = ({
             </ScrollArea>
           )}
 
-          {/* Text Input Area */}
+          {/* Text Input Area with Audio Toggle */}
           <div className="space-y-2">
+            {/* Audio Response Toggle - Top Right above text input */}
+            <div className="flex items-center justify-end gap-2">
+              <span className={`text-xs font-medium ${isAudioEnabled ? "text-green-500" : "text-red-500"}`}>
+                Audio Response <span className="font-semibold">{isAudioEnabled ? "ON" : "OFF"}</span>
+              </span>
+              <Switch
+                checked={isAudioEnabled}
+                onCheckedChange={setIsAudioEnabled}
+                className={`h-5 w-9 ${isAudioEnabled ? "bg-green-500 data-[state=checked]:bg-green-500" : "bg-red-500 data-[state=unchecked]:bg-red-500"}`}
+              />
+            </div>
+
             <div className="relative">
               <Textarea
                 value={input}
