@@ -129,6 +129,14 @@ export default {
             transform: "translateX(1.5px) rotate(0.8deg)",
           },
         },
+        "pulse-glow": {
+          "0%, 100%": {
+            boxShadow: "0 0 8px 2px hsl(var(--primary) / 0.6), 0 0 16px 4px hsl(var(--primary) / 0.3)",
+          },
+          "50%": {
+            boxShadow: "0 0 16px 6px hsl(var(--primary) / 0.8), 0 0 32px 10px hsl(var(--primary) / 0.4)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.3s ease-out",
@@ -137,6 +145,7 @@ export default {
         "scale-in": "scale-in 0.3s ease-out",
         "float": "float 3s ease-in-out infinite",
         "shake": "shake 4s ease-in-out infinite",
+        "pulse-glow": "pulse-glow 1.5s ease-in-out infinite",
       },
     },
   },
