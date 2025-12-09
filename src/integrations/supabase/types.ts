@@ -677,6 +677,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_rule_set_editor: {
+        Args: { _rule_set_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "user"
