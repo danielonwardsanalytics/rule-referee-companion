@@ -62,13 +62,20 @@ const HouseRules = () => {
     });
   }, [ruleSets, sortBy]);
 
-  // Sorted game entries for alphabetical game grouping
+  // Sorted game entries for alphabetical game grouping, with rules within each game sorted by updated_at
   const sortedGameEntries = useMemo(() => {
-    return Object.entries(ruleSetsByGame).sort(([, setsA], [, setsB]) => {
-      const gameA = setsA[0]?.games?.name || "";
-      const gameB = setsB[0]?.games?.name || "";
-      return gameA.localeCompare(gameB);
-    });
+    return Object.entries(ruleSetsByGame)
+      .sort(([, setsA], [, setsB]) => {
+        const gameA = setsA[0]?.games?.name || "";
+        const gameB = setsB[0]?.games?.name || "";
+        return gameA.localeCompare(gameB);
+      })
+      .map(([gameId, sets]) => [
+        gameId,
+        [...sets].sort((a, b) => 
+          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+        )
+      ] as [string, typeof sets]);
   }, [ruleSetsByGame]);
 
   if (isLoading) {
