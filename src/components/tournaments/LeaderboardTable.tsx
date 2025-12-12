@@ -75,7 +75,7 @@ export const LeaderboardTable = ({ players, isAdmin, accentColor }: LeaderboardT
   const sortedPlayers = [...players].sort((a, b) => b.wins - a.wins);
 
   return (
-    <div className="rounded-lg border border-border overflow-hidden">
+    <div className="border-t border-border overflow-hidden">
       <div className="flex">
         {/* Frozen columns */}
         <div className="flex-shrink-0 bg-background z-10 border-r border-border">
@@ -133,9 +133,9 @@ export const LeaderboardTable = ({ players, isAdmin, accentColor }: LeaderboardT
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-center min-w-[70px]">Wins</TableHead>
-                <TableHead className="text-center min-w-[70px]">Losses</TableHead>
-                <TableHead className="text-center min-w-[80px]">Win Rate</TableHead>
+                <TableHead className="text-center min-w-[50px] px-2">Wins</TableHead>
+                <TableHead className="text-center min-w-[50px] px-2">Losses</TableHead>
+                <TableHead className="text-center min-w-[60px] px-2">Win %</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -146,11 +146,11 @@ export const LeaderboardTable = ({ players, isAdmin, accentColor }: LeaderboardT
 
                 return (
                   <TableRow key={player.id} className={isPendingInvite ? "opacity-60" : ""}>
-                    <TableCell className="text-center font-bold">{player.wins}</TableCell>
-                    <TableCell className="text-center text-muted-foreground">
+                    <TableCell className="text-center font-bold px-2">{player.wins}</TableCell>
+                    <TableCell className="text-center text-muted-foreground px-2">
                       {player.losses}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center px-2">
                       <span className="text-sm font-medium">{winRate}%</span>
                     </TableCell>
                   </TableRow>

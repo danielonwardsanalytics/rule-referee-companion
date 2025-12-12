@@ -136,7 +136,7 @@ const TournamentDetail = () => {
 
           <TabsContent value="leaderboard" className="space-y-6 mt-6">
             {/* Leaderboard */}
-            <Card className="animate-fade-in">
+            <Card className="animate-fade-in overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-xl">Leaderboard</CardTitle>
                 {isAdmin && (
@@ -145,7 +145,7 @@ const TournamentDetail = () => {
                   </Button>
                 )}
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 <LeaderboardTable 
                   players={players} 
                   isAdmin={isAdmin}
