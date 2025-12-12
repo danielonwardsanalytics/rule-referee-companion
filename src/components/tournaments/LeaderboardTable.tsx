@@ -82,8 +82,8 @@ export const LeaderboardTable = ({ players, isAdmin, accentColor }: LeaderboardT
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-10 px-2">Rank</TableHead>
-                <TableHead className="w-28 px-2">Player</TableHead>
+                <TableHead className="w-8 px-1 text-xs">#</TableHead>
+                <TableHead className="w-24 px-1 text-xs">Player</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -91,16 +91,16 @@ export const LeaderboardTable = ({ players, isAdmin, accentColor }: LeaderboardT
                 const isPendingInvite = player.status === "pending_invite";
                 return (
                   <TableRow key={player.id} className={isPendingInvite ? "opacity-60" : ""}>
-                    <TableCell className="px-2 font-medium">
+                    <TableCell className="px-1 font-medium text-xs">
                       {index === 0 && player.wins > 0 ? (
-                        <Trophy className="h-5 w-5" style={{ color: accentColor }} />
+                        <Trophy className="h-4 w-4" style={{ color: accentColor }} />
                       ) : (
-                        <span className="text-muted-foreground">#{index + 1}</span>
+                        <span className="text-muted-foreground">{index + 1}</span>
                       )}
                     </TableCell>
-                    <TableCell className="px-2">
+                    <TableCell className="px-1">
                       <div className="flex items-center gap-1">
-                        <span className="font-medium truncate max-w-[90px]" title={player.display_name}>
+                        <span className="font-medium truncate max-w-[80px] text-sm" title={player.display_name}>
                           {truncateName(player.display_name)}
                         </span>
                         {isPendingInvite && (
@@ -133,9 +133,9 @@ export const LeaderboardTable = ({ players, isAdmin, accentColor }: LeaderboardT
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-center min-w-[50px] px-2">Wins</TableHead>
-                <TableHead className="text-center min-w-[50px] px-2">Losses</TableHead>
-                <TableHead className="text-center min-w-[60px] px-2">Win %</TableHead>
+                <TableHead className="text-center w-12 px-1 text-xs">W</TableHead>
+                <TableHead className="text-center w-12 px-1 text-xs">L</TableHead>
+                <TableHead className="text-center w-12 px-1 text-xs">%</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -146,12 +146,12 @@ export const LeaderboardTable = ({ players, isAdmin, accentColor }: LeaderboardT
 
                 return (
                   <TableRow key={player.id} className={isPendingInvite ? "opacity-60" : ""}>
-                    <TableCell className="text-center font-bold px-2">{player.wins}</TableCell>
-                    <TableCell className="text-center text-muted-foreground px-2">
+                    <TableCell className="text-center font-bold px-1 text-sm">{player.wins}</TableCell>
+                    <TableCell className="text-center text-muted-foreground px-1 text-sm">
                       {player.losses}
                     </TableCell>
-                    <TableCell className="text-center px-2">
-                      <span className="text-sm font-medium">{winRate}%</span>
+                    <TableCell className="text-center px-1">
+                      <span className="text-xs font-medium">{winRate}%</span>
                     </TableCell>
                   </TableRow>
                 );
