@@ -24,6 +24,15 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 
+interface Editor {
+  id: string;
+  profile: {
+    id: string;
+    email: string;
+    display_name: string | null;
+  };
+}
+
 interface RuleSetInfoPanelProps {
   ruleSet: {
     id: string;
@@ -47,6 +56,7 @@ interface RuleSetInfoPanelProps {
   onRemove: () => void;
   onAddEditor: () => void;
   ownerName?: string;
+  editors?: Editor[];
 }
 
 export const RuleSetInfoPanel = ({
@@ -61,6 +71,7 @@ export const RuleSetInfoPanel = ({
   onRemove,
   onAddEditor,
   ownerName,
+  editors = [],
 }: RuleSetInfoPanelProps) => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(ruleSet.name);
@@ -143,18 +154,32 @@ export const RuleSetInfoPanel = ({
         Created {format(new Date(ruleSet.created_at), "MMM d, yyyy")}
       </p>
 
-      {/* Owner info if not owner */}
-      {!isOwner && ownerName && (
+      {/* Owner */}
+      <p className="text-muted-foreground flex items-center gap-2">
+        <Users className="h-4 w-4" />
+        Owner: {isOwner ? "You" : (ownerName || "Unknown")}
+      </p>
+
+      {/* Editors (limit to 5, comma-separated) */}
+      {editors.length > 0 && (
         <p className="text-muted-foreground flex items-center gap-2">
-          <Users className="h-4 w-4" />
-          Owner: {ownerName}
+          <Edit2 className="h-4 w-4 flex-shrink-0" />
+          <span>
+            Editors: {editors.slice(0, 5).map((editor, index) => (
+              <span key={editor.id}>
+                {editor.profile.display_name || editor.profile.email}
+                {index < Math.min(editors.length, 5) - 1 && ", "}
+              </span>
+            ))}
+            {editors.length > 5 && ` +${editors.length - 5} more`}
+          </span>
         </p>
       )}
 
       {/* Editor badge if applicable */}
       {isEditor && !isOwner && (
         <p className="text-muted-foreground flex items-center gap-2">
-          <Edit2 className="h-4 w-4" />
+          <Check className="h-4 w-4 text-emerald-500" />
           You are an editor
         </p>
       )}
