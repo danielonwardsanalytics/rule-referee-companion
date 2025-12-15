@@ -24,6 +24,7 @@ interface AIAdjudicatorProps {
   hideContextSelectors?: boolean;
   voice?: string;
   embedded?: boolean; // When true, removes outer wrapper (for use inside pages with existing containers)
+  showTournamentProTips?: boolean; // When true, shows tournament-specific pro tips below input
 }
 
 const AIAdjudicator = ({
@@ -34,6 +35,7 @@ const AIAdjudicator = ({
   hideContextSelectors = false,
   voice = "alloy",
   embedded = false,
+  showTournamentProTips = false,
 }: AIAdjudicatorProps) => {
   const {
     activeRuleSet,
@@ -488,6 +490,15 @@ Keep responses under 3 sentences unless more detail is requested.`;
               </div>
             </div>
           </div>
+
+          {/* Tournament Pro Tips - Only shown on tournament pages */}
+          {showTournamentProTips && (
+            <div className="mt-4 p-3 bg-secondary/50 rounded-lg border border-border">
+              <p className="text-xs text-muted-foreground">
+                <span className="font-semibold text-foreground">Pro tip:</span> Ask AI "Where did we leave off?" to get a summary of the tournament status, who's leading, and what happened in the last game. You can also ask "What were the latest results?" or "Restart the game" to begin fresh.
+              </p>
+            </div>
+          )}
 
           {/* Context Selector Boxes - Below Input */}
           {!hideContextSelectors && (
