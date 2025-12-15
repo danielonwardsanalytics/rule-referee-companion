@@ -305,10 +305,20 @@ Keep responses under 3 sentences unless more detail is requested.`;
 
   const allMessages = [...messages, ...realtimeMessages];
 
+  // Dynamic title based on active rule set
+  const displayTitle = activeRuleSet 
+    ? (
+        <>
+          <span className="text-emerald-300">{activeRuleSet.name}</span>
+          <span className="text-white"> {title}</span>
+        </>
+      )
+    : title;
+
   const cardContent = (
     <div className="bg-card border border-border rounded-2xl shadow-[var(--shadow-card)] overflow-hidden backdrop-blur-sm hover-lift">
       <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-5">
-          <h2 className="text-2xl font-bold text-white">{title}</h2>
+          <h2 className="text-2xl font-bold">{displayTitle}</h2>
           <p className="text-white/90 text-sm mt-1">{subtitle}</p>
         </div>
 
