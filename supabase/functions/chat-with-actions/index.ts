@@ -191,20 +191,22 @@ serve(async (req) => {
       });
     }
 
-    const { messages, gameName, houseRules, activeRuleSetId, activeTournamentId, tournamentPlayers } = await req.json();
+    const { messages, gameName, houseRules, activeRuleSetId, activeTournamentId, tournamentPlayers, tournamentNotes, gameResults } = await req.json();
     console.log("[chat-with-actions] Received request:", { 
       messageCount: messages?.length, 
       gameName, 
       hasHouseRules: houseRules?.length > 0,
       activeRuleSetId,
       activeTournamentId,
-      hasPlayers: tournamentPlayers?.length > 0
+      hasPlayers: tournamentPlayers?.length > 0,
+      hasNotes: tournamentNotes?.length > 0,
+      hasResults: gameResults?.length > 0
     });
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const systemPrompt = buildSystemPrompt(gameName, houseRules, activeRuleSetId, activeTournamentId, tournamentPlayers);
+    const systemPrompt = buildSystemPrompt(gameName, houseRules, activeRuleSetId, activeTournamentId, tournamentPlayers, tournamentNotes, gameResults);
 
     // First, try to detect if this is an action request using tool calling
     const toolResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -356,19 +358,36 @@ serve(async (req) => {
   }
 });
 
-function buildSystemPrompt(gameName?: string, houseRules?: string[], activeRuleSetId?: string, activeTournamentId?: string, tournamentPlayers?: Array<{ id: string; display_name: string; status: string }>): string {
+function buildSystemPrompt(
+  gameName?: string, 
+  houseRules?: string[], 
+  activeRuleSetId?: string, 
+  activeTournamentId?: string, 
+  tournamentPlayers?: Array<{ id: string; display_name: string; status: string }>,
+  tournamentNotes?: Array<{ title: string; content: string; created_at: string }>,
+  gameResults?: Array<{ winner_name: string; created_at: string; notes?: string | null }>
+): string {
   let prompt = `You are a helpful assistant for the House Rules card game companion app. You can:
 
 1. Answer questions about card game rules (UNO, Phase 10, Monopoly Deal, etc.)
 2. Help users manage their app - create house rule sets, tournaments, and more
 3. Take actions on behalf of users when they ask
+4. Provide summaries of tournament sessions, including who won, notes, and any rules applied
 
 IMPORTANT RULE CONTEXT HANDLING:
 - If the user's message mentions that house rules have been "TURNED OFF", acknowledge this change and confirm they are now playing by standard/official rules only.
 - If the user's message mentions that house rules have been "ACTIVATED" or "CHANGED", acknowledge this change and note which rules are now active.
 - Always be clear about which rules (house rules vs official rules) you are basing your answers on.
 
-IMPORTANT: When users ask you to CREATE something (house rules, tournaments) or ADD something (rules, players), you should use the appropriate tool to propose that action. Be proactive about detecting these requests even if phrased casually like:
+SESSION SUMMARY REQUESTS:
+When users ask for a summary of their session, last game, where they left off, or similar:
+- Summarize who is leading the tournament (most wins)
+- List recent game results with winners
+- Mention any notes that were added
+- Reference any house rules that were in play
+- Be conversational and helpful
+
+IMPORTANT: When users ask you to CREATE something (house rules, tournaments) or ADD something (rules, players, notes), you should use the appropriate tool to propose that action. Be proactive about detecting these requests even if phrased casually like:
 - "Make me a rule set called X" → create_house_rule_set
 - "Start a new tournament for UNO" → create_tournament  
 - "Add a rule that says..." → add_house_rule
@@ -404,14 +423,33 @@ IMPORTANT: When users ask you to CREATE something (house rules, tournaments) or 
 
   if (activeTournamentId) {
     prompt += `USER IS IN AN ACTIVE TOURNAMENT (ID: ${activeTournamentId}).\n`;
+    
     if (tournamentPlayers && tournamentPlayers.length > 0) {
-      prompt += `Current players in tournament:\n`;
+      prompt += `\nCurrent players in tournament:\n`;
       tournamentPlayers.forEach((player) => {
         prompt += `- ${player.display_name} (${player.status})\n`;
       });
-      prompt += `\nWhen recording game results, match player names to the list above (allow partial/fuzzy matching). When adding players, use their provided name.\n\n`;
+      prompt += `\nWhen recording game results, match player names to the list above (allow partial/fuzzy matching). When adding players, use their provided name.\n`;
     } else {
-      prompt += `No players added yet. Suggest adding players before recording game results.\n\n`;
+      prompt += `No players added yet. Suggest adding players before recording game results.\n`;
+    }
+
+    if (gameResults && gameResults.length > 0) {
+      prompt += `\nRECENT GAME RESULTS (most recent first):\n`;
+      gameResults.slice(0, 10).forEach((result, idx) => {
+        const date = new Date(result.created_at).toLocaleDateString();
+        prompt += `${idx + 1}. ${result.winner_name} won on ${date}${result.notes ? ` - Notes: ${result.notes}` : ''}\n`;
+      });
+      prompt += `\n`;
+    }
+
+    if (tournamentNotes && tournamentNotes.length > 0) {
+      prompt += `\nTOURNAMENT NOTES (most recent first):\n`;
+      tournamentNotes.slice(0, 10).forEach((note) => {
+        const date = new Date(note.created_at).toLocaleDateString();
+        prompt += `- "${note.title}" (${date}): ${note.content}\n`;
+      });
+      prompt += `\n`;
     }
   }
 
