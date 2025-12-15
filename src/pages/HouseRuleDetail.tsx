@@ -9,7 +9,7 @@ import { useRuleSetEditors } from "@/hooks/useRuleSetEditors";
 import { useSavedRuleSets } from "@/hooks/useSavedRuleSets";
 import { useAuth } from "@/hooks/useAuth";
 import { RuleSetInfoPanel } from "@/components/house-rules/RuleSetInfoPanel";
-import { RuleSetAIAdjudicator } from "@/components/house-rules/RuleSetAIAdjudicator";
+import AIAdjudicator from "@/components/AIAdjudicator";
 import { LinkedTournamentsSection } from "@/components/house-rules/LinkedTournamentsSection";
 import { CollapsibleRuleCard } from "@/components/house-rules/CollapsibleRuleCard";
 import { RuleEditorModal } from "@/components/house-rules/RuleEditorModal";
@@ -210,10 +210,11 @@ const HouseRuleDetail = () => {
         />
 
         {/* Section 2: AI Adjudicator */}
-        <RuleSetAIAdjudicator
-          ruleSetName={ruleSet.name}
-          gameName={ruleSet.games.name}
-          rules={rules}
+        <AIAdjudicator
+          title={`${ruleSet.name} AI Adjudicator`}
+          subtitle={`Use this rule set for casual ${ruleSet.games.name} gameplay`}
+          preSelectedRuleSetId={ruleSet.id}
+          hideContextSelectors
         />
 
         {/* Section 3: Linked Tournaments */}

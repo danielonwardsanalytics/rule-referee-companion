@@ -1,4 +1,4 @@
-import QuickFireSection from "@/components/QuickFireSection";
+import AIAdjudicator from "@/components/AIAdjudicator";
 import MyGames from "@/components/MyGames";
 import { MyTournaments } from "@/components/MyTournaments";
 import { MyHouseRules } from "@/components/MyHouseRules";
@@ -76,8 +76,8 @@ const Home = () => {
         </section>
       ) : null}
 
-      {/* Quick Fire Question Section */}
-      <QuickFireSection />
+      {/* AI Adjudicator Section */}
+      <AIAdjudicator />
 
       {/* My Games Section */}
       <MyGames />
