@@ -34,7 +34,7 @@ const HouseRuleDetail = () => {
   const { user } = useAuth();
   const { ruleSet, isLoading: ruleSetLoading } = useRuleSetDetail(ruleSetId);
   const { rules, isLoading: rulesLoading, addRule, updateRule, deleteRule } = useHouseRules(ruleSetId);
-  const { isEditor, removeSelfAsEditor } = useRuleSetEditors(ruleSetId);
+  const { editors, isEditor, removeSelfAsEditor } = useRuleSetEditors(ruleSetId);
   const { setActiveRuleSet } = useActiveContext();
   const { isSaved, unsaveRuleSet } = useSavedRuleSets(ruleSetId);
   const {
@@ -210,6 +210,7 @@ const HouseRuleDetail = () => {
           isEditor={isEditor}
           isSaved={isSaved}
           ownerName={ownerName}
+          editors={editors}
           onUpdateName={handleUpdateName}
           onTogglePublic={handleTogglePublic}
           onDuplicate={handleDuplicate}
