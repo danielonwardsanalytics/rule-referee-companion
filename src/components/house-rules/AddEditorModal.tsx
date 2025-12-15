@@ -135,13 +135,14 @@ export const AddEditorModal = ({ isOpen, onClose, ruleSetId }: AddEditorModalPro
         return;
       }
 
-      // Send friend request
+      // Send friend request with pending editor invitation
       const { error } = await supabase
         .from("friend_requests")
         .insert({
           requester_id: user.id,
           recipient_email: email.trim().toLowerCase(),
           recipient_id: existingUser.id,
+          pending_editor_rule_set_id: ruleSetId,
         });
 
       if (error) throw error;
@@ -202,13 +203,14 @@ export const AddEditorModal = ({ isOpen, onClose, ruleSetId }: AddEditorModalPro
         return;
       }
 
-      // Send friend request
+      // Send friend request with pending editor invitation
       const { error } = await supabase
         .from("friend_requests")
         .insert({
           requester_id: user.id,
           recipient_id: friendId,
           recipient_email: null,
+          pending_editor_rule_set_id: ruleSetId,
         });
 
       if (error) throw error;

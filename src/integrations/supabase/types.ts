@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          pending_editor_rule_set_id: string | null
           recipient_email: string | null
           recipient_id: string | null
           requester_id: string
@@ -27,6 +28,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          pending_editor_rule_set_id?: string | null
           recipient_email?: string | null
           recipient_id?: string | null
           requester_id: string
@@ -36,13 +38,22 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          pending_editor_rule_set_id?: string | null
           recipient_email?: string | null
           recipient_id?: string | null
           requester_id?: string
           status?: Database["public"]["Enums"]["friend_request_status"] | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "friend_requests_pending_editor_rule_set_id_fkey"
+            columns: ["pending_editor_rule_set_id"]
+            isOneToOne: false
+            referencedRelation: "house_rule_sets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       friends: {
         Row: {
