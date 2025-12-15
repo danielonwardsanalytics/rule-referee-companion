@@ -15,7 +15,9 @@ export const useChatWithActions = (
   houseRules?: string[], 
   activeRuleSetId?: string | null,
   activeTournamentId?: string | null,
-  tournamentPlayers?: Array<{ id: string; display_name: string; status: string }>
+  tournamentPlayers?: Array<{ id: string; display_name: string; status: string }>,
+  tournamentNotes?: Array<{ title: string; content: string; created_at: string }>,
+  gameResults?: Array<{ winner_name: string; created_at: string; notes?: string | null }>
 ) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -46,6 +48,8 @@ export const useChatWithActions = (
         activeRuleSetId,
         activeTournamentId,
         tournamentPlayers,
+        tournamentNotes,
+        gameResults,
       };
       console.log('[useChatWithActions] Calling chat-with-actions with:', {
         messageCount: requestBody.messages.length,
@@ -54,6 +58,8 @@ export const useChatWithActions = (
         activeRuleSetId,
         activeTournamentId,
         hasPlayers: tournamentPlayers?.length || 0,
+        hasNotes: tournamentNotes?.length || 0,
+        hasResults: gameResults?.length || 0,
       });
 
       const response = await fetch(
@@ -113,7 +119,7 @@ export const useChatWithActions = (
     } finally {
       setIsLoading(false);
     }
-  }, [messages, gameName, houseRules, activeRuleSetId, activeTournamentId, tournamentPlayers]);
+  }, [messages, gameName, houseRules, activeRuleSetId, activeTournamentId, tournamentPlayers, tournamentNotes, gameResults]);
 
   const confirmAction = useCallback(async () => {
     if (!pendingAction) {
@@ -238,6 +244,8 @@ export const useChatWithActions = (
             activeRuleSetId,
             activeTournamentId,
             tournamentPlayers,
+            tournamentNotes,
+            gameResults,
           }),
         }
       );
@@ -263,7 +271,7 @@ export const useChatWithActions = (
     } finally {
       setIsDetectingAction(false);
     }
-  }, [pendingAction, gameName, houseRules, activeRuleSetId, activeTournamentId, tournamentPlayers]);
+  }, [pendingAction, gameName, houseRules, activeRuleSetId, activeTournamentId, tournamentPlayers, tournamentNotes, gameResults]);
 
   return { 
     messages, 

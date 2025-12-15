@@ -9,6 +9,8 @@ import { useChatWithActions } from "@/hooks/useChatWithActions";
 import { useActiveContext } from "@/hooks/useActiveContext";
 import { useHouseRules } from "@/hooks/useHouseRules";
 import { useTournamentPlayers } from "@/hooks/useTournamentPlayers";
+import { useTournamentNotes } from "@/hooks/useTournamentNotes";
+import { useGameResults } from "@/hooks/useGameResults";
 import { supabase } from "@/integrations/supabase/client";
 import { RealtimeChat } from "@/utils/RealtimeAudio";
 import { ContextSelectorBox } from "@/components/ai-adjudicator/ContextSelectorBox";
@@ -66,6 +68,22 @@ const AIAdjudicator = ({
     status: p.status || 'active',
   })) || [];
 
+  // Get tournament notes for context
+  const { notes: tournamentNotes } = useTournamentNotes(effectiveTournamentId || undefined);
+  const tournamentNotesContext = tournamentNotes?.map(n => ({
+    title: n.title,
+    content: n.content,
+    created_at: n.created_at,
+  })) || [];
+
+  // Get game results for context
+  const { results: gameResults } = useGameResults(effectiveTournamentId || undefined);
+  const gameResultsContext = gameResults?.map(r => ({
+    winner_name: r.tournament_players?.display_name || 'Unknown',
+    created_at: r.created_at || '',
+    notes: r.notes,
+  })) || [];
+
   // Determine game name from context
   const gameName = activeRuleSet?.gameName || activeTournament?.gameName || undefined;
 
@@ -80,7 +98,7 @@ const AIAdjudicator = ({
     handleVoiceConfirmation,
     isExecutingAction,
     detectActionInTranscript,
-  } = useChatWithActions(gameName, houseRulesText, effectiveRuleSetId, effectiveTournamentId, tournamentPlayersContext);
+  } = useChatWithActions(gameName, houseRulesText, effectiveRuleSetId, effectiveTournamentId, tournamentPlayersContext, tournamentNotesContext, gameResultsContext);
   
   // Native speech recognition hook (works on native apps and web)
   const { 
