@@ -43,7 +43,7 @@ export const ContextSelectorBox = ({
   // Get only the last used item (first in the sorted list)
   const lastUsedItem = availableItems.length > 0 ? availableItems[0] : null;
 
-  const handleChangeNavigation = () => {
+  const handleChooseNavigation = () => {
     if (type === "ruleSet") {
       navigate("/house-rules");
     } else {
@@ -54,6 +54,12 @@ export const ContextSelectorBox = ({
 
   const handleSelectItem = (item: ContextItem) => {
     onSelect(item.id);
+    // Navigate to the detail page for the selected item
+    if (type === "ruleSet") {
+      navigate(`/house-rules/${item.id}`);
+    } else {
+      navigate(`/tournament/${item.id}`);
+    }
     setIsOpen(false);
   };
 
@@ -104,7 +110,7 @@ export const ContextSelectorBox = ({
         <DropdownMenuContent align="start" className="w-56 max-h-[300px] overflow-y-auto">
           {isActive ? (
             <>
-              <DropdownMenuItem onClick={handleChangeNavigation}>
+              <DropdownMenuItem onClick={handleChooseNavigation}>
                 Change {type === "ruleSet" ? "Rules Set" : "Tournament"}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onClear} className="text-destructive focus:text-destructive">
@@ -130,7 +136,7 @@ export const ContextSelectorBox = ({
             </>
           ) : (
             <>
-              <DropdownMenuItem onClick={handleChangeNavigation}>
+              <DropdownMenuItem onClick={handleChooseNavigation}>
                 Choose a {type === "ruleSet" ? "Rule Set" : "Tournament"}
               </DropdownMenuItem>
               {lastUsedItem && (

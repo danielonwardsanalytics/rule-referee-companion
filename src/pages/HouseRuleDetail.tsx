@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { useHouseRules, type HouseRule } from "@/hooks/useHouseRules";
 import { useRuleSetEditors } from "@/hooks/useRuleSetEditors";
 import { useSavedRuleSets } from "@/hooks/useSavedRuleSets";
 import { useAuth } from "@/hooks/useAuth";
+import { useActiveContext } from "@/hooks/useActiveContext";
 import { RuleSetInfoPanel } from "@/components/house-rules/RuleSetInfoPanel";
 import AIAdjudicator from "@/components/AIAdjudicator";
 import { LinkedTournamentsSection } from "@/components/house-rules/LinkedTournamentsSection";
@@ -34,6 +35,7 @@ const HouseRuleDetail = () => {
   const { ruleSet, isLoading: ruleSetLoading } = useRuleSetDetail(ruleSetId);
   const { rules, isLoading: rulesLoading, addRule, updateRule, deleteRule } = useHouseRules(ruleSetId);
   const { isEditor, removeSelfAsEditor } = useRuleSetEditors(ruleSetId);
+  const { setActiveRuleSet } = useActiveContext();
   const { isSaved, unsaveRuleSet } = useSavedRuleSets(ruleSetId);
   const {
     updateRuleSet,
@@ -50,6 +52,13 @@ const HouseRuleDetail = () => {
 
   const isLoading = ruleSetLoading || rulesLoading;
   const isOwner = ruleSet?.user_id === user?.id;
+
+  // Set this rule set as active when viewing the detail page
+  useEffect(() => {
+    if (ruleSetId) {
+      setActiveRuleSet(ruleSetId);
+    }
+  }, [ruleSetId, setActiveRuleSet]);
 
   // Fetch owner profile if not owner
   const { data: ownerProfile } = useQuery({
@@ -209,12 +218,10 @@ const HouseRuleDetail = () => {
           onAddEditor={() => setIsAddEditorModalOpen(true)}
         />
 
-        {/* Section 2: AI Adjudicator */}
+        {/* Section 2: AI Adjudicator - Universal component, same as homepage */}
         <AIAdjudicator
-          title={`${ruleSet.name} AI Adjudicator`}
-          subtitle={`Use this rule set for casual ${ruleSet.games.name} gameplay`}
-          preSelectedRuleSetId={ruleSet.id}
-          hideContextSelectors
+          title="AI Adjudicator"
+          subtitle="Get instant answers about any game rule"
         />
 
         {/* Section 3: Linked Tournaments */}
