@@ -9,6 +9,7 @@ import { useTournamentPlayers } from "@/hooks/useTournamentPlayers";
 import { useGameResults } from "@/hooks/useGameResults";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveContext } from "@/hooks/useActiveContext";
+import { useRuleSetDetail } from "@/hooks/useHouseRuleSets";
 import AIAdjudicator from "@/components/AIAdjudicator";
 import { LeaderboardTable } from "@/components/tournaments/LeaderboardTable";
 import { AddPlayerModal } from "@/components/tournaments/AddPlayerModal";
@@ -17,6 +18,7 @@ import { GameHistory } from "@/components/tournaments/GameHistory";
 import { TournamentAnalytics } from "@/components/tournaments/TournamentAnalytics";
 import { TournamentNotes } from "@/components/tournaments/TournamentNotes";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
 
 const TournamentDetail = () => {
   const { tournamentId } = useParams();
@@ -27,6 +29,9 @@ const TournamentDetail = () => {
   const { players } = useTournamentPlayers(tournamentId);
   const { results } = useGameResults(tournamentId);
   const { setActiveTournament } = useActiveContext();
+  
+  // Fetch the locked rule set details if tournament has one
+  const { ruleSet: lockedRuleSet } = useRuleSetDetail(tournament?.house_rule_set_id || undefined);
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState("");
@@ -46,6 +51,13 @@ const TournamentDetail = () => {
     if (tournament && editedName.trim()) {
       updateTournament({ id: tournament.id, name: editedName });
       setIsEditingName(false);
+    }
+  };
+
+  const handleLockRuleSet = (ruleSetId: string) => {
+    if (tournament) {
+      updateTournament({ id: tournament.id, houseRuleSetId: ruleSetId });
+      toast.success("House rules locked in for this tournament!");
     }
   };
 
@@ -124,12 +136,20 @@ const TournamentDetail = () => {
           </div>
         </div>
 
-        {/* AI Adjudicator - Universal component, same as homepage */}
+        {/* AI Adjudicator - Tournament mode with locked rules selector */}
         <AIAdjudicator
           title="AI Adjudicator"
           subtitle="Get instant answers about any game rule"
           embedded
           showTournamentProTips
+          preSelectedTournamentId={tournamentId}
+          tournamentMode={true}
+          tournamentGameId={tournament.games.id}
+          tournamentGameName={tournament.games.name}
+          lockedRuleSetId={tournament.house_rule_set_id}
+          lockedRuleSetName={lockedRuleSet?.name || null}
+          onLockRuleSet={handleLockRuleSet}
+          hideContextSelectors={true}
         />
 
         {/* Tournament Tabs */}

@@ -79,10 +79,14 @@ export const useTournaments = () => {
   });
 
   const updateTournamentMutation = useMutation({
-    mutationFn: async (data: { id: string; name: string }) => {
+    mutationFn: async (data: { id: string; name?: string; houseRuleSetId?: string }) => {
+      const updateData: any = {};
+      if (data.name !== undefined) updateData.name = data.name;
+      if (data.houseRuleSetId !== undefined) updateData.house_rule_set_id = data.houseRuleSetId;
+
       const { error } = await supabase
         .from("tournaments")
-        .update({ name: data.name })
+        .update(updateData)
         .eq("id", data.id);
 
       if (error) throw error;

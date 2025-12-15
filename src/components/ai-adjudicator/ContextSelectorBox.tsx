@@ -8,6 +8,10 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { LeaveTournamentDialog } from "./LeaveTournamentDialog";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useActiveContext } from "@/hooks/useActiveContext";
 
 interface ContextItem {
   id: string;
@@ -36,6 +40,27 @@ export const ContextSelectorBox = ({
   const navigate = useNavigate();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const [showLeaveTournamentDialog, setShowLeaveTournamentDialog] = useState(false);
+  const { activeTournamentId } = useActiveContext();
+
+  // Check if active tournament has locked rules
+  const { data: activeTournamentWithRules } = useQuery({
+    queryKey: ["active-tournament-rules-check", activeTournamentId],
+    queryFn: async () => {
+      if (!activeTournamentId) return null;
+      const { data, error } = await supabase
+        .from("tournaments")
+        .select("id, name, house_rule_set_id")
+        .eq("id", activeTournamentId)
+        .single();
+      if (error) return null;
+      return data;
+    },
+    enabled: !!activeTournamentId && type === "ruleSet",
+  });
+
+  const hasLockedTournament = !!activeTournamentWithRules?.house_rule_set_id;
+  const lockedTournamentName = activeTournamentWithRules?.name || "";
 
   const isActive = !!activeItem;
   const displayText = isActive ? activeItem.name : `No ${type === "ruleSet" ? "rules" : "tournament"} active`;
@@ -50,6 +75,12 @@ export const ContextSelectorBox = ({
   );
 
   const handleChooseNavigation = () => {
+    // If trying to change rule set while a tournament with locked rules is active
+    if (type === "ruleSet" && hasLockedTournament) {
+      setShowLeaveTournamentDialog(true);
+      setIsOpen(false);
+      return;
+    }
     if (type === "ruleSet") {
       navigate("/house-rules");
     } else {
@@ -79,40 +110,53 @@ export const ContextSelectorBox = ({
     setIsOpen(false);
   };
 
+  // Handle switch toggle for rule sets - check for locked tournament
+  const handleSwitchClick = () => {
+    if (isActive) {
+      // Turning off - check for locked tournament first
+      if (hasLockedTournament) {
+        setShowLeaveTournamentDialog(true);
+        return;
+      }
+      onClear();
+    } else {
+      // When OFF, check for locked tournament before opening dropdown
+      if (hasLockedTournament) {
+        setShowLeaveTournamentDialog(true);
+        return;
+      }
+      setIsOpen(true);
+    }
+  };
+
   return (
-    <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-      {/* Label with On/Off indicator for Rule Sets */}
-      <div className="flex items-center justify-center gap-2">
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-          {label}
-        </span>
-        {type === "ruleSet" && (
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={isActive}
-              onClick={() => {
-                if (isActive) {
-                  onClear();
-                } else {
-                  // When OFF, clicking the switch opens the dropdown
-                  setIsOpen(true);
-                }
-              }}
-              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                isActive ? "bg-green-500" : "bg-red-500"
-              }`}
-            >
-              <span
-                className={`pointer-events-none block h-4 w-4 rounded-full bg-white shadow-lg transition-transform ${
-                  isActive ? "translate-x-[18px]" : "translate-x-[2px]"
+    <>
+      <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+        {/* Label with On/Off indicator for Rule Sets */}
+        <div className="flex items-center justify-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            {label}
+          </span>
+          {type === "ruleSet" && (
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isActive}
+                onClick={handleSwitchClick}
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                  isActive ? "bg-green-500" : "bg-red-500"
                 }`}
-              />
-            </button>
-          </div>
-        )}
-      </div>
+              >
+                <span
+                  className={`pointer-events-none block h-4 w-4 rounded-full bg-white shadow-lg transition-transform ${
+                    isActive ? "translate-x-[18px]" : "translate-x-[2px]"
+                  }`}
+                />
+              </button>
+            </div>
+          )}
+        </div>
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger asChild>
           <button
@@ -194,6 +238,14 @@ export const ContextSelectorBox = ({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
-    </div>
+      </div>
+
+      {/* Leave Tournament Dialog */}
+      <LeaveTournamentDialog
+        open={showLeaveTournamentDialog}
+        onOpenChange={setShowLeaveTournamentDialog}
+        tournamentName={lockedTournamentName}
+      />
+    </>
   );
 };
