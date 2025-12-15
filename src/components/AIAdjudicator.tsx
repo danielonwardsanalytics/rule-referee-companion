@@ -482,7 +482,7 @@ Keep responses under 3 sentences unless more detail is requested.`;
 
           {/* Context Selector Boxes - Below Input */}
           {!hideContextSelectors && (
-            <div className="mt-6 space-y-2">
+            <div className="mt-8 space-y-2">
               <div className="flex gap-4">
                 <ContextSelectorBox
                   label="Rules Set"
