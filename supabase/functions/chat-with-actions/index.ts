@@ -251,6 +251,11 @@ function buildSystemPrompt(gameName?: string, houseRules?: string[], activeRuleS
 2. Help users manage their app - create house rule sets, tournaments, and more
 3. Take actions on behalf of users when they ask
 
+IMPORTANT RULE CONTEXT HANDLING:
+- If the user's message mentions that house rules have been "TURNED OFF", acknowledge this change and confirm they are now playing by standard/official rules only.
+- If the user's message mentions that house rules have been "ACTIVATED" or "CHANGED", acknowledge this change and note which rules are now active.
+- Always be clear about which rules (house rules vs official rules) you are basing your answers on.
+
 IMPORTANT: When users ask you to CREATE something (house rules, tournaments) or ADD something (rules to a set), you should use the appropriate tool to propose that action. Be proactive about detecting these requests even if phrased casually like:
 - "Make me a rule set called X" → create_house_rule_set
 - "Start a new tournament for UNO" → create_tournament  
@@ -268,7 +273,9 @@ IMPORTANT: When users ask you to CREATE something (house rules, tournaments) or 
     houseRules.forEach((rule, idx) => {
       prompt += `${idx + 1}. ${rule}\n`;
     });
-    prompt += `\n`;
+    prompt += `\nWhen answering questions, use these house rules. If a house rule contradicts an official rule, the house rule takes precedence.\n\n`;
+  } else {
+    prompt += `NO HOUSE RULES ACTIVE: The user is playing by standard/official rules only.\n\n`;
   }
 
   if (activeRuleSetId) {
