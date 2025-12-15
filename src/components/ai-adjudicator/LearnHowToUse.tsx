@@ -13,34 +13,56 @@ export const LearnHowToUse = () => {
         </CollapsibleTrigger>
       </div>
       <CollapsibleContent className="pt-4">
-        <div className="bg-secondary/50 rounded-lg p-4 space-y-3">
-          <h4 className="font-medium text-sm text-foreground">Voice Commands You Can Use:</h4>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li className="flex items-start gap-2">
-              <span className="text-primary">•</span>
-              <span><strong>"What are the rules for..."</strong> - Ask about any game rule or clarification</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-primary">•</span>
-              <span><strong>"Create a new rule..."</strong> - Add a custom house rule to your active rule set</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-primary">•</span>
-              <span><strong>"Update the rule about..."</strong> - Modify an existing house rule</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-primary">•</span>
-              <span><strong>"[Player name] won"</strong> - Record a game result in your tournament</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-primary">•</span>
-              <span><strong>"Start a new tournament for..."</strong> - Create a new tournament</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-primary">•</span>
-              <span><strong>"Add [player] to the tournament"</strong> - Add a player to your active tournament</span>
-            </li>
-          </ul>
+        <div className="bg-secondary/50 rounded-lg p-4 space-y-4">
+          {/* Context Explanation */}
+          <div className="space-y-2">
+            <h4 className="font-medium text-sm text-foreground">About Rule Sets & Tournaments:</h4>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li className="flex items-start gap-2">
+                <span className="text-primary">•</span>
+                <span><strong>Rule Set:</strong> When active, the AI uses your custom house rules to answer questions. If you ask about a rule, it refers to your set first.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary">•</span>
+                <span><strong>Tournament:</strong> Shows the tournament currently being played. Commands like "Mike won" will update this tournament's scores.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary">•</span>
+                <span>You can still ask questions about other games or rules - the AI understands context and can help beyond your active selections.</span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="border-t border-border pt-3 space-y-2">
+            <h4 className="font-medium text-sm text-foreground">Voice Commands You Can Use:</h4>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li className="flex items-start gap-2">
+                <span className="text-primary">•</span>
+                <span><strong>"What are the rules for..."</strong> - Ask about any game rule or clarification</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary">•</span>
+                <span><strong>"Create a new rule..."</strong> - Add a custom house rule to your active rule set</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary">•</span>
+                <span><strong>"Update the rule about..."</strong> - Modify an existing house rule</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary">•</span>
+                <span><strong>"[Player name] won"</strong> - Record a game result in your tournament</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary">•</span>
+                <span><strong>"Start a new tournament for..."</strong> - Create a new tournament</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary">•</span>
+                <span><strong>"Add [player] to the tournament"</strong> - Add a player to your active tournament</span>
+              </li>
+            </ul>
+          </div>
+
           <p className="text-xs text-muted-foreground pt-2 border-t border-border">
             💡 Tip: Press the voice button to speak naturally. The AI understands context and will help manage your games, rules, and tournaments.
           </p>

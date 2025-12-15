@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, X } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,6 +40,9 @@ export const ContextSelectorBox = ({
   const isActive = !!activeItem;
   const displayText = isActive ? activeItem.name : `No ${type === "ruleSet" ? "rules" : "tournament"} active`;
 
+  // Get only the last used item (first in the sorted list)
+  const lastUsedItem = availableItems.length > 0 ? availableItems[0] : null;
+
   const handleChangeNavigation = () => {
     if (type === "ruleSet") {
       navigate("/house-rules");
@@ -55,9 +59,26 @@ export const ContextSelectorBox = ({
 
   return (
     <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide text-center">
-        {label}
-      </span>
+      {/* Label with On/Off indicator for Rule Sets */}
+      <div className="flex items-center justify-center gap-2">
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          {label}
+        </span>
+        {type === "ruleSet" && (
+          <div className="flex items-center gap-1">
+            <Switch
+              checked={isActive}
+              onCheckedChange={() => {
+                if (isActive) {
+                  onClear();
+                }
+              }}
+              disabled={!isActive}
+              className={`h-4 w-7 ${isActive ? "bg-green-500 data-[state=checked]:bg-green-500" : "bg-red-500 data-[state=unchecked]:bg-red-500"}`}
+            />
+          </div>
+        )}
+      </div>
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger asChild>
           <button
@@ -90,24 +111,20 @@ export const ContextSelectorBox = ({
                 <X className="h-4 w-4 mr-2" />
                 Turn Off
               </DropdownMenuItem>
-              {availableItems.length > 0 && (
+              {lastUsedItem && lastUsedItem.id !== activeItem?.id && (
                 <>
                   <DropdownMenuSeparator />
                   <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                    Quick Switch
+                    Last {type === "ruleSet" ? "Rule Set" : "Tournament"} Used
                   </div>
-                  {availableItems.slice(0, 5).map((item) => (
-                    <DropdownMenuItem
-                      key={item.id}
-                      onClick={() => handleSelectItem(item)}
-                      className={item.id === activeItem?.id ? "bg-accent" : ""}
-                    >
-                      <div className="flex flex-col">
-                        <span className="text-sm">{item.name}</span>
-                        <span className="text-xs text-muted-foreground">{item.gameName}</span>
-                      </div>
-                    </DropdownMenuItem>
-                  ))}
+                  <DropdownMenuItem
+                    onClick={() => handleSelectItem(lastUsedItem)}
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-sm">{lastUsedItem.name}</span>
+                      <span className="text-xs text-muted-foreground">{lastUsedItem.gameName}</span>
+                    </div>
+                  </DropdownMenuItem>
                 </>
               )}
             </>
@@ -116,29 +133,34 @@ export const ContextSelectorBox = ({
               <DropdownMenuItem onClick={handleChangeNavigation}>
                 Choose a {type === "ruleSet" ? "Rule Set" : "Tournament"}
               </DropdownMenuItem>
-              {availableItems.length > 0 && (
+              {lastUsedItem && (
                 <>
                   <DropdownMenuSeparator />
                   <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                    Recent {type === "ruleSet" ? "Rule Sets" : "Tournaments"}
+                    Last {type === "ruleSet" ? "Rule Set" : "Tournament"} Used
                   </div>
-                  {availableItems.slice(0, 5).map((item) => (
-                    <DropdownMenuItem
-                      key={item.id}
-                      onClick={() => handleSelectItem(item)}
-                    >
-                      <div className="flex flex-col">
-                        <span className="text-sm">{item.name}</span>
-                        <span className="text-xs text-muted-foreground">{item.gameName}</span>
-                      </div>
-                    </DropdownMenuItem>
-                  ))}
+                  <DropdownMenuItem
+                    onClick={() => handleSelectItem(lastUsedItem)}
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-sm">{lastUsedItem.name}</span>
+                      <span className="text-xs text-muted-foreground">{lastUsedItem.gameName}</span>
+                    </div>
+                  </DropdownMenuItem>
                 </>
               )}
             </>
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+      {/* Helper text for Rule Sets */}
+      {type === "ruleSet" && (
+        <p className="text-xs text-muted-foreground text-center mt-1">
+          {isActive 
+            ? "AI Adjudicator is using these house rules" 
+            : "Turn on to use custom house rules"}
+        </p>
+      )}
     </div>
   );
 };
