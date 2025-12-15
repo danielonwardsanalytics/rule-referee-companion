@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ChevronDown, X, ExternalLink } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -89,16 +88,28 @@ export const ContextSelectorBox = ({
         </span>
         {type === "ruleSet" && (
           <div className="flex items-center gap-1">
-            <Switch
-              checked={isActive}
-              onCheckedChange={() => {
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isActive}
+              onClick={() => {
                 if (isActive) {
                   onClear();
+                } else {
+                  // When OFF, clicking the switch opens the dropdown
+                  setIsOpen(true);
                 }
               }}
-              disabled={!isActive}
-              className={`h-4 w-7 ${isActive ? "bg-green-500 data-[state=checked]:bg-green-500" : "bg-red-500 data-[state=unchecked]:bg-red-500"}`}
-            />
+              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                isActive ? "bg-green-500" : "bg-red-500"
+              }`}
+            >
+              <span
+                className={`pointer-events-none block h-4 w-4 rounded-full bg-white shadow-lg transition-transform ${
+                  isActive ? "translate-x-[18px]" : "translate-x-[2px]"
+                }`}
+              />
+            </button>
           </div>
         )}
       </div>
