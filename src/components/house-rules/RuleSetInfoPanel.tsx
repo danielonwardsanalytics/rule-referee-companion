@@ -1,7 +1,5 @@
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -22,6 +20,7 @@ import {
   Calendar,
   Gamepad2,
   Settings,
+  Lock,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -76,158 +75,159 @@ export const RuleSetInfoPanel = ({
   const canEdit = isOwner || isEditor;
 
   return (
-    <Card className="overflow-hidden">
-      <div
-        className="h-2"
-        style={{ backgroundColor: ruleSet.games.accent_color }}
-      />
-      <CardContent className="pt-6 space-y-4">
-        {/* Title Row */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            {isEditingName && canEdit ? (
-              <div className="flex items-center gap-2">
-                <Input
-                  value={editedName}
-                  onChange={(e) => setEditedName(e.target.value)}
-                  className="text-xl font-bold"
-                  autoFocus
-                />
-                <Button size="icon" variant="ghost" onClick={handleSaveName}>
-                  <Check className="h-4 w-4" />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => {
-                    setEditedName(ruleSet.name);
-                    setIsEditingName(false);
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold">{ruleSet.name}</h1>
-                {canEdit && (
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => setIsEditingName(true)}
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
+    <div className="space-y-3">
+      {/* Title Row */}
+      <div className="flex items-center gap-2">
+        {isEditingName && canEdit ? (
+          <div className="flex items-center gap-2 flex-1">
+            <Input
+              value={editedName}
+              onChange={(e) => setEditedName(e.target.value)}
+              className="text-3xl font-bold max-w-md"
+              autoFocus
+            />
+            <Button size="icon" variant="ghost" onClick={handleSaveName}>
+              <Check className="h-4 w-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => {
+                setEditedName(ruleSet.name);
+                setIsEditingName(false);
+              }}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold">{ruleSet.name}</h1>
+            {canEdit && (
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setIsEditingName(true)}
+              >
+                <Edit2 className="h-4 w-4" />
+              </Button>
             )}
           </div>
+        )}
+      </div>
 
-          {/* Status Badges */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {ruleSet.is_public ? (
-              <Badge variant="secondary">
-                <Globe className="h-3 w-3 mr-1" />
-                Public
-              </Badge>
-            ) : (
-              <Badge variant="outline">
-                <Users className="h-3 w-3 mr-1" />
-                Private
-              </Badge>
+      {/* Game Name */}
+      <p className="text-muted-foreground flex items-center gap-2">
+        <Gamepad2 className="h-4 w-4" />
+        {ruleSet.games.name}
+      </p>
+
+      {/* Public/Private Status */}
+      <p className="text-muted-foreground flex items-center gap-2">
+        {ruleSet.is_public ? (
+          <>
+            <Globe className="h-4 w-4" />
+            Public
+          </>
+        ) : (
+          <>
+            <Lock className="h-4 w-4" />
+            Private
+          </>
+        )}
+      </p>
+
+      {/* Date Created */}
+      <p className="text-muted-foreground flex items-center gap-2">
+        <Calendar className="h-4 w-4" />
+        Created {format(new Date(ruleSet.created_at), "MMM d, yyyy")}
+      </p>
+
+      {/* Owner info if not owner */}
+      {!isOwner && ownerName && (
+        <p className="text-muted-foreground flex items-center gap-2">
+          <Users className="h-4 w-4" />
+          Owner: {ownerName}
+        </p>
+      )}
+
+      {/* Editor badge if applicable */}
+      {isEditor && !isOwner && (
+        <p className="text-muted-foreground flex items-center gap-2">
+          <Edit2 className="h-4 w-4" />
+          You are an editor
+        </p>
+      )}
+
+      {/* Saved badge if applicable */}
+      {isSaved && !isOwner && !isEditor && (
+        <p className="text-muted-foreground flex items-center gap-2">
+          <Check className="h-4 w-4" />
+          Saved to your rules
+        </p>
+      )}
+
+      {/* Settings Dropdown */}
+      <div className="pt-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="p-1.5 rounded-md hover:bg-muted transition-colors">
+              <Settings className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-48 bg-popover border-[3px] border-white ring-2 ring-primary shadow-lg">
+            {/* Owner-only actions */}
+            {isOwner && (
+              <>
+                <DropdownMenuItem onClick={onTogglePublic}>
+                  {ruleSet.is_public ? (
+                    <>
+                      <Users className="h-4 w-4 mr-2" />
+                      Make Private
+                    </>
+                  ) : (
+                    <>
+                      <Globe className="h-4 w-4 mr-2" />
+                      Make Public
+                    </>
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onAddEditor}>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Add Editor
+                </DropdownMenuItem>
+              </>
             )}
-            {isEditor && !isOwner && (
-              <Badge variant="outline">
-                <Edit2 className="h-3 w-3 mr-1" />
-                Editor
-              </Badge>
-            )}
-            {isSaved && !isOwner && !isEditor && (
-              <Badge variant="outline">Saved</Badge>
-            )}
-          </div>
-        </div>
 
-        {/* Info Grid */}
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Gamepad2 className="h-4 w-4" />
-            <span>{ruleSet.games.name}</span>
-          </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Calendar className="h-4 w-4" />
-            <span>Created {format(new Date(ruleSet.created_at), "MMM d, yyyy")}</span>
-          </div>
-          {!isOwner && ownerName && (
-            <div className="flex items-center gap-2 text-muted-foreground col-span-2">
-              <Users className="h-4 w-4" />
-              <span>Owner: {ownerName}</span>
-            </div>
-          )}
-        </div>
+            {/* Available to all with access */}
+            <DropdownMenuItem onClick={onDuplicate}>
+              <Copy className="h-4 w-4 mr-2" />
+              Duplicate
+            </DropdownMenuItem>
 
-        {/* Settings Dropdown - Bottom Right */}
-        <div className="flex justify-end pt-1">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="p-1.5 rounded-md hover:bg-muted transition-colors">
-                <Settings className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-popover border-[3px] border-white ring-2 ring-primary shadow-lg">
-              {/* Owner-only actions */}
-              {isOwner && (
-                <>
-                  <DropdownMenuItem onClick={onTogglePublic}>
-                    {ruleSet.is_public ? (
-                      <>
-                        <Users className="h-4 w-4 mr-2" />
-                        Make Private
-                      </>
-                    ) : (
-                      <>
-                        <Globe className="h-4 w-4 mr-2" />
-                        Make Public
-                      </>
-                    )}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={onAddEditor}>
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Add Editor
-                  </DropdownMenuItem>
-                </>
-              )}
+            <DropdownMenuSeparator />
 
-              {/* Available to all with access */}
-              <DropdownMenuItem onClick={onDuplicate}>
-                <Copy className="h-4 w-4 mr-2" />
-                Duplicate
+            {/* Delete/Remove action */}
+            {isOwner ? (
+              <DropdownMenuItem
+                onClick={onDelete}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Rule Set
               </DropdownMenuItem>
-
-              <DropdownMenuSeparator />
-
-              {/* Delete/Remove action */}
-              {isOwner ? (
-                <DropdownMenuItem
-                  onClick={onDelete}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Set
-                </DropdownMenuItem>
-              ) : (isEditor || isSaved) ? (
-                <DropdownMenuItem
-                  onClick={onRemove}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  Remove from My Rules
-                </DropdownMenuItem>
-              ) : null}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </CardContent>
-    </Card>
+            ) : (isEditor || isSaved) ? (
+              <DropdownMenuItem
+                onClick={onRemove}
+                className="text-destructive focus:text-destructive"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Remove from My Rules
+              </DropdownMenuItem>
+            ) : null}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
   );
 };
