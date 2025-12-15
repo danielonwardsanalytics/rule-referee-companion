@@ -225,14 +225,7 @@ const HouseRuleDetail = () => {
           embedded
         />
 
-        {/* Section 3: Linked Tournaments */}
-        <LinkedTournamentsSection
-          ruleSetId={ruleSet.id}
-          ruleSetName={ruleSet.name}
-          gameId={ruleSet.game_id}
-        />
-
-        {/* Section 4: Rules */}
+        {/* Section 3: Rules */}
         <Card className="border border-border">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Rules</CardTitle>
@@ -265,6 +258,13 @@ const HouseRuleDetail = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Section 4: Linked Tournaments */}
+        <LinkedTournamentsSection
+          ruleSetId={ruleSet.id}
+          ruleSetName={ruleSet.name}
+          gameId={ruleSet.game_id}
+        />
       </div>
 
       {/* Rule Editor Modal */}
