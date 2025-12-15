@@ -67,6 +67,7 @@ const AIAdjudicator = ({
     cancelAction,
     handleVoiceConfirmation,
     isExecutingAction,
+    detectActionInTranscript,
   } = useChatWithActions(gameName, houseRulesText, effectiveRuleSetId);
   const [input, setInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -252,7 +253,11 @@ const AIAdjudicator = ({
         contextInstructions += `The player is in the "${activeTournament.name}" tournament.\n\n`;
       }
 
-      contextInstructions += `Answer questions clearly and concisely about game rules, strategies, and disputes. 
+      contextInstructions += `You can help users create house rule sets, add rules to existing sets, and create tournaments.
+When a user asks you to create something (like "create a house rule set called X" or "add a rule that Y"), 
+respond with a clear confirmation of what you'll create and ask them to confirm.
+
+Answer questions clearly and concisely about game rules, strategies, and disputes. 
 When house rules apply, explain how they modify the standard rules.
 Keep responses under 3 sentences unless more detail is requested.`;
 
@@ -292,7 +297,16 @@ Keep responses under 3 sentences unless more detail is requested.`;
         contextInstructions,
         voice,
         gameName,
-        houseRulesText
+        houseRulesText,
+        // New callback: detect actions in user's voice transcript
+        async (transcript) => {
+          console.log("[AIAdjudicator] User voice transcript received:", transcript);
+          const messageWithContext = buildContextPrompt() + transcript;
+          const actionDetected = await detectActionInTranscript(messageWithContext);
+          if (actionDetected) {
+            toast.info("Action detected! Confirm or cancel below, or say 'yes' to confirm.");
+          }
+        }
       );
 
       await realtimeChatRef.current.init();
