@@ -495,7 +495,7 @@ Keep responses under 3 sentences unless more detail is requested.`;
           {showTournamentProTips && (
             <div className="mt-4 p-3 bg-secondary/50 rounded-lg border border-border">
               <p className="text-xs text-muted-foreground">
-                <span className="font-semibold text-foreground">Pro tip:</span> Ask AI "Where did we leave off?" to get a summary of the tournament status, who's leading, and what happened in the last game. You can also ask "What were the latest results?" or "Restart the game" to begin fresh.
+                <span className="font-semibold text-foreground">Pro tip:</span> Ask AI to summarise where you left off or get a summary of your last session, including rules updates and notes.
               </p>
             </div>
           )}
