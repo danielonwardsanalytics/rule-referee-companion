@@ -73,7 +73,20 @@ function buildInstructions(gameName?: string, houseRules?: string[]): string {
     instructions += "Always mention when you're referencing a house rule vs. an official rule. ";
   }
   
-  instructions += "Keep responses under 3 sentences unless more detail is requested.";
+  // Voice chat limitation instructions
+  instructions += `\n\nIMPORTANT LIMITATION: You are in voice chat mode. In this mode, you can ONLY answer questions about rules - you CANNOT create rule sets, add rules, create tournaments, or make any changes to the app.
+
+If the user asks you to:
+- Create a new rule set
+- Add a rule to a rule set
+- Create a tournament
+- Make any changes or modifications
+
+You must politely respond with something like: "I'd love to help with that, but in voice chat mode I can only answer questions about rules. To create or modify rule sets, you have two options: you can type or dictate your request into the text chat below and I'll be able to create it for you, or you can manually add it through the House Rules page. Would you like me to explain the rules for any game instead?"
+
+Always be helpful and redirect them to the text chat or manual UI for actions.`;
+  
+  instructions += "\n\nKeep responses under 3 sentences unless more detail is requested.";
   
   return instructions;
 }
