@@ -10,7 +10,13 @@ interface PendingAction {
   confirmationMessage: string;
 }
 
-export const useChatWithActions = (gameName?: string, houseRules?: string[], activeRuleSetId?: string | null) => {
+export const useChatWithActions = (
+  gameName?: string, 
+  houseRules?: string[], 
+  activeRuleSetId?: string | null,
+  activeTournamentId?: string | null,
+  tournamentPlayers?: Array<{ id: string; display_name: string; status: string }>
+) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
@@ -38,12 +44,16 @@ export const useChatWithActions = (gameName?: string, houseRules?: string[], act
         gameName,
         houseRules,
         activeRuleSetId,
+        activeTournamentId,
+        tournamentPlayers,
       };
       console.log('[useChatWithActions] Calling chat-with-actions with:', {
         messageCount: requestBody.messages.length,
         gameName,
         hasHouseRules: houseRules?.length || 0,
         activeRuleSetId,
+        activeTournamentId,
+        hasPlayers: tournamentPlayers?.length || 0,
       });
 
       const response = await fetch(
@@ -103,7 +113,7 @@ export const useChatWithActions = (gameName?: string, houseRules?: string[], act
     } finally {
       setIsLoading(false);
     }
-  }, [messages, gameName, houseRules, activeRuleSetId]);
+  }, [messages, gameName, houseRules, activeRuleSetId, activeTournamentId, tournamentPlayers]);
 
   const confirmAction = useCallback(async () => {
     if (!pendingAction) {
@@ -226,6 +236,8 @@ export const useChatWithActions = (gameName?: string, houseRules?: string[], act
             gameName,
             houseRules,
             activeRuleSetId,
+            activeTournamentId,
+            tournamentPlayers,
           }),
         }
       );
@@ -251,7 +263,7 @@ export const useChatWithActions = (gameName?: string, houseRules?: string[], act
     } finally {
       setIsDetectingAction(false);
     }
-  }, [pendingAction, gameName, houseRules, activeRuleSetId]);
+  }, [pendingAction, gameName, houseRules, activeRuleSetId, activeTournamentId, tournamentPlayers]);
 
   return { 
     messages, 

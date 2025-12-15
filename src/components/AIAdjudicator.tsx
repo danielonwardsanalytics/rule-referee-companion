@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useChatWithActions } from "@/hooks/useChatWithActions";
 import { useActiveContext } from "@/hooks/useActiveContext";
 import { useHouseRules } from "@/hooks/useHouseRules";
+import { useTournamentPlayers } from "@/hooks/useTournamentPlayers";
 import { supabase } from "@/integrations/supabase/client";
 import { RealtimeChat } from "@/utils/RealtimeAudio";
 import { ContextSelectorBox } from "@/components/ai-adjudicator/ContextSelectorBox";
@@ -55,6 +56,14 @@ const AIAdjudicator = ({
   const { rules: activeRules } = useHouseRules(effectiveRuleSetId || undefined);
   const houseRulesText = activeRules?.map((r) => r.rule_text) || [];
 
+  // Get tournament players for context
+  const { players: tournamentPlayers } = useTournamentPlayers(effectiveTournamentId || undefined);
+  const tournamentPlayersContext = tournamentPlayers?.map(p => ({
+    id: p.id,
+    display_name: p.display_name,
+    status: p.status || 'active',
+  })) || [];
+
   // Determine game name from context
   const gameName = activeRuleSet?.gameName || activeTournament?.gameName || undefined;
 
@@ -69,7 +78,7 @@ const AIAdjudicator = ({
     handleVoiceConfirmation,
     isExecutingAction,
     detectActionInTranscript,
-  } = useChatWithActions(gameName, houseRulesText, effectiveRuleSetId);
+  } = useChatWithActions(gameName, houseRulesText, effectiveRuleSetId, effectiveTournamentId, tournamentPlayersContext);
   
   // Native speech recognition hook (works on native apps and web)
   const { 
