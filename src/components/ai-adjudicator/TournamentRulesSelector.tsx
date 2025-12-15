@@ -226,7 +226,7 @@ export const TournamentRulesSelector = ({
               }}
               className="w-full sm:w-auto"
             >
-              Create New Rule Set
+              Choose Rule Set
             </Button>
             <AlertDialogCancel className="w-full sm:w-auto mt-0">Cancel</AlertDialogCancel>
           </AlertDialogFooter>
