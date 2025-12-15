@@ -73,6 +73,73 @@ const tools = [
         additionalProperties: false
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_tournament_player",
+      description: "Add a new player to the current tournament. Use this when the user wants to add a player, participant, or someone new to the tournament.",
+      parameters: {
+        type: "object",
+        properties: {
+          player_name: {
+            type: "string",
+            description: "The display name of the player to add"
+          }
+        },
+        required: ["player_name"],
+        additionalProperties: false
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "record_game_result",
+      description: "Record a game result or winner in the current tournament. Use this when the user says someone won, scored, or won a round/game.",
+      parameters: {
+        type: "object",
+        properties: {
+          winner_name: {
+            type: "string",
+            description: "The name of the player who won the game/round"
+          },
+          notes: {
+            type: "string",
+            description: "Optional notes about the game (e.g., score, special circumstances)"
+          }
+        },
+        required: ["winner_name"],
+        additionalProperties: false
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_player_status",
+      description: "Update a player's status in the tournament (e.g., mark as inactive, forfeit, or reactivate). Use this when someone forfeits, leaves, or needs to be marked inactive.",
+      parameters: {
+        type: "object",
+        properties: {
+          player_name: {
+            type: "string",
+            description: "The name of the player whose status should be updated"
+          },
+          status: {
+            type: "string",
+            enum: ["active", "inactive"],
+            description: "The new status for the player"
+          },
+          reason: {
+            type: "string",
+            description: "Optional reason for the status change (e.g., 'forfeit', 'left early')"
+          }
+        },
+        required: ["player_name", "status"],
+        additionalProperties: false
+      }
+    }
   }
 ];
 
@@ -102,18 +169,20 @@ serve(async (req) => {
       });
     }
 
-    const { messages, gameName, houseRules, activeRuleSetId } = await req.json();
+    const { messages, gameName, houseRules, activeRuleSetId, activeTournamentId, tournamentPlayers } = await req.json();
     console.log("[chat-with-actions] Received request:", { 
       messageCount: messages?.length, 
       gameName, 
       hasHouseRules: houseRules?.length > 0,
-      activeRuleSetId 
+      activeRuleSetId,
+      activeTournamentId,
+      hasPlayers: tournamentPlayers?.length > 0
     });
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const systemPrompt = buildSystemPrompt(gameName, houseRules, activeRuleSetId);
+    const systemPrompt = buildSystemPrompt(gameName, houseRules, activeRuleSetId, activeTournamentId, tournamentPlayers);
 
     // First, try to detect if this is an action request using tool calling
     const toolResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -187,6 +256,22 @@ serve(async (req) => {
           actionType = "add_house_rule";
           actionParams = { ...functionArgs, rule_set_id: activeRuleSetId };
           break;
+        case "add_tournament_player":
+          confirmationMessage = `I'll add "${functionArgs.player_name}" as a new player to the tournament. Would you like me to proceed?`;
+          actionType = "add_tournament_player";
+          actionParams = { ...functionArgs, tournament_id: activeTournamentId };
+          break;
+        case "record_game_result":
+          confirmationMessage = `I'll record that "${functionArgs.winner_name}" won this game${functionArgs.notes ? ` (${functionArgs.notes})` : ''}. Would you like me to proceed?`;
+          actionType = "record_game_result";
+          actionParams = { ...functionArgs, tournament_id: activeTournamentId };
+          break;
+        case "update_player_status":
+          const statusText = functionArgs.status === 'inactive' ? 'mark as inactive' : 'reactivate';
+          confirmationMessage = `I'll ${statusText} "${functionArgs.player_name}"${functionArgs.reason ? ` (${functionArgs.reason})` : ''}. Would you like me to proceed?`;
+          actionType = "update_player_status";
+          actionParams = { ...functionArgs, tournament_id: activeTournamentId };
+          break;
         default:
           confirmationMessage = "I'm not sure what action you want me to take.";
       }
@@ -244,7 +329,7 @@ serve(async (req) => {
   }
 });
 
-function buildSystemPrompt(gameName?: string, houseRules?: string[], activeRuleSetId?: string): string {
+function buildSystemPrompt(gameName?: string, houseRules?: string[], activeRuleSetId?: string, activeTournamentId?: string, tournamentPlayers?: Array<{ id: string; display_name: string; status: string }>): string {
   let prompt = `You are a helpful assistant for the House Rules card game companion app. You can:
 
 1. Answer questions about card game rules (UNO, Phase 10, Monopoly Deal, etc.)
@@ -256,11 +341,16 @@ IMPORTANT RULE CONTEXT HANDLING:
 - If the user's message mentions that house rules have been "ACTIVATED" or "CHANGED", acknowledge this change and note which rules are now active.
 - Always be clear about which rules (house rules vs official rules) you are basing your answers on.
 
-IMPORTANT: When users ask you to CREATE something (house rules, tournaments) or ADD something (rules to a set), you should use the appropriate tool to propose that action. Be proactive about detecting these requests even if phrased casually like:
+IMPORTANT: When users ask you to CREATE something (house rules, tournaments) or ADD something (rules, players), you should use the appropriate tool to propose that action. Be proactive about detecting these requests even if phrased casually like:
 - "Make me a rule set called X" → create_house_rule_set
 - "Start a new tournament for UNO" → create_tournament  
 - "Add a rule that says..." → add_house_rule
 - "Create some house rules for Phase 10" → create_house_rule_set
+- "Add a player called Barry" → add_tournament_player
+- "Barry won that round" → record_game_result
+- "John just scored" → record_game_result
+- "Mike has to forfeit" → update_player_status (status: inactive)
+- "Add Barry Manilow as a player" → add_tournament_player
 
 `;
 
@@ -280,6 +370,19 @@ IMPORTANT: When users ask you to CREATE something (house rules, tournaments) or 
 
   if (activeRuleSetId) {
     prompt += `User has an active rule set selected (ID: ${activeRuleSetId}). When they want to add rules, add them to this set.\n\n`;
+  }
+
+  if (activeTournamentId) {
+    prompt += `USER IS IN AN ACTIVE TOURNAMENT (ID: ${activeTournamentId}).\n`;
+    if (tournamentPlayers && tournamentPlayers.length > 0) {
+      prompt += `Current players in tournament:\n`;
+      tournamentPlayers.forEach((player) => {
+        prompt += `- ${player.display_name} (${player.status})\n`;
+      });
+      prompt += `\nWhen recording game results, match player names to the list above (allow partial/fuzzy matching). When adding players, use their provided name.\n\n`;
+    } else {
+      prompt += `No players added yet. Suggest adding players before recording game results.\n\n`;
+    }
   }
 
   prompt += `Keep responses conversational and concise. When proposing actions, be clear about what you'll do.`;

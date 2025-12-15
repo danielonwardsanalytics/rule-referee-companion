@@ -177,6 +177,184 @@ serve(async (req) => {
         break;
       }
 
+      case "add_tournament_player": {
+        if (!params.tournament_id) {
+          return new Response(JSON.stringify({ 
+            error: "No tournament selected. Please select a tournament first." 
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Add the player to the tournament
+        const { data: player, error: playerError } = await supabaseClient
+          .from("tournament_players")
+          .insert({
+            tournament_id: params.tournament_id,
+            display_name: params.player_name,
+            status: "active",
+            wins: 0,
+            losses: 0,
+            points: 0,
+          })
+          .select()
+          .single();
+
+        if (playerError) {
+          console.error("Error adding player:", playerError);
+          return new Response(JSON.stringify({ error: "Failed to add player to tournament" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        result = { player };
+        successMessage = `Added "${params.player_name}" to the tournament!`;
+        break;
+      }
+
+      case "record_game_result": {
+        if (!params.tournament_id) {
+          return new Response(JSON.stringify({ 
+            error: "No tournament selected. Please select a tournament first." 
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Find the player by name (fuzzy match)
+        const { data: players, error: playersError } = await supabaseClient
+          .from("tournament_players")
+          .select("id, display_name, wins, points")
+          .eq("tournament_id", params.tournament_id)
+          .eq("status", "active");
+
+        if (playersError || !players || players.length === 0) {
+          return new Response(JSON.stringify({ 
+            error: "No players found in this tournament. Please add players first." 
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Find the closest match for winner name
+        const winnerNameLower = params.winner_name.toLowerCase();
+        const matchedPlayer = players.find(p => 
+          p.display_name.toLowerCase().includes(winnerNameLower) ||
+          winnerNameLower.includes(p.display_name.toLowerCase())
+        );
+
+        if (!matchedPlayer) {
+          return new Response(JSON.stringify({ 
+            error: `Could not find player "${params.winner_name}". Available players: ${players.map(p => p.display_name).join(", ")}` 
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Record the game result
+        const { data: gameResult, error: resultError } = await supabaseClient
+          .from("game_results")
+          .insert({
+            tournament_id: params.tournament_id,
+            winner_id: matchedPlayer.id,
+            recorded_by: user.id,
+            notes: params.notes || null,
+          })
+          .select()
+          .single();
+
+        if (resultError) {
+          console.error("Error recording result:", resultError);
+          return new Response(JSON.stringify({ error: "Failed to record game result" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Update player stats
+        const { error: updateError } = await supabaseClient
+          .from("tournament_players")
+          .update({
+            wins: matchedPlayer.wins ? matchedPlayer.wins + 1 : 1,
+            points: matchedPlayer.points ? matchedPlayer.points + 1 : 1,
+          })
+          .eq("id", matchedPlayer.id);
+
+        if (updateError) {
+          console.error("Error updating player stats:", updateError);
+        }
+
+        result = { gameResult, winner: matchedPlayer };
+        successMessage = `Recorded win for "${matchedPlayer.display_name}"!`;
+        break;
+      }
+
+      case "update_player_status": {
+        if (!params.tournament_id) {
+          return new Response(JSON.stringify({ 
+            error: "No tournament selected. Please select a tournament first." 
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Find the player by name
+        const { data: players, error: playersError } = await supabaseClient
+          .from("tournament_players")
+          .select("id, display_name, status")
+          .eq("tournament_id", params.tournament_id);
+
+        if (playersError || !players || players.length === 0) {
+          return new Response(JSON.stringify({ 
+            error: "No players found in this tournament." 
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Find the closest match
+        const playerNameLower = params.player_name.toLowerCase();
+        const matchedPlayer = players.find(p => 
+          p.display_name.toLowerCase().includes(playerNameLower) ||
+          playerNameLower.includes(p.display_name.toLowerCase())
+        );
+
+        if (!matchedPlayer) {
+          return new Response(JSON.stringify({ 
+            error: `Could not find player "${params.player_name}". Available players: ${players.map(p => p.display_name).join(", ")}` 
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Update the player status
+        const { error: updateError } = await supabaseClient
+          .from("tournament_players")
+          .update({ status: params.status })
+          .eq("id", matchedPlayer.id);
+
+        if (updateError) {
+          console.error("Error updating player status:", updateError);
+          return new Response(JSON.stringify({ error: "Failed to update player status" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const statusText = params.status === 'inactive' ? 'marked as inactive' : 'reactivated';
+        result = { player: matchedPlayer, newStatus: params.status };
+        successMessage = `"${matchedPlayer.display_name}" has been ${statusText}${params.reason ? ` (${params.reason})` : ''}!`;
+        break;
+      }
+
       default:
         return new Response(JSON.stringify({ error: "Unknown action type" }), {
           status: 400,
