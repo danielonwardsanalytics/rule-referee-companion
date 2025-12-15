@@ -305,19 +305,9 @@ Keep responses under 3 sentences unless more detail is requested.`;
         voice,
         gameName,
         houseRulesText,
-        // New callback: detect actions in user's voice transcript
-        async (transcript) => {
-          console.log("[AIAdjudicator] User voice transcript received:", transcript);
-          console.log("[AIAdjudicator] Current pendingAction before detection:", pendingAction);
-          const messageWithContext = buildContextPrompt() + transcript;
-          console.log("[AIAdjudicator] Sending to detectActionInTranscript:", messageWithContext);
-          const actionDetected = await detectActionInTranscript(messageWithContext);
-          console.log("[AIAdjudicator] Action detection result:", actionDetected);
-          if (actionDetected) {
-            console.log("[AIAdjudicator] ACTION DETECTED - showing confirmation!");
-            toast.info("Action detected! Click 'Implement' below to execute.", { duration: 5000 });
-          }
-        }
+        // Voice chat is Q&A only - no action detection needed
+        // Actions are handled by text chat, voice chat politely declines
+        undefined
       );
 
       await realtimeChatRef.current.init();
