@@ -9,7 +9,7 @@ interface ActionConfirmationProps {
 
 export const ActionConfirmation = ({ onConfirm, onCancel, isExecuting }: ActionConfirmationProps) => {
   return (
-    <div className="flex items-center gap-3 mt-3 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+    <div className="flex items-center gap-3 mt-3 p-3 bg-primary/10 border border-primary/20 rounded-lg animate-in slide-in-from-bottom-2">
       <span className="text-sm text-muted-foreground flex-1">
         Say "yes" to confirm or use the buttons:
       </span>
@@ -34,7 +34,7 @@ export const ActionConfirmation = ({ onConfirm, onCancel, isExecuting }: ActionC
         ) : (
           <Check className="h-4 w-4 mr-1" />
         )}
-        Confirm
+        Implement
       </Button>
     </div>
   );

@@ -103,6 +103,13 @@ serve(async (req) => {
     }
 
     const { messages, gameName, houseRules, activeRuleSetId } = await req.json();
+    console.log("[chat-with-actions] Received request:", { 
+      messageCount: messages?.length, 
+      gameName, 
+      hasHouseRules: houseRules?.length > 0,
+      activeRuleSetId 
+    });
+    
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -146,14 +153,18 @@ serve(async (req) => {
     }
 
     const toolData = await toolResponse.json();
+    console.log("[chat-with-actions] AI response:", JSON.stringify(toolData).substring(0, 500));
+    
     const choice = toolData.choices?.[0];
     const toolCalls = choice?.message?.tool_calls;
+    console.log("[chat-with-actions] Tool calls detected:", toolCalls ? toolCalls.length : 0);
 
     // If AI wants to call a tool, return the proposed action
     if (toolCalls && toolCalls.length > 0) {
       const toolCall = toolCalls[0];
       const functionName = toolCall.function.name;
       const functionArgs = JSON.parse(toolCall.function.arguments);
+      console.log("[chat-with-actions] Action detected:", functionName, functionArgs);
 
       // Generate a confirmation message
       let confirmationMessage = "";
