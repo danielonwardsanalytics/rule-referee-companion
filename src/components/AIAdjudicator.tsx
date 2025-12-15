@@ -14,6 +14,7 @@ import { useGameResults } from "@/hooks/useGameResults";
 import { supabase } from "@/integrations/supabase/client";
 import { RealtimeChat } from "@/utils/RealtimeAudio";
 import { ContextSelectorBox } from "@/components/ai-adjudicator/ContextSelectorBox";
+import { TournamentRulesSelector } from "@/components/ai-adjudicator/TournamentRulesSelector";
 import { LearnHowToUse } from "@/components/ai-adjudicator/LearnHowToUse";
 import { ActionConfirmation } from "@/components/ai-adjudicator/ActionConfirmation";
 import { useNativeSpeechRecognition } from "@/hooks/useNativeSpeechRecognition";
@@ -27,6 +28,13 @@ interface AIAdjudicatorProps {
   voice?: string;
   embedded?: boolean; // When true, removes outer wrapper (for use inside pages with existing containers)
   showTournamentProTips?: boolean; // When true, shows tournament-specific pro tips below input
+  // Tournament-specific props for the locked rules selector
+  tournamentMode?: boolean;
+  tournamentGameId?: string;
+  tournamentGameName?: string;
+  lockedRuleSetId?: string | null;
+  lockedRuleSetName?: string | null;
+  onLockRuleSet?: (ruleSetId: string) => void;
 }
 
 const AIAdjudicator = ({
@@ -38,6 +46,12 @@ const AIAdjudicator = ({
   voice = "alloy",
   embedded = false,
   showTournamentProTips = false,
+  tournamentMode = false,
+  tournamentGameId,
+  tournamentGameName,
+  lockedRuleSetId,
+  lockedRuleSetName,
+  onLockRuleSet,
 }: AIAdjudicatorProps) => {
   const {
     activeRuleSet,
@@ -52,8 +66,14 @@ const AIAdjudicator = ({
     clearActiveTournament,
   } = useActiveContext();
 
+  // Tournament mode: track whether house rules are being used
+  const [isUsingTournamentHouseRules, setIsUsingTournamentHouseRules] = useState(!!lockedRuleSetId);
+
   // Use pre-selected IDs if provided, otherwise use context
-  const effectiveRuleSetId = preSelectedRuleSetId || activeRuleSetId;
+  // In tournament mode with locked rules, use the locked rule set ID when toggled on
+  const effectiveRuleSetId = tournamentMode 
+    ? (isUsingTournamentHouseRules && lockedRuleSetId ? lockedRuleSetId : null)
+    : (preSelectedRuleSetId || activeRuleSetId);
   const effectiveTournamentId = preSelectedTournamentId || activeTournamentId;
 
   // Get house rules for the active rule set
@@ -519,7 +539,7 @@ Keep responses under 3 sentences unless more detail is requested.`;
           )}
 
           {/* Context Selector Boxes - Below Input */}
-          {!hideContextSelectors && (
+          {!hideContextSelectors && !tournamentMode && (
             <div className="mt-8 space-y-2">
               <div className="flex gap-4">
                 <ContextSelectorBox
@@ -541,6 +561,31 @@ Keep responses under 3 sentences unless more detail is requested.`;
               </div>
               <p className="text-xs text-muted-foreground text-center">
                 When a rule set is active, the AI Adjudicator will abide by these rules.
+              </p>
+            </div>
+          )}
+
+          {/* Tournament Mode: Single Rules Selector */}
+          {tournamentMode && tournamentGameId && tournamentGameName && onLockRuleSet && (
+            <div className="mt-8 space-y-2">
+              <div className="flex justify-center">
+                <div className="w-full max-w-xs">
+                  <TournamentRulesSelector
+                    tournamentId={effectiveTournamentId || ""}
+                    gameId={tournamentGameId}
+                    gameName={tournamentGameName}
+                    lockedRuleSetId={lockedRuleSetId || null}
+                    lockedRuleSetName={lockedRuleSetName || null}
+                    isUsingHouseRules={isUsingTournamentHouseRules}
+                    onToggleRules={setIsUsingTournamentHouseRules}
+                    onLockRuleSet={onLockRuleSet}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                {lockedRuleSetId 
+                  ? "Toggle between locked house rules and official rules."
+                  : "Add house rules to lock them into this tournament."}
               </p>
             </div>
           )}
