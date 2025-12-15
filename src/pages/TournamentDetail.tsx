@@ -15,6 +15,7 @@ import { AddPlayerModal } from "@/components/tournaments/AddPlayerModal";
 import { RecordGameModal } from "@/components/tournaments/RecordGameModal";
 import { GameHistory } from "@/components/tournaments/GameHistory";
 import { TournamentAnalytics } from "@/components/tournaments/TournamentAnalytics";
+import { TournamentNotes } from "@/components/tournaments/TournamentNotes";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const TournamentDetail = () => {
@@ -183,6 +184,9 @@ const TournamentDetail = () => {
                 </CardContent>
               </Card>
             )}
+
+            {/* Tournament Notes */}
+            <TournamentNotes tournamentId={tournament.id} isAdmin={isAdmin} />
           </TabsContent>
 
           <TabsContent value="analytics" className="mt-6">
