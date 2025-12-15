@@ -105,16 +105,23 @@ const AIAdjudicator = ({
     const messageToSend = messageOverride || input;
     const willSpeak = shouldSpeak !== undefined ? shouldSpeak : isAudioEnabled;
 
-    if (!messageToSend.trim()) return;
+    console.log("[AIAdjudicator] handleSend called:", { messageToSend, willSpeak });
+
+    if (!messageToSend.trim()) {
+      console.log("[AIAdjudicator] Empty message, skipping");
+      return;
+    }
 
     if (!messageOverride) {
       setInput("");
     }
 
     const messageText = buildContextPrompt() + messageToSend;
+    console.log("[AIAdjudicator] Sending message with context:", messageText);
 
     try {
       await sendMessage(messageText, async (aiResponse, hasAction) => {
+        console.log("[AIAdjudicator] sendMessage completed:", { hasAction, responseLength: aiResponse?.length });
         if (willSpeak) {
           await speakResponse(aiResponse);
         }
@@ -411,11 +418,14 @@ Keep responses under 3 sentences unless more detail is requested.`;
 
           {/* Action Confirmation Buttons */}
           {pendingAction && (
-            <ActionConfirmation
-              onConfirm={confirmAction}
-              onCancel={cancelAction}
-              isExecuting={isExecutingAction}
-            />
+            <>
+              {console.log("[AIAdjudicator] Rendering ActionConfirmation, pendingAction:", pendingAction)}
+              <ActionConfirmation
+                onConfirm={confirmAction}
+                onCancel={cancelAction}
+                isExecuting={isExecutingAction}
+              />
+            </>
           )}
 
           {/* Text Input Area with Audio Toggle */}
