@@ -355,6 +355,41 @@ serve(async (req) => {
         break;
       }
 
+      case "add_tournament_note": {
+        if (!params.tournament_id) {
+          return new Response(JSON.stringify({ 
+            error: "No tournament selected. Please select a tournament first." 
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Add the note to the tournament
+        const { data: note, error: noteError } = await supabaseClient
+          .from("tournament_notes")
+          .insert({
+            tournament_id: params.tournament_id,
+            user_id: user.id,
+            title: params.title,
+            content: params.content,
+          })
+          .select()
+          .single();
+
+        if (noteError) {
+          console.error("Error adding note:", noteError);
+          return new Response(JSON.stringify({ error: "Failed to add tournament note" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        result = { note };
+        successMessage = `Added note "${params.title}" to the tournament!`;
+        break;
+      }
+
       default:
         return new Response(JSON.stringify({ error: "Unknown action type" }), {
           status: 400,

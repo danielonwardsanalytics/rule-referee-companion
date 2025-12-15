@@ -140,6 +140,28 @@ const tools = [
         additionalProperties: false
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_tournament_note",
+      description: "Add a note to the tournament. Use this when the user wants to add a note, record something, remember something, or jot down information about the tournament session.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: {
+            type: "string",
+            description: "A short title for the note"
+          },
+          content: {
+            type: "string",
+            description: "The content/body of the note"
+          }
+        },
+        required: ["title", "content"],
+        additionalProperties: false
+      }
+    }
   }
 ];
 
@@ -272,6 +294,11 @@ serve(async (req) => {
           actionType = "update_player_status";
           actionParams = { ...functionArgs, tournament_id: activeTournamentId };
           break;
+        case "add_tournament_note":
+          confirmationMessage = `I'll add a note titled "${functionArgs.title}" to the tournament. Would you like me to proceed?`;
+          actionType = "add_tournament_note";
+          actionParams = { ...functionArgs, tournament_id: activeTournamentId };
+          break;
         default:
           confirmationMessage = "I'm not sure what action you want me to take.";
       }
@@ -351,6 +378,9 @@ IMPORTANT: When users ask you to CREATE something (house rules, tournaments) or 
 - "John just scored" → record_game_result
 - "Mike has to forfeit" → update_player_status (status: inactive)
 - "Add Barry Manilow as a player" → add_tournament_player
+- "Add a note about..." → add_tournament_note
+- "Note that John was late" → add_tournament_note
+- "Remember that we played with jokers" → add_tournament_note
 
 `;
 
