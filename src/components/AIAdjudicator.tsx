@@ -80,12 +80,51 @@ const AIAdjudicator = ({
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const realtimeChatRef = useRef<RealtimeChat | null>(null);
+  
+  // Track previous rule set to detect changes
+  const previousRuleSetRef = useRef<{ id: string | null; name: string | null }>({ id: null, name: null });
+  const [ruleChangeContext, setRuleChangeContext] = useState<string | null>(null);
+
+  // Detect rule set changes
+  useEffect(() => {
+    const prevId = previousRuleSetRef.current.id;
+    const prevName = previousRuleSetRef.current.name;
+    const currentId = effectiveRuleSetId || null;
+    const currentName = activeRuleSet?.name || null;
+
+    // Only trigger if there was a previous state (not initial load)
+    if (prevId !== null || prevName !== null) {
+      if (prevId && !currentId) {
+        // Rules were turned off
+        setRuleChangeContext(`IMPORTANT CONTEXT CHANGE: The house rules "${prevName}" have just been TURNED OFF. The user is now playing by standard/official rules only. Please acknowledge this change in your response.`);
+      } else if (!prevId && currentId) {
+        // Rules were turned on
+        setRuleChangeContext(`IMPORTANT CONTEXT CHANGE: The house rules "${currentName}" have just been ACTIVATED. Please acknowledge this change and note that you're now answering based on these house rules.`);
+      } else if (prevId && currentId && prevId !== currentId) {
+        // Rules were changed to different set
+        setRuleChangeContext(`IMPORTANT CONTEXT CHANGE: The house rules have been CHANGED from "${prevName}" to "${currentName}". Please acknowledge this change and note that you're now answering based on the new house rules.`);
+      }
+    }
+
+    // Update the ref to current state
+    previousRuleSetRef.current = { id: currentId, name: currentName };
+  }, [effectiveRuleSetId, activeRuleSet?.name]);
 
   // Build context prompt
   const buildContextPrompt = () => {
     let prompt = "";
+    
+    // Include rule change context if present
+    if (ruleChangeContext) {
+      prompt += ruleChangeContext + " ";
+    }
+    
     if (gameName) prompt += `I'm playing ${gameName}. `;
-    if (activeRuleSet) prompt += `Using "${activeRuleSet.name}" house rules. `;
+    if (activeRuleSet) {
+      prompt += `Using "${activeRuleSet.name}" house rules. `;
+    } else {
+      prompt += `Playing by standard/official rules (no house rules active). `;
+    }
     if (activeTournament) prompt += `In the "${activeTournament.name}" tournament. `;
     return prompt;
   };
@@ -124,6 +163,10 @@ const AIAdjudicator = ({
         console.log("[AIAdjudicator] sendMessage completed:", { hasAction, responseLength: aiResponse?.length });
         if (willSpeak) {
           await speakResponse(aiResponse);
+        }
+        // Clear rule change context after first message acknowledges it
+        if (ruleChangeContext) {
+          setRuleChangeContext(null);
         }
       });
     } catch (error) {
