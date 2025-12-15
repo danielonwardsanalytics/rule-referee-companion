@@ -7,7 +7,7 @@ export const LearnHowToUse = () => {
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="mt-6">
-      <div className="flex justify-center">
+      <div className="flex justify-start">
         <CollapsibleTrigger className="flex items-center justify-center w-8 h-8 rounded-full bg-secondary/50 hover:bg-secondary transition-colors">
           <HelpCircle className={`h-5 w-5 transition-colors ${isOpen ? "text-primary" : "text-muted-foreground"}`} />
         </CollapsibleTrigger>
