@@ -342,28 +342,6 @@ Keep responses under 3 sentences unless more detail is requested.`;
             <p className="mt-4 text-sm text-muted-foreground text-center">Press to speak with House Rules AI.</p>
           </div>
 
-          {/* Context Selector Boxes */}
-          {!hideContextSelectors && (
-            <div className="flex gap-4 mb-6">
-              <ContextSelectorBox
-                label="Rules Set"
-                type="ruleSet"
-                activeItem={activeRuleSet}
-                availableItems={userRuleSets}
-                onSelect={setActiveRuleSet}
-                onClear={clearActiveRuleSet}
-              />
-              <ContextSelectorBox
-                label="Tournaments"
-                type="tournament"
-                activeItem={activeTournament}
-                availableItems={userTournaments}
-                onSelect={setActiveTournament}
-                onClear={clearActiveTournament}
-              />
-            </div>
-          )}
-
           {/* Speaking Indicator */}
           {isSpeaking && (
             <div className="flex items-center justify-center gap-2 mb-4">
@@ -438,6 +416,28 @@ Keep responses under 3 sentences unless more detail is requested.`;
               </div>
             </div>
           </div>
+
+          {/* Context Selector Boxes - Below Input */}
+          {!hideContextSelectors && (
+            <div className="flex gap-4 mt-6">
+              <ContextSelectorBox
+                label="Rules Set"
+                type="ruleSet"
+                activeItem={activeRuleSet}
+                availableItems={userRuleSets}
+                onSelect={setActiveRuleSet}
+                onClear={clearActiveRuleSet}
+              />
+              <ContextSelectorBox
+                label="Tournaments"
+                type="tournament"
+                activeItem={activeTournament}
+                availableItems={userTournaments}
+                onSelect={setActiveTournament}
+                onClear={clearActiveTournament}
+              />
+            </div>
+          )}
 
           {/* Learn How To Use Section */}
           <LearnHowToUse />

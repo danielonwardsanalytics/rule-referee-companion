@@ -55,7 +55,7 @@ export const ContextSelectorBox = ({
 
   return (
     <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide text-center">
         {label}
       </span>
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
