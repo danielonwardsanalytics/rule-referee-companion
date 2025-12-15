@@ -21,15 +21,30 @@ export const useChatWithActions = (gameName?: string, houseRules?: string[], act
     userMessage: string, 
     onComplete?: (response: string, hasAction?: boolean) => void
   ) => {
+    console.log('[useChatWithActions] sendMessage called with:', userMessage);
     const userMsg: Message = { role: 'user', content: userMessage };
     setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('[useChatWithActions] Session check:', !!session?.access_token);
       if (!session?.access_token) {
         throw new Error('User must be authenticated');
       }
+
+      const requestBody = {
+        messages: [...messages, userMsg],
+        gameName,
+        houseRules,
+        activeRuleSetId,
+      };
+      console.log('[useChatWithActions] Calling chat-with-actions with:', {
+        messageCount: requestBody.messages.length,
+        gameName,
+        hasHouseRules: houseRules?.length || 0,
+        activeRuleSetId,
+      });
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-with-actions`,
@@ -39,37 +54,41 @@ export const useChatWithActions = (gameName?: string, houseRules?: string[], act
             'Content-Type': 'application/json',
             Authorization: `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({
-            messages: [...messages, userMsg],
-            gameName,
-            houseRules,
-            activeRuleSetId,
-          }),
+          body: JSON.stringify(requestBody),
         }
       );
 
+      console.log('[useChatWithActions] Response status:', response.status);
+
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('[useChatWithActions] Error response:', errorData);
         throw new Error(errorData.error || 'Failed to get response');
       }
 
       const data = await response.json();
+      console.log('[useChatWithActions] Response data:', data);
+      console.log('[useChatWithActions] Response type:', data.type);
 
       if (data.type === 'action_proposal') {
+        console.log('[useChatWithActions] ACTION PROPOSAL DETECTED!', data.action);
         // AI wants to perform an action - show confirmation
         const assistantMsg: Message = { role: 'assistant', content: data.message };
         setMessages((prev) => [...prev, assistantMsg]);
         
-        setPendingAction({
+        const newPendingAction = {
           type: data.action.type,
           params: data.action.params,
           confirmationMessage: data.message,
-        });
+        };
+        console.log('[useChatWithActions] Setting pendingAction:', newPendingAction);
+        setPendingAction(newPendingAction);
 
         if (onComplete) {
           onComplete(data.message, true);
         }
       } else {
+        console.log('[useChatWithActions] Regular text response (no action)');
         // Regular text response
         const assistantMsg: Message = { role: 'assistant', content: data.message };
         setMessages((prev) => [...prev, assistantMsg]);
@@ -79,7 +98,7 @@ export const useChatWithActions = (gameName?: string, houseRules?: string[], act
         }
       }
     } catch (error) {
-      console.error('Chat error:', error);
+      console.error('[useChatWithActions] Chat error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to send message');
     } finally {
       setIsLoading(false);
