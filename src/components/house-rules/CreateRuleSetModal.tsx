@@ -24,21 +24,25 @@ import { toast } from "sonner";
 interface CreateRuleSetModalProps {
   isOpen: boolean;
   onClose: () => void;
-  games: Array<{
+  games?: Array<{
     id: string;
     name: string;
     slug: string;
   }>;
   preselectedGameId?: string;
   returnTo?: string;
+  tournamentLockMode?: boolean;
+  onRuleSetCreated?: (ruleSetId: string, ruleSetName: string) => void;
 }
 
 export const CreateRuleSetModal = ({
   isOpen,
   onClose,
-  games,
+  games = [],
   preselectedGameId,
   returnTo,
+  tournamentLockMode,
+  onRuleSetCreated,
 }: CreateRuleSetModalProps) => {
   const navigate = useNavigate();
   const { createRuleSet, isCreating } = useHouseRuleSets();
@@ -55,6 +59,35 @@ export const CreateRuleSetModal = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !gameId) return;
+
+    // Tournament lock mode - create and call back with the new rule set
+    if (tournamentLockMode && onRuleSetCreated) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Not authenticated");
+
+        const { data: newRuleSet, error } = await supabase
+          .from("house_rule_sets")
+          .insert({
+            name: name.trim(),
+            game_id: gameId,
+            user_id: user.id,
+            is_active: false,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        setName("");
+        setGameId("");
+        onRuleSetCreated(newRuleSet.id, newRuleSet.name);
+      } catch (error) {
+        console.error("Failed to create rule set:", error);
+        toast.error("Failed to create rule set");
+      }
+      return;
+    }
 
     // If we have a returnTo (tournament flow), we need to create the rule set
     // and then navigate back with the new rule set ID to lock it in
@@ -169,7 +202,7 @@ export const CreateRuleSetModal = ({
               Cancel
             </Button>
             <Button type="submit" disabled={isCreating || !name.trim() || !gameId}>
-              {returnTo ? "Create & Lock In" : "Create"}
+              {tournamentLockMode ? "Create and Lock In" : returnTo ? "Create & Lock In" : "Create"}
             </Button>
           </div>
         </form>

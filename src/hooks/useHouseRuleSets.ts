@@ -26,7 +26,7 @@ export const useHouseRuleSets = (gameId?: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: ruleSets = [], isLoading } = useQuery({
+  const { data: ruleSets = [], isLoading, refetch } = useQuery({
     queryKey: ["house-rule-sets", user?.id, gameId],
     queryFn: async () => {
       if (!user) return [];
@@ -228,6 +228,7 @@ export const useHouseRuleSets = (gameId?: string) => {
   return {
     ruleSets,
     isLoading,
+    refetch,
     createRuleSet: createRuleSetMutation.mutate,
     updateRuleSet: updateRuleSetMutation.mutate,
     setActiveRuleSet: setActiveRuleSetMutation.mutate,
