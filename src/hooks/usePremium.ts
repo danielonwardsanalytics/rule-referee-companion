@@ -9,6 +9,9 @@ interface PremiumStatus {
   isTrial: boolean;
 }
 
+// Development override - set to true to bypass premium checks during development
+const DEV_PREMIUM_ACCESS = true;
+
 export const usePremium = () => {
   const { user } = useAuth();
 
@@ -44,6 +47,19 @@ export const usePremium = () => {
           (1000 * 60 * 60 * 24)
       )
     : 0;
+
+  // If dev override is enabled, return premium access
+  if (DEV_PREMIUM_ACCESS) {
+    return {
+      premiumStatus: { hasAccess: true, status: 'premium' as const, trialEndsAt: null, isTrial: false },
+      isLoading: false,
+      hasPremiumAccess: true,
+      isTrial: false,
+      isFree: false,
+      isPremium: true,
+      daysLeftInTrial: 0,
+    };
+  }
 
   return {
     premiumStatus,
