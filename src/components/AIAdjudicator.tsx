@@ -25,7 +25,7 @@ interface AIAdjudicatorProps {
 
 const AIAdjudicator = ({
   title = "AI Adjudicator",
-  subtitle = "Get instant answers about any game rule",
+  subtitle = "Your rules, your rulings — ask away",
   preSelectedRuleSetId,
   preSelectedTournamentId,
   hideContextSelectors = false,
