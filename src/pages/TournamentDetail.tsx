@@ -8,7 +8,7 @@ import { useTournamentDetail, useTournaments } from "@/hooks/useTournaments";
 import { useTournamentPlayers } from "@/hooks/useTournamentPlayers";
 import { useGameResults } from "@/hooks/useGameResults";
 import { useAuth } from "@/hooks/useAuth";
-import ChatInterface from "@/components/ChatInterface";
+import AIAdjudicator from "@/components/AIAdjudicator";
 import { LeaderboardTable } from "@/components/tournaments/LeaderboardTable";
 import { AddPlayerModal } from "@/components/tournaments/AddPlayerModal";
 import { RecordGameModal } from "@/components/tournaments/RecordGameModal";
@@ -114,18 +114,13 @@ const TournamentDetail = () => {
           </div>
         </div>
 
-        {/* Quick Fire Question */}
-        <Card className="animate-fade-in">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl">Quick Fire Question</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              Ask about {tournament.games.name} rules and gameplay
-            </p>
-          </CardHeader>
-          <CardContent>
-            <ChatInterface gameName={tournament.games.name} gameId={tournament.game_id} />
-          </CardContent>
-        </Card>
+        {/* AI Adjudicator */}
+        <AIAdjudicator
+          title={`${tournament.name} AI Adjudicator`}
+          subtitle={`Get answers about ${tournament.games.name} rules and gameplay`}
+          preSelectedTournamentId={tournament.id}
+          hideContextSelectors
+        />
 
         {/* Tournament Tabs */}
         <Tabs defaultValue="leaderboard" className="w-full">
