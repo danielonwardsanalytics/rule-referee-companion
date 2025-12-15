@@ -115,14 +115,14 @@ export const useFriendRequests = () => {
         throw new Error("You cannot send a friend request to yourself");
       }
 
-      // Look up the recipient by email
-      const { data: profiles, error: profileError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("email", email)
+      // Use secure server-side function for email lookup
+      const { data: lookupResult, error: profileError } = await supabase
+        .rpc("lookup_user_by_email", { _email: email.toLowerCase() })
         .maybeSingle();
 
       if (profileError) throw profileError;
+      
+      const profiles = lookupResult ? { id: lookupResult.user_id } : null;
 
       // Check if they're already friends
       if (profiles) {

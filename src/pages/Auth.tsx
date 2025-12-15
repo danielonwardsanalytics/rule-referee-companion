@@ -7,6 +7,22 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { z } from "zod";
+
+// Password validation schema - minimum 8 characters with complexity requirements
+const passwordSchema = z.string()
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+  .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+  .regex(/[0-9]/, "Password must contain at least one number");
+
+const validatePassword = (password: string): string | null => {
+  const result = passwordSchema.safeParse(password);
+  if (!result.success) {
+    return result.error.errors[0].message;
+  }
+  return null;
+};
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -15,9 +31,21 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate password on signup
+    if (isSignUp) {
+      const error = validatePassword(password);
+      if (error) {
+        setPasswordError(error);
+        return;
+      }
+    }
+    
+    setPasswordError(null);
     setIsLoading(true);
 
     try {
@@ -104,11 +132,22 @@ const Auth = () => {
                 type="password"
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (passwordError) setPasswordError(null);
+                }}
                 required
                 disabled={isLoading}
-                minLength={6}
+                minLength={8}
               />
+              {passwordError && (
+                <p className="text-sm text-destructive">{passwordError}</p>
+              )}
+              {isSignUp && !passwordError && (
+                <p className="text-xs text-muted-foreground">
+                  Min 8 characters with uppercase, lowercase, and number
+                </p>
+              )}
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>

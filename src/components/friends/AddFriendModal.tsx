@@ -28,14 +28,8 @@ export const AddFriendModal = ({ isOpen, onClose, onSuccess }: AddFriendModalPro
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Check if user is trying to add themselves
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("email")
-        .eq("id", user.id)
-        .single();
-
-      if (profile?.email === email.trim().toLowerCase()) {
+      // Check if user is trying to add themselves (compare with auth email)
+      if (user.email?.toLowerCase() === email.trim().toLowerCase()) {
         toast({
           title: "Invalid Request",
           description: "You cannot send a friend request to yourself",
@@ -45,12 +39,12 @@ export const AddFriendModal = ({ isOpen, onClose, onSuccess }: AddFriendModalPro
         return;
       }
 
-      // Check if already friends
-      const { data: existingFriend } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("email", email.trim().toLowerCase())
+      // Use secure server-side function for email lookup
+      const { data: lookupResult } = await supabase
+        .rpc("lookup_user_by_email", { _email: email.trim().toLowerCase() })
         .single();
+      
+      const existingFriend = lookupResult ? { id: lookupResult.user_id } : null;
 
       if (existingFriend) {
         const { data: friendship } = await supabase
@@ -157,22 +151,13 @@ export const AddFriendModal = ({ isOpen, onClose, onSuccess }: AddFriendModalPro
         return;
       }
 
-      // Get friend email
-      const { data: friendProfile } = await supabase
-        .from("profiles")
-        .select("email")
-        .eq("id", friendId)
-        .single();
-
-      if (!friendProfile) throw new Error("User not found");
-
-      // Send friend request
+      // Send friend request - recipient email is not needed with RPC lookup
       const { error } = await supabase
         .from("friend_requests")
         .insert({
           requester_id: user.id,
           recipient_id: friendId,
-          recipient_email: friendProfile.email,
+          recipient_email: null,
         });
 
       if (error) throw error;
