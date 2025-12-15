@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Capacitor } from "@capacitor/core";
 import { SpeechRecognition } from "@capacitor-community/speech-recognition";
 import { toast } from "sonner";
@@ -15,14 +15,118 @@ export function useNativeSpeechRecognition(): UseNativeSpeechRecognitionReturn {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const webRecognitionRef = useRef<any>(null);
+  const isManualStopRef = useRef(false);
+  const accumulatedTranscriptRef = useRef("");
 
   const isNative = Capacitor.isNativePlatform();
   
   // Check if any speech recognition is supported
   const isSupported = isNative || ('webkitSpeechRecognition' in window) || ('SpeechRecognition' in window);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isManualStopRef.current = true;
+      if (webRecognitionRef.current) {
+        webRecognitionRef.current.stop();
+        webRecognitionRef.current = null;
+      }
+    };
+  }, []);
+
+  const startWebRecognition = useCallback(() => {
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (!SpeechRecognitionAPI) {
+      toast.error("Speech recognition not supported in this browser");
+      return;
+    }
+
+    const recognition = new SpeechRecognitionAPI();
+    recognition.continuous = true; // Keep listening until manually stopped
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      toast.info("Listening... tap mic to stop");
+    };
+
+    recognition.onresult = (event: any) => {
+      let finalTranscript = "";
+      let interimTranscript = "";
+
+      for (let i = 0; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          finalTranscript += result[0].transcript;
+        } else {
+          interimTranscript += result[0].transcript;
+        }
+      }
+
+      // Show accumulated finals + current interim
+      const displayText = finalTranscript + interimTranscript;
+      if (displayText) {
+        setTranscript(displayText);
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("[WebSpeech] Recognition error:", event.error);
+      
+      // Don't show error for no-speech or aborted (user stopped)
+      if (event.error !== 'no-speech' && event.error !== 'aborted') {
+        toast.error(`Speech recognition error: ${event.error}`);
+      }
+      
+      // Only restart if not a manual stop and it's a recoverable error
+      if (!isManualStopRef.current && event.error === 'no-speech') {
+        // Restart recognition after brief pause
+        setTimeout(() => {
+          if (!isManualStopRef.current && webRecognitionRef.current) {
+            try {
+              webRecognitionRef.current.start();
+            } catch (e) {
+              // Already running or stopped
+            }
+          }
+        }, 100);
+      }
+    };
+
+    recognition.onend = () => {
+      // Only restart if not manually stopped
+      if (!isManualStopRef.current) {
+        setTimeout(() => {
+          if (!isManualStopRef.current && webRecognitionRef.current) {
+            try {
+              webRecognitionRef.current.start();
+            } catch (e) {
+              // Recognition already running or context destroyed
+              setIsListening(false);
+            }
+          }
+        }, 100);
+      } else {
+        setIsListening(false);
+      }
+    };
+
+    webRecognitionRef.current = recognition;
+    
+    try {
+      recognition.start();
+    } catch (error) {
+      console.error("[WebSpeech] Error starting recognition:", error);
+      toast.error("Could not start speech recognition");
+    }
+  }, []);
+
   const startListening = useCallback(async () => {
     setTranscript("");
+    accumulatedTranscriptRef.current = "";
+    isManualStopRef.current = false;
     
     if (isNative) {
       // Native Capacitor implementation
@@ -41,7 +145,7 @@ export function useNativeSpeechRecognition(): UseNativeSpeechRecognitionReturn {
         }
 
         setIsListening(true);
-        toast.info("Listening... speak now!");
+        toast.info("Listening... tap mic to stop");
 
         await SpeechRecognition.start({
           language: "en-US",
@@ -53,7 +157,10 @@ export function useNativeSpeechRecognition(): UseNativeSpeechRecognitionReturn {
         // Listen for partial results
         SpeechRecognition.addListener("partialResults", (data: { matches: string[] }) => {
           if (data.matches && data.matches.length > 0) {
-            setTranscript(data.matches[0]);
+            // Accumulate transcript
+            const newText = data.matches[0];
+            accumulatedTranscriptRef.current = newText;
+            setTranscript(newText);
           }
         });
 
@@ -63,63 +170,14 @@ export function useNativeSpeechRecognition(): UseNativeSpeechRecognitionReturn {
         setIsListening(false);
       }
     } else {
-      // Web fallback using Web Speech API
-      try {
-        const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        
-        if (!SpeechRecognitionAPI) {
-          toast.error("Speech recognition not supported in this browser");
-          return;
-        }
-
-        const recognition = new SpeechRecognitionAPI();
-        recognition.continuous = false;
-        recognition.interimResults = true;
-        recognition.lang = "en-US";
-
-        recognition.onstart = () => {
-          setIsListening(true);
-          toast.info("Listening... speak now!");
-        };
-
-        recognition.onresult = (event: any) => {
-          let finalTranscript = "";
-          let interimTranscript = "";
-
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
-              finalTranscript += transcript;
-            } else {
-              interimTranscript += transcript;
-            }
-          }
-
-          setTranscript(finalTranscript || interimTranscript);
-        };
-
-        recognition.onerror = (event: any) => {
-          console.error("[WebSpeech] Recognition error:", event.error);
-          if (event.error !== 'no-speech') {
-            toast.error(`Speech recognition error: ${event.error}`);
-          }
-          setIsListening(false);
-        };
-
-        recognition.onend = () => {
-          setIsListening(false);
-        };
-
-        webRecognitionRef.current = recognition;
-        recognition.start();
-      } catch (error) {
-        console.error("[WebSpeech] Error starting recognition:", error);
-        toast.error(`Could not start speech recognition: ${error instanceof Error ? error.message : "Unknown error"}`);
-      }
+      // Web fallback using Web Speech API with continuous mode
+      startWebRecognition();
     }
-  }, [isNative]);
+  }, [isNative, startWebRecognition]);
 
   const stopListening = useCallback(async () => {
+    isManualStopRef.current = true;
+    
     if (isNative) {
       try {
         await SpeechRecognition.stop();
@@ -129,7 +187,11 @@ export function useNativeSpeechRecognition(): UseNativeSpeechRecognitionReturn {
       }
     } else {
       if (webRecognitionRef.current) {
-        webRecognitionRef.current.stop();
+        try {
+          webRecognitionRef.current.stop();
+        } catch (e) {
+          // Already stopped
+        }
         webRecognitionRef.current = null;
       }
     }

@@ -42,6 +42,7 @@ export const RuleEditorModal = ({
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [ruleText, setRuleText] = useState("");
+  const [suggestedRule, setSuggestedRule] = useState<string | null>(null); // Rule awaiting confirmation
   const [isManualEditMode, setIsManualEditMode] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -50,7 +51,7 @@ export const RuleEditorModal = ({
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [isVoiceChatActive, setIsVoiceChatActive] = useState(false);
   const [isVoiceChatConnecting, setIsVoiceChatConnecting] = useState(false);
-  const [messages, setMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
+  const [messages, setMessages] = useState<Array<{role: 'user' | 'assistant', content: string, isSuggestion?: boolean}>>([]);
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -77,6 +78,7 @@ export const RuleEditorModal = ({
         setRuleText("");
       }
       setMessages([]);
+      setSuggestedRule(null);
       setIsManualEditMode(false);
       setIsAudioEnabled(false);
       setIsVoiceChatActive(false);
@@ -180,14 +182,19 @@ Keep rules clear, concise, and unambiguous. Rules should be actionable during ga
         const looksLikeRule = !fullResponse.includes('?') && fullResponse.length > 10 && fullResponse.length < 500;
         
         if (looksLikeRule) {
-          setRuleText(fullResponse.trim());
-          setMessages(prev => [...prev, { role: 'assistant', content: `I've updated the rule to: "${fullResponse.trim()}"` }]);
+          // Store as suggestion instead of directly updating
+          setSuggestedRule(fullResponse.trim());
+          setMessages(prev => [...prev, { 
+            role: 'assistant', 
+            content: fullResponse.trim(),
+            isSuggestion: true 
+          }]);
         } else {
           setMessages(prev => [...prev, { role: 'assistant', content: fullResponse }]);
         }
 
         if (willSpeak) {
-          await speakResponse(looksLikeRule ? `I've updated the rule to: ${fullResponse.trim()}` : fullResponse);
+          await speakResponse(looksLikeRule ? `Here's the suggested rule: ${fullResponse.trim()}. Click "Use This Rule" to confirm.` : fullResponse);
         }
       }
     } catch (error) {
@@ -198,6 +205,19 @@ Keep rules clear, concise, and unambiguous. Rules should be actionable during ga
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleConfirmRule = () => {
+    if (suggestedRule) {
+      setRuleText(suggestedRule);
+      setSuggestedRule(null);
+      toast.success("Rule confirmed!");
+    }
+  };
+
+  const handleRejectRule = () => {
+    setSuggestedRule(null);
+    setMessages(prev => [...prev, { role: 'assistant', content: "No problem! Tell me what changes you'd like to make." }]);
   };
 
   const speakResponse = async (text: string) => {
@@ -269,17 +289,16 @@ Keep rules clear, concise, and unambiguous. Rules should be actionable during ga
       // Streaming transcript from AI
       setMessages(prev => {
         const lastMessage = prev[prev.length - 1];
-        if (lastMessage?.role === "assistant" && !lastMessage.content.includes("I've updated")) {
+        if (lastMessage?.role === "assistant" && !lastMessage.isSuggestion) {
           return [...prev.slice(0, -1), { ...lastMessage, content: lastMessage.content + event.delta }];
         }
         return [...prev, { role: "assistant", content: event.delta }];
       });
     } else if (event.type === "response.audio_transcript.done") {
-      // Full transcript received - only update rule if it's ACTUALLY defining a rule
+      // Full transcript received - check if it's a rule suggestion
       const transcript = event.transcript || "";
       
-      // Only update rule text if the AI is explicitly defining/creating a rule
-      // Look for specific rule-creation patterns
+      // Check if the AI is explicitly defining/creating a rule
       const isDefiningRule = 
         transcript.toLowerCase().includes("the rule is:") ||
         transcript.toLowerCase().includes("here's the rule:") ||
@@ -288,10 +307,9 @@ Keep rules clear, concise, and unambiguous. Rules should be actionable during ga
         transcript.toLowerCase().includes("i've updated the rule to:") ||
         transcript.toLowerCase().includes("the new rule is:") ||
         transcript.toLowerCase().includes("rule text:") ||
-        // Check if it starts with common rule patterns
         /^(when|if|players? (can|cannot|must|may)|during|at the|after|before)/i.test(transcript.trim());
       
-      // Also check it's NOT a conversational response
+      // Check it's NOT a conversational response
       const isConversational = 
         transcript.toLowerCase().includes("you're welcome") ||
         transcript.toLowerCase().includes("no problem") ||
@@ -305,15 +323,42 @@ Keep rules clear, concise, and unambiguous. Rules should be actionable during ga
         transcript.includes("?") ||
         transcript.length < 20;
       
+      // Check for voice confirmation
+      const userConfirmed = 
+        transcript.toLowerCase().includes("yes") ||
+        transcript.toLowerCase().includes("use it") ||
+        transcript.toLowerCase().includes("that's perfect") ||
+        transcript.toLowerCase().includes("confirm") ||
+        transcript.toLowerCase().includes("perfect");
+      
+      // If user confirmed via voice and we have a pending suggestion
+      if (userConfirmed && suggestedRule) {
+        handleConfirmRule();
+        return;
+      }
+      
       if (isDefiningRule && !isConversational) {
-        // Extract the actual rule text, removing prefixes like "The rule is:"
+        // Extract the actual rule text
         let ruleContent = transcript
           .replace(/^(the rule is:|here's the rule:|your rule is:|i've created:|i've updated the rule to:|the new rule is:|rule text:)/i, "")
           .trim();
         
         if (ruleContent.length > 10) {
-          setRuleText(ruleContent);
-          console.log("[RuleEditorModal] Updated rule text to:", ruleContent);
+          // Store as suggestion, don't auto-apply
+          setSuggestedRule(ruleContent);
+          // Update the last message to be a suggestion
+          setMessages(prev => {
+            const newMessages = [...prev];
+            if (newMessages.length > 0) {
+              newMessages[newMessages.length - 1] = {
+                role: "assistant",
+                content: ruleContent,
+                isSuggestion: true
+              };
+            }
+            return newMessages;
+          });
+          console.log("[RuleEditorModal] Suggested rule:", ruleContent);
         }
       } else {
         console.log("[RuleEditorModal] Not updating rule - conversational response detected");
@@ -485,10 +530,37 @@ ${ruleText ? `Current rule being edited: "${ruleText}"` : "Creating a new rule."
                         className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
                           msg.role === "user"
                             ? "bg-primary text-primary-foreground"
+                            : msg.isSuggestion
+                            ? "bg-emerald-500/20 border border-emerald-500/40 text-foreground"
                             : "bg-secondary text-secondary-foreground"
                         }`}
                       >
+                        {msg.isSuggestion && (
+                          <p className="text-xs text-emerald-400 font-medium mb-1">Suggested Rule:</p>
+                        )}
                         {msg.content}
+                        {/* Show confirmation buttons for the latest suggestion */}
+                        {msg.isSuggestion && suggestedRule && idx === messages.length - 1 && (
+                          <div className="flex gap-2 mt-3 pt-2 border-t border-emerald-500/30">
+                            <Button
+                              size="sm"
+                              onClick={handleConfirmRule}
+                              className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700"
+                            >
+                              <Check className="h-3 w-3 mr-1" />
+                              Use This Rule
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={handleRejectRule}
+                              className="h-7 text-xs"
+                            >
+                              <X className="h-3 w-3 mr-1" />
+                              Modify
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
