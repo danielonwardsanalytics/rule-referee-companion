@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { useTournamentDetail, useTournaments } from "@/hooks/useTournaments";
 import { useTournamentPlayers } from "@/hooks/useTournamentPlayers";
 import { useGameResults } from "@/hooks/useGameResults";
 import { useAuth } from "@/hooks/useAuth";
+import { useActiveContext } from "@/hooks/useActiveContext";
 import AIAdjudicator from "@/components/AIAdjudicator";
 import { LeaderboardTable } from "@/components/tournaments/LeaderboardTable";
 import { AddPlayerModal } from "@/components/tournaments/AddPlayerModal";
@@ -24,6 +25,7 @@ const TournamentDetail = () => {
   const { updateTournament } = useTournaments();
   const { players } = useTournamentPlayers(tournamentId);
   const { results } = useGameResults(tournamentId);
+  const { setActiveTournament } = useActiveContext();
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState("");
@@ -31,6 +33,13 @@ const TournamentDetail = () => {
   const [isRecordGameOpen, setIsRecordGameOpen] = useState(false);
 
   const isAdmin = tournament?.admin_id === user?.id;
+
+  // Set this tournament as active when viewing the detail page
+  useEffect(() => {
+    if (tournamentId) {
+      setActiveTournament(tournamentId);
+    }
+  }, [tournamentId, setActiveTournament]);
 
   const handleSaveName = () => {
     if (tournament && editedName.trim()) {
@@ -114,12 +123,10 @@ const TournamentDetail = () => {
           </div>
         </div>
 
-        {/* AI Adjudicator */}
+        {/* AI Adjudicator - Universal component, same as homepage */}
         <AIAdjudicator
-          title={`${tournament.name} AI Adjudicator`}
-          subtitle={`Get answers about ${tournament.games.name} rules and gameplay`}
-          preSelectedTournamentId={tournament.id}
-          hideContextSelectors
+          title="AI Adjudicator"
+          subtitle="Get instant answers about any game rule"
         />
 
         {/* Tournament Tabs */}
