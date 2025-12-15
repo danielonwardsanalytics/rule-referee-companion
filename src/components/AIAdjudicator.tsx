@@ -419,23 +419,28 @@ Keep responses under 3 sentences unless more detail is requested.`;
 
           {/* Context Selector Boxes - Below Input */}
           {!hideContextSelectors && (
-            <div className="flex gap-4 mt-6">
-              <ContextSelectorBox
-                label="Rules Set"
-                type="ruleSet"
-                activeItem={activeRuleSet}
-                availableItems={userRuleSets}
-                onSelect={setActiveRuleSet}
-                onClear={clearActiveRuleSet}
-              />
-              <ContextSelectorBox
-                label="Tournaments"
-                type="tournament"
-                activeItem={activeTournament}
-                availableItems={userTournaments}
-                onSelect={setActiveTournament}
-                onClear={clearActiveTournament}
-              />
+            <div className="mt-6 space-y-2">
+              <div className="flex gap-4">
+                <ContextSelectorBox
+                  label="Rules Set"
+                  type="ruleSet"
+                  activeItem={activeRuleSet}
+                  availableItems={userRuleSets}
+                  onSelect={setActiveRuleSet}
+                  onClear={clearActiveRuleSet}
+                />
+                <ContextSelectorBox
+                  label="Tournaments"
+                  type="tournament"
+                  activeItem={activeTournament}
+                  availableItems={userTournaments}
+                  onSelect={setActiveTournament}
+                  onClear={clearActiveTournament}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                When a rule set is active, the AI Adjudicator will abide by these rules.
+              </p>
             </div>
           )}
 
