@@ -2,9 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
-// DEVELOPMENT OVERRIDE - Set to true to bypass premium checks during development
-const DEV_PREMIUM_ACCESS = true;
-
 interface PremiumStatus {
   hasAccess: boolean;
   status: 'trial' | 'free' | 'premium' | 'cancelled';
@@ -51,7 +48,7 @@ export const usePremium = () => {
   return {
     premiumStatus,
     isLoading,
-    hasPremiumAccess: DEV_PREMIUM_ACCESS || (premiumStatus?.hasAccess ?? false),
+    hasPremiumAccess: premiumStatus?.hasAccess ?? false,
     isTrial: premiumStatus?.isTrial ?? false,
     isFree: premiumStatus?.status === 'free',
     isPremium: premiumStatus?.status === 'premium',
