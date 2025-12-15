@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ChevronDown, X } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { ChevronDown, X, ExternalLink } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu,
@@ -35,6 +35,7 @@ export const ContextSelectorBox = ({
   onClear,
 }: ContextSelectorBoxProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
 
   const isActive = !!activeItem;
@@ -43,11 +44,27 @@ export const ContextSelectorBox = ({
   // Get only the last used item (first in the sorted list)
   const lastUsedItem = availableItems.length > 0 ? availableItems[0] : null;
 
+  // Check if we're already on the detail page for the active item
+  const isOnActiveItemPage = isActive && (
+    (type === "ruleSet" && location.pathname === `/house-rules/${activeItem.id}`) ||
+    (type === "tournament" && location.pathname === `/tournament/${activeItem.id}`)
+  );
+
   const handleChooseNavigation = () => {
     if (type === "ruleSet") {
       navigate("/house-rules");
     } else {
       navigate("/tournaments");
+    }
+    setIsOpen(false);
+  };
+
+  const handleGoToActiveItem = () => {
+    if (!activeItem) return;
+    if (type === "ruleSet") {
+      navigate(`/house-rules/${activeItem.id}`);
+    } else {
+      navigate(`/tournament/${activeItem.id}`);
     }
     setIsOpen(false);
   };
@@ -110,6 +127,13 @@ export const ContextSelectorBox = ({
         <DropdownMenuContent align="start" className="w-56 max-h-[300px] overflow-y-auto">
           {isActive ? (
             <>
+              {/* Go to active item - only show if not already on that page */}
+              {!isOnActiveItemPage && (
+                <DropdownMenuItem onClick={handleGoToActiveItem}>
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Go to {type === "ruleSet" ? "Rule Set" : "Tournament"}
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={handleChooseNavigation}>
                 Change {type === "ruleSet" ? "Rules Set" : "Tournament"}
               </DropdownMenuItem>
