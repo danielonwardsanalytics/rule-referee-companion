@@ -87,14 +87,23 @@ export const useChatWithActions = (gameName?: string, houseRules?: string[], act
   }, [messages, gameName, houseRules, activeRuleSetId]);
 
   const confirmAction = useCallback(async () => {
-    if (!pendingAction) return;
+    if (!pendingAction) {
+      console.log('[useChatWithActions] confirmAction called but no pending action');
+      return;
+    }
 
+    console.log('[useChatWithActions] Confirming action:', pendingAction);
     setIsExecutingAction(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
         throw new Error('User must be authenticated');
       }
+
+      console.log('[useChatWithActions] Calling execute-action with:', {
+        actionType: pendingAction.type,
+        params: pendingAction.params,
+      });
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/execute-action`,
@@ -112,6 +121,7 @@ export const useChatWithActions = (gameName?: string, houseRules?: string[], act
       );
 
       const data = await response.json();
+      console.log('[useChatWithActions] execute-action response:', data);
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to execute action');
@@ -126,7 +136,7 @@ export const useChatWithActions = (gameName?: string, houseRules?: string[], act
 
       return data;
     } catch (error) {
-      console.error('Action execution error:', error);
+      console.error('[useChatWithActions] Action execution error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to execute action');
     } finally {
       setIsExecutingAction(false);
@@ -143,19 +153,24 @@ export const useChatWithActions = (gameName?: string, houseRules?: string[], act
 
   // Check if user's voice response is a confirmation
   const handleVoiceConfirmation = useCallback((transcript: string) => {
+    console.log('[useChatWithActions] handleVoiceConfirmation called with:', transcript, 'pendingAction:', !!pendingAction);
+    
     if (!pendingAction) return false;
 
-    const confirmPhrases = ['yes', 'yeah', 'yep', 'sure', 'okay', 'ok', 'confirm', 'do it', 'go ahead', 'please', 'yes please'];
+    const confirmPhrases = ['yes', 'yeah', 'yep', 'sure', 'okay', 'ok', 'confirm', 'do it', 'go ahead', 'please', 'yes please', 'implement', 'create it'];
     const cancelPhrases = ['no', 'nope', 'cancel', 'never mind', 'stop', "don't"];
 
     const lowerTranscript = transcript.toLowerCase().trim();
+    console.log('[useChatWithActions] Checking transcript:', lowerTranscript);
 
     if (confirmPhrases.some(phrase => lowerTranscript.includes(phrase))) {
+      console.log('[useChatWithActions] Confirm phrase detected, executing action');
       confirmAction();
       return true;
     }
 
     if (cancelPhrases.some(phrase => lowerTranscript.includes(phrase))) {
+      console.log('[useChatWithActions] Cancel phrase detected');
       cancelAction();
       return true;
     }
