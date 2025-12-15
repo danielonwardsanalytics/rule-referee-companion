@@ -78,33 +78,42 @@ export const AddEditorModal = ({ isOpen, onClose, ruleSetId }: AddEditorModalPro
       // Use secure server-side function for email lookup
       const { data: lookupResult } = await supabase
         .rpc("lookup_user_by_email", { _email: email.trim().toLowerCase() })
-        .single();
+        .maybeSingle();
       
-      const existingFriend = lookupResult ? { id: lookupResult.user_id } : null;
+      // If user not found in database, show error
+      if (!lookupResult) {
+        toast({
+          title: "User Not Found",
+          description: "No user found with that username or email address. Please check and try again.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
 
-      if (existingFriend) {
-        // Check if already friends
-        const { data: friendship } = await supabase
-          .from("friends")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("friend_id", existingFriend.id)
-          .maybeSingle();
+      const existingUser = { id: lookupResult.user_id };
 
-        if (friendship) {
-          // Already friends - add them directly as editor
-          addEditor(existingFriend.id, {
-            onSuccess: () => {
-              setEmail("");
-              toast({
-                title: "Editor Added",
-                description: "Your friend has been added as an editor",
-              });
-            },
-          });
-          setIsSubmitting(false);
-          return;
-        }
+      // Check if already friends
+      const { data: friendship } = await supabase
+        .from("friends")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("friend_id", existingUser.id)
+        .maybeSingle();
+
+      if (friendship) {
+        // Already friends - add them directly as editor
+        addEditor(existingUser.id, {
+          onSuccess: () => {
+            setEmail("");
+            toast({
+              title: "Editor Added",
+              description: "Your friend has been added as an editor",
+            });
+          },
+        });
+        setIsSubmitting(false);
+        return;
       }
 
       // Check for existing pending request
@@ -112,7 +121,7 @@ export const AddEditorModal = ({ isOpen, onClose, ruleSetId }: AddEditorModalPro
         .from("friend_requests")
         .select("id, status")
         .eq("requester_id", user.id)
-        .eq("recipient_email", email.trim().toLowerCase())
+        .eq("recipient_id", existingUser.id)
         .eq("status", "pending")
         .maybeSingle();
 
@@ -132,16 +141,14 @@ export const AddEditorModal = ({ isOpen, onClose, ruleSetId }: AddEditorModalPro
         .insert({
           requester_id: user.id,
           recipient_email: email.trim().toLowerCase(),
-          recipient_id: existingFriend?.id || null,
+          recipient_id: existingUser.id,
         });
 
       if (error) throw error;
 
       toast({
         title: "Friend Request Sent",
-        description: existingFriend
-          ? "Your friend request has been sent. They will be added as editor once they accept."
-          : "An invitation will be sent. They will be added as editor once they join and accept.",
+        description: "Your friend request has been sent. They will be added as editor once they accept.",
       });
 
       setEmail("");
@@ -378,7 +385,7 @@ export const AddEditorModal = ({ isOpen, onClose, ruleSetId }: AddEditorModalPro
                       onKeyPress={(e) => e.key === "Enter" && handleEmailSubmit()}
                     />
                     <p className="text-xs text-muted-foreground">
-                      If they don't have an account, they'll receive an invitation email.
+                      Enter the email or username of an existing user.
                     </p>
                   </div>
                   <Button
