@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { ChevronDown, Lock, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +18,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useHouseRuleSets } from "@/hooks/useHouseRuleSets";
+import { CreateRuleSetModal } from "@/components/house-rules/CreateRuleSetModal";
 
 interface TournamentRulesSelectorProps {
   tournamentId: string;
@@ -42,15 +49,15 @@ export const TournamentRulesSelector = ({
   onToggleRules,
   onLockRuleSet,
 }: TournamentRulesSelectorProps) => {
-  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [showLockWarning, setShowLockWarning] = useState(false);
   const [selectedRuleSetId, setSelectedRuleSetId] = useState<string | null>(null);
   const [selectedRuleSetName, setSelectedRuleSetName] = useState<string>("");
   const [showRuleSetPicker, setShowRuleSetPicker] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Fetch user's rule sets for this specific game
-  const { ruleSets } = useHouseRuleSets(gameId);
+  const { ruleSets, refetch } = useHouseRuleSets(gameId);
 
   const hasLockedRules = !!lockedRuleSetId;
 
@@ -66,11 +73,19 @@ export const TournamentRulesSelector = ({
     return "No rules set";
   };
 
-  const handleSelectRuleSet = (ruleSetId: string, ruleSetName: string) => {
-    setSelectedRuleSetId(ruleSetId);
-    setSelectedRuleSetName(ruleSetName);
-    setShowRuleSetPicker(false);
-    setShowLockWarning(true);
+  const handleSelectFromDropdown = (ruleSetId: string) => {
+    const ruleSet = ruleSets.find(rs => rs.id === ruleSetId);
+    if (ruleSet) {
+      setSelectedRuleSetId(ruleSetId);
+      setSelectedRuleSetName(ruleSet.name);
+    }
+  };
+
+  const handleLockSelectedRuleSet = () => {
+    if (selectedRuleSetId) {
+      setShowRuleSetPicker(false);
+      setShowLockWarning(true);
+    }
   };
 
   const handleConfirmLock = () => {
@@ -101,7 +116,23 @@ export const TournamentRulesSelector = ({
 
   const handleAddHouseRules = () => {
     setIsOpen(false);
+    setSelectedRuleSetId(null);
+    setSelectedRuleSetName("");
     setShowRuleSetPicker(true);
+  };
+
+  const handleCreateNewRuleSet = () => {
+    setShowRuleSetPicker(false);
+    setShowCreateModal(true);
+  };
+
+  const handleRuleSetCreated = async (newRuleSetId: string, newRuleSetName: string) => {
+    setShowCreateModal(false);
+    await refetch();
+    // Directly lock in the newly created rule set
+    setSelectedRuleSetId(newRuleSetId);
+    setSelectedRuleSetName(newRuleSetName);
+    setShowLockWarning(true);
   };
 
   return (
@@ -185,53 +216,68 @@ export const TournamentRulesSelector = ({
         </DropdownMenu>
       </div>
 
-      {/* Rule Set Picker Dialog */}
+      {/* Choose Rule Set Dialog */}
       <AlertDialog open={showRuleSetPicker} onOpenChange={setShowRuleSetPicker}>
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Choose House Rules</AlertDialogTitle>
+            <AlertDialogTitle>Choose Rule Set</AlertDialogTitle>
             <AlertDialogDescription>
-              Select a house rule set for this tournament. This will be locked in and cannot be changed later.
+              Select a house rule set for this tournament. Once locked in, it cannot be changed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           
-          <div className="my-4 space-y-2 max-h-[300px] overflow-y-auto">
-            {ruleSets.map((ruleSet) => (
-              <button
-                key={ruleSet.id}
-                onClick={() => handleSelectRuleSet(ruleSet.id, ruleSet.name)}
-                className="w-full p-3 text-left rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-all"
-              >
-                <div className="font-medium">{ruleSet.name}</div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {ruleSet.games.name}
-                </div>
-              </button>
-            ))}
-            
-            {ruleSets.length === 0 && (
-              <div className="text-center py-4 text-muted-foreground">
-                <p>No house rule sets found for {gameName}.</p>
-              </div>
-            )}
+          <div className="my-4 space-y-4">
+            <Select
+              value={selectedRuleSetId || ""}
+              onValueChange={handleSelectFromDropdown}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a rule set..." />
+              </SelectTrigger>
+              <SelectContent>
+                {ruleSets.map((ruleSet) => (
+                  <SelectItem key={ruleSet.id} value={ruleSet.id}>
+                    {ruleSet.name}
+                  </SelectItem>
+                ))}
+                {ruleSets.length === 0 && (
+                  <div className="px-2 py-4 text-center text-muted-foreground text-sm">
+                    No rule sets available for {gameName}
+                  </div>
+                )}
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant="outline"
+              onClick={handleCreateNewRuleSet}
+              className="w-full"
+            >
+              Create New Rule Set
+            </Button>
           </div>
           
           <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto mt-0">Cancel</AlertDialogCancel>
             <Button
-              variant="outline"
-              onClick={() => {
-                setShowRuleSetPicker(false);
-                // Navigate to house rules with return context
-                navigate(`/house-rules?returnTo=/tournament/${tournamentId}&gameId=${gameId}`);
-              }}
+              onClick={handleLockSelectedRuleSet}
+              disabled={!selectedRuleSetId}
               className="w-full sm:w-auto"
             >
-              Choose Rule Set
+              Lock Rule Set In
             </Button>
-            <AlertDialogCancel className="w-full sm:w-auto mt-0">Cancel</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Create Rule Set Modal */}
+      <CreateRuleSetModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        preselectedGameId={gameId}
+        tournamentLockMode={true}
+        onRuleSetCreated={handleRuleSetCreated}
+      />
 
       {/* Lock Confirmation Dialog */}
       <AlertDialog open={showLockWarning} onOpenChange={setShowLockWarning}>
