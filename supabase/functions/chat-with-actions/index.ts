@@ -1,0 +1,270 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+// Tool definitions for actions the AI can propose
+const tools = [
+  {
+    type: "function",
+    function: {
+      name: "create_house_rule_set",
+      description: "Create a new house rule set for a card game. Use this when the user asks to create, make, or start a new set of house rules.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: {
+            type: "string",
+            description: "The name for the new house rule set"
+          },
+          game_name: {
+            type: "string",
+            description: "The name of the game this rule set is for (e.g., 'UNO', 'Phase 10', 'Monopoly Deal')"
+          }
+        },
+        required: ["name", "game_name"],
+        additionalProperties: false
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_tournament",
+      description: "Create a new tournament for a card game. Use this when the user asks to create, start, or set up a new tournament.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: {
+            type: "string",
+            description: "The name for the new tournament"
+          },
+          game_name: {
+            type: "string",
+            description: "The name of the game this tournament is for"
+          }
+        },
+        required: ["name", "game_name"],
+        additionalProperties: false
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_house_rule",
+      description: "Add a new rule to the currently active house rule set. Use this when the user wants to add a specific rule.",
+      parameters: {
+        type: "object",
+        properties: {
+          rule_text: {
+            type: "string",
+            description: "The text of the rule to add"
+          },
+          title: {
+            type: "string",
+            description: "A short title for the rule (optional)"
+          }
+        },
+        required: ["rule_text"],
+        additionalProperties: false
+      }
+    }
+  }
+];
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { messages, gameName, houseRules, activeRuleSetId } = await req.json();
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    const systemPrompt = buildSystemPrompt(gameName, houseRules, activeRuleSetId);
+
+    // First, try to detect if this is an action request using tool calling
+    const toolResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages,
+        ],
+        tools: tools,
+        tool_choice: "auto",
+      }),
+    });
+
+    if (!toolResponse.ok) {
+      const errorText = await toolResponse.text();
+      console.error("Tool detection error:", toolResponse.status, errorText);
+      
+      if (toolResponse.status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limits exceeded" }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (toolResponse.status === 402) {
+        return new Response(JSON.stringify({ error: "Payment required" }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      throw new Error("AI gateway error");
+    }
+
+    const toolData = await toolResponse.json();
+    const choice = toolData.choices?.[0];
+    const toolCalls = choice?.message?.tool_calls;
+
+    // If AI wants to call a tool, return the proposed action
+    if (toolCalls && toolCalls.length > 0) {
+      const toolCall = toolCalls[0];
+      const functionName = toolCall.function.name;
+      const functionArgs = JSON.parse(toolCall.function.arguments);
+
+      // Generate a confirmation message
+      let confirmationMessage = "";
+      let actionType = "";
+      let actionParams = {};
+
+      switch (functionName) {
+        case "create_house_rule_set":
+          confirmationMessage = `I'll create a new house rule set called "${functionArgs.name}" for ${functionArgs.game_name}. Would you like me to proceed?`;
+          actionType = "create_house_rule_set";
+          actionParams = functionArgs;
+          break;
+        case "create_tournament":
+          confirmationMessage = `I'll create a new tournament called "${functionArgs.name}" for ${functionArgs.game_name}. Would you like me to proceed?`;
+          actionType = "create_tournament";
+          actionParams = functionArgs;
+          break;
+        case "add_house_rule":
+          confirmationMessage = `I'll add this rule to your active house rules: "${functionArgs.rule_text}". Would you like me to proceed?`;
+          actionType = "add_house_rule";
+          actionParams = { ...functionArgs, rule_set_id: activeRuleSetId };
+          break;
+        default:
+          confirmationMessage = "I'm not sure what action you want me to take.";
+      }
+
+      return new Response(JSON.stringify({
+        type: "action_proposal",
+        message: confirmationMessage,
+        action: {
+          type: actionType,
+          params: actionParams,
+        }
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // If no tool call, return the regular text response (stream it)
+    const textContent = choice?.message?.content;
+    if (textContent) {
+      return new Response(JSON.stringify({
+        type: "text_response",
+        message: textContent,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Fallback: stream a regular response
+    const streamResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages,
+        ],
+        stream: true,
+      }),
+    });
+
+    return new Response(streamResponse.body, {
+      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+    });
+
+  } catch (e) {
+    console.error("chat-with-actions error:", e);
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
+
+function buildSystemPrompt(gameName?: string, houseRules?: string[], activeRuleSetId?: string): string {
+  let prompt = `You are a helpful assistant for the House Rules card game companion app. You can:
+
+1. Answer questions about card game rules (UNO, Phase 10, Monopoly Deal, etc.)
+2. Help users manage their app - create house rule sets, tournaments, and more
+3. Take actions on behalf of users when they ask
+
+IMPORTANT: When users ask you to CREATE something (house rules, tournaments) or ADD something (rules to a set), you should use the appropriate tool to propose that action. Be proactive about detecting these requests even if phrased casually like:
+- "Make me a rule set called X" → create_house_rule_set
+- "Start a new tournament for UNO" → create_tournament  
+- "Add a rule that says..." → add_house_rule
+- "Create some house rules for Phase 10" → create_house_rule_set
+
+`;
+
+  if (gameName) {
+    prompt += `Currently helping with: ${gameName}.\n\n`;
+  }
+
+  if (houseRules && houseRules.length > 0) {
+    prompt += `ACTIVE HOUSE RULES:\n`;
+    houseRules.forEach((rule, idx) => {
+      prompt += `${idx + 1}. ${rule}\n`;
+    });
+    prompt += `\n`;
+  }
+
+  if (activeRuleSetId) {
+    prompt += `User has an active rule set selected (ID: ${activeRuleSetId}). When they want to add rules, add them to this set.\n\n`;
+  }
+
+  prompt += `Keep responses conversational and concise. When proposing actions, be clear about what you'll do.`;
+
+  return prompt;
+}
