@@ -684,6 +684,14 @@ export type Database = {
         Args: { _rule_set_id: string; _user_id: string }
         Returns: boolean
       }
+      lookup_user_by_email: {
+        Args: { _email: string }
+        Returns: {
+          display_name: string
+          user_email: string
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "user"
