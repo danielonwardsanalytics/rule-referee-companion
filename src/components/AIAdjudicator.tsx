@@ -308,10 +308,14 @@ Keep responses under 3 sentences unless more detail is requested.`;
         // New callback: detect actions in user's voice transcript
         async (transcript) => {
           console.log("[AIAdjudicator] User voice transcript received:", transcript);
+          console.log("[AIAdjudicator] Current pendingAction before detection:", pendingAction);
           const messageWithContext = buildContextPrompt() + transcript;
+          console.log("[AIAdjudicator] Sending to detectActionInTranscript:", messageWithContext);
           const actionDetected = await detectActionInTranscript(messageWithContext);
+          console.log("[AIAdjudicator] Action detection result:", actionDetected);
           if (actionDetected) {
-            toast.info("Action detected! Confirm or cancel below, or say 'yes' to confirm.");
+            console.log("[AIAdjudicator] ACTION DETECTED - showing confirmation!");
+            toast.info("Action detected! Click 'Implement' below to execute.", { duration: 5000 });
           }
         }
       );
@@ -416,7 +420,7 @@ Keep responses under 3 sentences unless more detail is requested.`;
             </ScrollArea>
           )}
 
-          {/* Action Confirmation Buttons */}
+          {/* Action Confirmation Buttons - PROMINENT */}
           {pendingAction && (
             <>
               {console.log("[AIAdjudicator] Rendering ActionConfirmation, pendingAction:", pendingAction)}
@@ -424,6 +428,7 @@ Keep responses under 3 sentences unless more detail is requested.`;
                 onConfirm={confirmAction}
                 onCancel={cancelAction}
                 isExecuting={isExecutingAction}
+                confirmationMessage={pendingAction.confirmationMessage}
               />
             </>
           )}
