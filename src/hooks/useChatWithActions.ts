@@ -15,6 +15,7 @@ export const useChatWithActions = (gameName?: string, houseRules?: string[], act
   const [isLoading, setIsLoading] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const [isExecutingAction, setIsExecutingAction] = useState(false);
+  const [isDetectingAction, setIsDetectingAction] = useState(false);
 
   const sendMessage = useCallback(async (
     userMessage: string, 
@@ -167,6 +168,57 @@ export const useChatWithActions = (gameName?: string, houseRules?: string[], act
     setPendingAction(null);
   }, []);
 
+  // Detect action in a voice transcript without adding to messages
+  const detectActionInTranscript = useCallback(async (transcript: string): Promise<boolean> => {
+    if (pendingAction) return false; // Already have a pending action
+
+    setIsDetectingAction(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        return false;
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-with-actions`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            messages: [{ role: 'user', content: transcript }],
+            gameName,
+            houseRules,
+            activeRuleSetId,
+          }),
+        }
+      );
+
+      if (!response.ok) return false;
+
+      const data = await response.json();
+
+      if (data.type === 'action_proposal') {
+        console.log('[useChatWithActions] Action detected in transcript:', data.action);
+        setPendingAction({
+          type: data.action.type,
+          params: data.action.params,
+          confirmationMessage: data.message,
+        });
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('[useChatWithActions] Error detecting action:', error);
+      return false;
+    } finally {
+      setIsDetectingAction(false);
+    }
+  }, [pendingAction, gameName, houseRules, activeRuleSetId]);
+
   return { 
     messages, 
     sendMessage, 
@@ -177,5 +229,7 @@ export const useChatWithActions = (gameName?: string, houseRules?: string[], act
     cancelAction,
     handleVoiceConfirmation,
     isExecutingAction,
+    detectActionInTranscript,
+    isDetectingAction,
   };
 };

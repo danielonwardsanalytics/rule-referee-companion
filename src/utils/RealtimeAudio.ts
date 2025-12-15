@@ -72,7 +72,8 @@ export class RealtimeChat {
     private instructions?: string,
     private voice?: string,
     private gameName?: string,
-    private houseRules?: string[]
+    private houseRules?: string[],
+    private onUserTranscript?: (transcript: string) => void
   ) {
     this.audioEl = document.createElement("audio");
     this.audioEl.autoplay = true;
@@ -124,6 +125,14 @@ export class RealtimeChat {
         const event = JSON.parse(e.data);
         console.log("[RealtimeChat] Received event:", event.type);
         this.onMessage(event);
+        
+        // Fire callback when user speech is transcribed
+        if (event.type === "conversation.item.input_audio_transcription.completed") {
+          const transcript = event.transcript || "";
+          if (transcript.trim() && this.onUserTranscript) {
+            this.onUserTranscript(transcript);
+          }
+        }
       });
 
       // Create and set local description
