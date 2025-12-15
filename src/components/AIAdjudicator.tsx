@@ -5,13 +5,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Mic, MicOff, Send, Loader2, Volume2 } from "lucide-react";
 import { toast } from "sonner";
-import { useRealtimeChat } from "@/hooks/useRealtimeChat";
+import { useChatWithActions } from "@/hooks/useChatWithActions";
 import { useActiveContext } from "@/hooks/useActiveContext";
 import { useHouseRules } from "@/hooks/useHouseRules";
 import { supabase } from "@/integrations/supabase/client";
 import { RealtimeChat } from "@/utils/RealtimeAudio";
 import { ContextSelectorBox } from "@/components/ai-adjudicator/ContextSelectorBox";
 import { LearnHowToUse } from "@/components/ai-adjudicator/LearnHowToUse";
+import { ActionConfirmation } from "@/components/ai-adjudicator/ActionConfirmation";
 
 interface AIAdjudicatorProps {
   title?: string;
@@ -56,7 +57,17 @@ const AIAdjudicator = ({
   // Determine game name from context
   const gameName = activeRuleSet?.gameName || activeTournament?.gameName || undefined;
 
-  const { messages, sendMessage, isLoading, clearMessages } = useRealtimeChat(gameName, houseRulesText);
+  const { 
+    messages, 
+    sendMessage, 
+    isLoading, 
+    clearMessages,
+    pendingAction,
+    confirmAction,
+    cancelAction,
+    handleVoiceConfirmation,
+    isExecutingAction,
+  } = useChatWithActions(gameName, houseRulesText, effectiveRuleSetId);
   const [input, setInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -102,7 +113,7 @@ const AIAdjudicator = ({
     const messageText = buildContextPrompt() + messageToSend;
 
     try {
-      await sendMessage(messageText, async (aiResponse) => {
+      await sendMessage(messageText, async (aiResponse, hasAction) => {
         if (willSpeak) {
           await speakResponse(aiResponse);
         }
@@ -252,7 +263,11 @@ Keep responses under 3 sentences unless more detail is requested.`;
           if (event.type === "conversation.item.input_audio_transcription.completed") {
             const transcript = event.transcript || "";
             if (transcript.trim()) {
-              setRealtimeMessages((prev) => [...prev, { role: "user", content: transcript }]);
+              // Check if this is a voice confirmation for a pending action
+              const wasHandled = handleVoiceConfirmation(transcript);
+              if (!wasHandled) {
+                setRealtimeMessages((prev) => [...prev, { role: "user", content: transcript }]);
+              }
             }
           }
 
@@ -378,6 +393,15 @@ Keep responses under 3 sentences unless more detail is requested.`;
                 ))}
               </div>
             </ScrollArea>
+          )}
+
+          {/* Action Confirmation Buttons */}
+          {pendingAction && (
+            <ActionConfirmation
+              onConfirm={confirmAction}
+              onCancel={cancelAction}
+              isExecuting={isExecutingAction}
+            />
           )}
 
           {/* Text Input Area with Audio Toggle */}
