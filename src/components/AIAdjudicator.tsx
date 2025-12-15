@@ -20,6 +20,7 @@ interface AIAdjudicatorProps {
   preSelectedTournamentId?: string;
   hideContextSelectors?: boolean;
   voice?: string;
+  embedded?: boolean; // When true, removes outer wrapper (for use inside pages with existing containers)
 }
 
 const AIAdjudicator = ({
@@ -29,6 +30,7 @@ const AIAdjudicator = ({
   preSelectedTournamentId,
   hideContextSelectors = false,
   voice = "alloy",
+  embedded = false,
 }: AIAdjudicatorProps) => {
   const {
     activeRuleSet,
@@ -303,10 +305,9 @@ Keep responses under 3 sentences unless more detail is requested.`;
 
   const allMessages = [...messages, ...realtimeMessages];
 
-  return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 animate-slide-up" style={{ animationDelay: "0.2s" }} aria-label="AI Adjudicator">
-      <div className="bg-card border border-border rounded-2xl shadow-[var(--shadow-card)] overflow-hidden backdrop-blur-sm hover-lift">
-        <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-5">
+  const cardContent = (
+    <div className="bg-card border border-border rounded-2xl shadow-[var(--shadow-card)] overflow-hidden backdrop-blur-sm hover-lift">
+      <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-5">
           <h2 className="text-2xl font-bold text-white">{title}</h2>
           <p className="text-white/90 text-sm mt-1">{subtitle}</p>
         </div>
@@ -448,6 +449,17 @@ Keep responses under 3 sentences unless more detail is requested.`;
           <LearnHowToUse />
         </div>
       </div>
+  );
+
+  // When embedded, return just the card without the outer section wrapper
+  if (embedded) {
+    return cardContent;
+  }
+
+  // When standalone (homepage), wrap in section with max-width and padding
+  return (
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 animate-slide-up" style={{ animationDelay: "0.2s" }} aria-label="AI Adjudicator">
+      {cardContent}
     </section>
   );
 };

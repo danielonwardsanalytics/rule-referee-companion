@@ -222,6 +222,7 @@ const HouseRuleDetail = () => {
         <AIAdjudicator
           title="AI Adjudicator"
           subtitle="Get instant answers about any game rule"
+          embedded
         />
 
         {/* Section 3: Linked Tournaments */}

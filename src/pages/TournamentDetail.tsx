@@ -127,6 +127,7 @@ const TournamentDetail = () => {
         <AIAdjudicator
           title="AI Adjudicator"
           subtitle="Get instant answers about any game rule"
+          embedded
         />
 
         {/* Tournament Tabs */}
