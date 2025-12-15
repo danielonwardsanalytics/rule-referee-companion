@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { RealtimeChat } from "@/utils/RealtimeAudio";
+import { useNativeSpeechRecognition } from "@/hooks/useNativeSpeechRecognition";
 import type { HouseRule } from "@/hooks/useHouseRules";
 
 interface RuleEditorModalProps {
@@ -45,7 +46,6 @@ export const RuleEditorModal = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [chatInput, setChatInput] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [isVoiceChatActive, setIsVoiceChatActive] = useState(false);
@@ -53,10 +53,17 @@ export const RuleEditorModal = ({
   const [messages, setMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
   
   const scrollRef = useRef<HTMLDivElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const realtimeChatRef = useRef<RealtimeChat | null>(null);
+
+  // Native speech recognition hook
+  const { 
+    isListening: isNativeListening, 
+    transcript: nativeTranscript, 
+    startListening, 
+    stopListening,
+    isSupported: isSpeechSupported 
+  } = useNativeSpeechRecognition();
 
   const isEditing = !!existingRule;
 
@@ -238,60 +245,19 @@ Keep rules clear, concise, and unambiguous. Rules should be actionable during ga
     handleAICommand(command);
   };
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
-      };
-
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        await transcribeAudio(audioBlob);
-        stream.getTracks().forEach((track) => track.stop());
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-      toast.info("Recording - speak now!");
-    } catch (error) {
-      console.error("Error accessing microphone:", error);
-      toast.error("Could not access microphone");
+  // Update chatInput when native transcript changes
+  useEffect(() => {
+    if (nativeTranscript) {
+      setChatInput(nativeTranscript);
     }
-  };
+  }, [nativeTranscript]);
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-
-  const transcribeAudio = async (audioBlob: Blob) => {
-    try {
-      const reader = new FileReader();
-      reader.readAsDataURL(audioBlob);
-      reader.onloadend = async () => {
-        const base64Audio = reader.result?.toString().split(",")[1];
-        if (!base64Audio) return;
-
-        const { data, error } = await supabase.functions.invoke("transcribe-audio", {
-          body: { audio: base64Audio },
-        });
-
-        if (error) throw error;
-        
-        if (data?.text) {
-          setChatInput(data.text);
-        }
-      };
-    } catch (error) {
-      console.error("Transcription error:", error);
-      toast.error("Failed to transcribe audio");
+  const handleDictateToggle = async () => {
+    if (isNativeListening) {
+      await stopListening();
+      toast.success("Dictation stopped");
+    } else {
+      await startListening();
     }
   };
 
@@ -617,13 +583,13 @@ ${ruleText ? `Current rule being edited: "${ruleText}"` : "Creating a new rule."
                   {/* Dictate Button */}
                   <Button
                     size="icon"
-                    variant={isRecording ? "default" : "ghost"}
-                    onClick={isRecording ? stopRecording : startRecording}
-                    disabled={isProcessing || isSaving || isVoiceChatActive}
+                    variant={isNativeListening ? "default" : "ghost"}
+                    onClick={handleDictateToggle}
+                    disabled={isProcessing || isSaving || isVoiceChatActive || !isSpeechSupported}
                     className="rounded-full h-7 w-7"
-                    title={isRecording ? "Stop recording" : "Dictate"}
+                    title={isNativeListening ? "Stop dictation" : "Dictate"}
                   >
-                    {isRecording ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
+                    {isNativeListening ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
                   </Button>
                   
                   {/* Send Button */}
