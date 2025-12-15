@@ -1,8 +1,10 @@
-import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, FileText, BookOpen, ChevronDown } from "lucide-react";
+import { Plus, FileText, BookOpen, ChevronDown, ArrowLeft } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { useHouseRuleSets } from "@/hooks/useHouseRuleSets";
 import { useAllGames } from "@/hooks/useAllGames";
 import { usePremium } from "@/hooks/usePremium";
@@ -29,38 +31,87 @@ const sortLabels: Record<SortOption, string> = {
 
 const HouseRules = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { ruleSets, isLoading: ruleSetsLoading } = useHouseRuleSets();
   const { games, isLoading: gamesLoading } = useAllGames();
   const { hasPremiumAccess } = usePremium();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("game");
 
+  // Get return context from URL params (for tournament flow)
+  const returnTo = searchParams.get("returnTo");
+  const preselectedGameId = searchParams.get("gameId");
+
+  // Auto-open create modal if coming from tournament with preselected game
+  useEffect(() => {
+    if (returnTo && preselectedGameId) {
+      setIsCreateModalOpen(true);
+    }
+  }, [returnTo, preselectedGameId]);
+
   const isLoading = ruleSetsLoading || gamesLoading;
+
+  // Handle selecting a rule set - if coming from tournament, lock it in
+  const handleRuleSetClick = async (ruleSetId: string) => {
+    if (returnTo) {
+      // Extract tournament ID from returnTo URL
+      const tournamentIdMatch = returnTo.match(/\/tournament\/([^?]+)/);
+      const tournamentId = tournamentIdMatch ? tournamentIdMatch[1] : null;
+
+      if (tournamentId) {
+        // Lock the rule set into the tournament
+        const { error } = await supabase
+          .from("tournaments")
+          .update({ house_rule_set_id: ruleSetId })
+          .eq("id", tournamentId);
+
+        if (error) {
+          console.error("Failed to lock rule set:", error);
+          toast.error("Failed to lock rule set into tournament");
+          return;
+        }
+        
+        toast.success("House rules locked into tournament!");
+      }
+      
+      navigate(returnTo);
+    } else {
+      navigate(`/house-rules/${ruleSetId}`);
+    }
+  };
+
+  // Filter rule sets for tournament game if coming from tournament
+  const filteredRuleSets = useMemo(() => {
+    if (preselectedGameId) {
+      return ruleSets.filter(rs => rs.game_id === preselectedGameId);
+    }
+    return ruleSets;
+  }, [ruleSets, preselectedGameId]);
 
   // Group rule sets by game (for "game" sort)
   const ruleSetsByGame = useMemo(() => {
-    return ruleSets.reduce((acc, ruleSet) => {
+    return filteredRuleSets.reduce((acc, ruleSet) => {
       const gameId = ruleSet.game_id;
       if (!acc[gameId]) {
         acc[gameId] = [];
       }
       acc[gameId].push(ruleSet);
       return acc;
-    }, {} as Record<string, typeof ruleSets>);
-  }, [ruleSets]);
+    }, {} as Record<string, typeof filteredRuleSets>);
+  }, [filteredRuleSets]);
 
   // Sorted rule sets for date-based sorting
   const sortedRuleSets = useMemo(() => {
     if (sortBy === "game") return [];
     
-    return [...ruleSets].sort((a, b) => {
+    return [...filteredRuleSets].sort((a, b) => {
       if (sortBy === "date_added") {
         return new Date(b.created_at || b.updated_at).getTime() - new Date(a.created_at || a.updated_at).getTime();
       }
       // date_updated
       return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
     });
-  }, [ruleSets, sortBy]);
+  }, [filteredRuleSets, sortBy]);
 
   // Sorted game entries for alphabetical game grouping, with rules within each game sorted by updated_at
   const sortedGameEntries = useMemo(() => {
@@ -91,12 +142,28 @@ const HouseRules = () => {
       <TrialBanner />
       <PremiumGate feature="House Rules">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        {/* Back button when coming from tournament */}
+        {returnTo && (
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate(returnTo)}
+            className="mb-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Tournament
+          </Button>
+        )}
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-slide-down">
           <div className="text-center sm:text-left">
-            <h1 className="text-3xl font-bold">My House Rules</h1>
+            <h1 className="text-3xl font-bold">
+              {returnTo ? "Choose Your Rule Set" : "My House Rules"}
+            </h1>
             <p className="text-muted-foreground mt-1">
-              Create and manage custom rule sets for your games
+              {returnTo 
+                ? "Select or create a rule set to lock into your tournament"
+                : "Create and manage custom rule sets for your games"}
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
@@ -111,8 +178,8 @@ const HouseRules = () => {
           </div>
         </div>
 
-        {/* Sort By Dropdown */}
-        {ruleSets.length > 0 && (
+        {/* Sort By Dropdown - hide when in tournament mode with preselected game */}
+        {filteredRuleSets.length > 0 && !returnTo && (
           <div className="flex justify-center sm:justify-start">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -138,19 +205,21 @@ const HouseRules = () => {
 
         {/* Rule Sets */}
         <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
-          {ruleSets.length === 0 ? (
+          {filteredRuleSets.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <p className="text-muted-foreground mb-4">
-                  You haven't created any house rule sets yet
+                  {returnTo 
+                    ? "No house rule sets found for this game"
+                    : "You haven't created any house rule sets yet"}
                 </p>
                 <Button onClick={() => setIsCreateModalOpen(true)} className="button-press">
                   <Plus className="h-4 w-4 mr-2" />
-                  Create Your First Rule Set
+                  Create {returnTo ? "New" : "Your First"} Rule Set
                 </Button>
               </CardContent>
             </Card>
-          ) : sortBy === "game" ? (
+          ) : sortBy === "game" && !returnTo ? (
             // Grouped by game (alphabetically)
             <div className="space-y-8">
               {sortedGameEntries.map(([gameId, sets]) => {
@@ -171,7 +240,7 @@ const HouseRules = () => {
                         <div key={ruleSet.id} style={{ animationDelay: `${index * 0.05}s` }}>
                           <RuleSetCard
                             ruleSet={ruleSet}
-                            onClick={() => navigate(`/house-rules/${ruleSet.id}`)}
+                            onClick={() => handleRuleSetClick(ruleSet.id)}
                             showGameName={false}
                           />
                         </div>
@@ -182,14 +251,14 @@ const HouseRules = () => {
               })}
             </div>
           ) : (
-            // Flat list sorted by date
+            // Flat list (for date sorting or tournament mode)
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {sortedRuleSets.map((ruleSet, index) => (
+              {(returnTo ? filteredRuleSets : sortedRuleSets).map((ruleSet, index) => (
                 <div key={ruleSet.id} style={{ animationDelay: `${index * 0.05}s` }}>
                   <RuleSetCard
                     ruleSet={ruleSet}
-                    onClick={() => navigate(`/house-rules/${ruleSet.id}`)}
-                    showGameName={true}
+                    onClick={() => handleRuleSetClick(ruleSet.id)}
+                    showGameName={!returnTo}
                   />
                 </div>
               ))}
@@ -200,8 +269,16 @@ const HouseRules = () => {
 
       <CreateRuleSetModal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          // If we came from a tournament and canceled, go back
+          if (returnTo && !isCreateModalOpen) {
+            navigate(returnTo);
+          }
+        }}
         games={games}
+        preselectedGameId={preselectedGameId || undefined}
+        returnTo={returnTo || undefined}
       />
       </PremiumGate>
     </div>

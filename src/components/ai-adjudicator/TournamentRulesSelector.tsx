@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, Lock, BookOpen } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -195,37 +196,39 @@ export const TournamentRulesSelector = ({
           </AlertDialogHeader>
           
           <div className="my-4 space-y-2 max-h-[300px] overflow-y-auto">
-            {ruleSets.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <p className="mb-4">No house rule sets found for {gameName}.</p>
-                <button
-                  onClick={() => {
-                    setShowRuleSetPicker(false);
-                    navigate("/house-rules");
-                  }}
-                  className="text-primary hover:underline"
-                >
-                  Create a house rule set first
-                </button>
+            {ruleSets.map((ruleSet) => (
+              <button
+                key={ruleSet.id}
+                onClick={() => handleSelectRuleSet(ruleSet.id, ruleSet.name)}
+                className="w-full p-3 text-left rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-all"
+              >
+                <div className="font-medium">{ruleSet.name}</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {ruleSet.games.name}
+                </div>
+              </button>
+            ))}
+            
+            {ruleSets.length === 0 && (
+              <div className="text-center py-4 text-muted-foreground">
+                <p>No house rule sets found for {gameName}.</p>
               </div>
-            ) : (
-              ruleSets.map((ruleSet) => (
-                <button
-                  key={ruleSet.id}
-                  onClick={() => handleSelectRuleSet(ruleSet.id, ruleSet.name)}
-                  className="w-full p-3 text-left rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-all"
-                >
-                  <div className="font-medium">{ruleSet.name}</div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {ruleSet.games.name}
-                  </div>
-                </button>
-              ))
             )}
           </div>
           
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowRuleSetPicker(false);
+                // Navigate to house rules with return context
+                navigate(`/house-rules?returnTo=/tournament/${tournamentId}&gameId=${gameId}`);
+              }}
+              className="w-full sm:w-auto"
+            >
+              Create New Rule Set
+            </Button>
+            <AlertDialogCancel className="w-full sm:w-auto mt-0">Cancel</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
