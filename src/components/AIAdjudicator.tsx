@@ -13,6 +13,7 @@ import { RealtimeChat } from "@/utils/RealtimeAudio";
 import { ContextSelectorBox } from "@/components/ai-adjudicator/ContextSelectorBox";
 import { LearnHowToUse } from "@/components/ai-adjudicator/LearnHowToUse";
 import { ActionConfirmation } from "@/components/ai-adjudicator/ActionConfirmation";
+import { useNativeSpeechRecognition } from "@/hooks/useNativeSpeechRecognition";
 
 interface AIAdjudicatorProps {
   title?: string;
@@ -69,15 +70,22 @@ const AIAdjudicator = ({
     isExecutingAction,
     detectActionInTranscript,
   } = useChatWithActions(gameName, houseRulesText, effectiveRuleSetId);
+  
+  // Native speech recognition hook (works on native apps and web)
+  const { 
+    isListening: isNativeListening, 
+    transcript: nativeTranscript, 
+    startListening, 
+    stopListening,
+    isSupported: isSpeechSupported 
+  } = useNativeSpeechRecognition();
+  
   const [input, setInput] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const [realtimeMessages, setRealtimeMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const realtimeChatRef = useRef<RealtimeChat | null>(null);
   
@@ -220,63 +228,20 @@ const AIAdjudicator = ({
     handleSend();
   };
 
-  const startRecording = async () => {
-    try {
+  // Update input when native transcript changes
+  useEffect(() => {
+    if (nativeTranscript) {
+      setInput(nativeTranscript);
+    }
+  }, [nativeTranscript]);
+
+  const handleDictateToggle = async () => {
+    if (isNativeListening) {
+      await stopListening();
+      toast.success("Dictation stopped");
+    } else {
       setIsAudioEnabled(false);
-
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
-      };
-
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        await transcribeAudio(audioBlob);
-        stream.getTracks().forEach((track) => track.stop());
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-      toast.info("Recording started - speak now!");
-    } catch (error) {
-      console.error("[AIAdjudicator] Error accessing microphone:", error);
-      toast.error(`Could not access microphone: ${error instanceof Error ? error.message : "Unknown error"}`);
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      toast.success("Processing your audio...");
-    }
-  };
-
-  const transcribeAudio = async (audioBlob: Blob) => {
-    try {
-      const reader = new FileReader();
-      reader.readAsDataURL(audioBlob);
-      reader.onloadend = async () => {
-        const base64Audio = reader.result?.toString().split(",")[1];
-        if (!base64Audio) return;
-
-        const { data, error } = await supabase.functions.invoke("transcribe-audio", {
-          body: { audio: base64Audio },
-        });
-
-        if (error) throw error;
-
-        if (data?.text) {
-          setInput(data.text);
-        }
-      };
-    } catch (error) {
-      console.error("[AIAdjudicator] Transcription error:", error);
-      toast.error(`Failed to transcribe audio: ${error instanceof Error ? error.message : "Unknown error"}`);
+      await startListening();
     }
   };
 
@@ -402,7 +367,7 @@ Keep responses under 3 sentences unless more detail is requested.`;
           <div className="flex flex-col items-center py-6 mb-6">
             <button
               onClick={isRealtimeConnected ? endRealtimeChat : startRealtimeChat}
-              disabled={isLoading || isRecording}
+              disabled={isLoading || isNativeListening}
               className={`w-32 h-32 rounded-full border-2 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed ${
                 isRealtimeConnected
                   ? "bg-primary border-primary animate-pulse-glow"
@@ -493,12 +458,13 @@ Keep responses under 3 sentences unless more detail is requested.`;
               <div className="absolute bottom-2 right-2 flex items-center gap-1">
                 <Button
                   size="icon"
-                  variant={isRecording ? "default" : "ghost"}
-                  onClick={isRecording ? stopRecording : startRecording}
-                  disabled={isLoading || isRealtimeConnected}
+                  variant={isNativeListening ? "default" : "ghost"}
+                  onClick={handleDictateToggle}
+                  disabled={isLoading || isRealtimeConnected || !isSpeechSupported}
                   className="rounded-full h-8 w-8"
+                  title={!isSpeechSupported ? "Speech recognition not supported" : undefined}
                 >
-                  {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  {isNativeListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                 </Button>
 
                 <Button
