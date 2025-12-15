@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RealtimeChat } from "@/utils/RealtimeAudio";
+import { useNativeSpeechRecognition } from "@/hooks/useNativeSpeechRecognition";
 
 interface VoiceRuleEditorProps {
   ruleSetId: string;
@@ -22,16 +23,22 @@ export const VoiceRuleEditor = ({ ruleSetId, ruleSetName, gameName, currentRules
   const queryClient = useQueryClient();
   const [isProcessing, setIsProcessing] = useState(false);
   const [input, setInput] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const [messages, setMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const realtimeChatRef = useRef<RealtimeChat | null>(null);
+
+  // Native speech recognition hook
+  const { 
+    isListening: isNativeListening, 
+    transcript: nativeTranscript, 
+    startListening, 
+    stopListening,
+    isSupported: isSpeechSupported 
+  } = useNativeSpeechRecognition();
 
   // Reset audio to OFF when component mounts
   useEffect(() => {
@@ -153,63 +160,20 @@ export const VoiceRuleEditor = ({ ruleSetId, ruleSetName, gameName, currentRules
     handleVoiceCommand(command);
   };
 
-  const startRecording = async () => {
-    try {
+  // Update input when native transcript changes
+  useEffect(() => {
+    if (nativeTranscript) {
+      setInput(nativeTranscript);
+    }
+  }, [nativeTranscript]);
+
+  const handleDictateToggle = async () => {
+    if (isNativeListening) {
+      await stopListening();
+      toast.success("Dictation stopped");
+    } else {
       setIsAudioEnabled(false);
-      
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
-      };
-
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        await transcribeAudio(audioBlob);
-        stream.getTracks().forEach((track) => track.stop());
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-      toast.info("Recording started - speak now!");
-    } catch (error) {
-      console.error("[VoiceRuleEditor] Error accessing microphone:", error);
-      toast.error(`Could not access microphone: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      toast.success("Processing your audio...");
-    }
-  };
-
-  const transcribeAudio = async (audioBlob: Blob) => {
-    try {
-      const reader = new FileReader();
-      reader.readAsDataURL(audioBlob);
-      reader.onloadend = async () => {
-        const base64Audio = reader.result?.toString().split(",")[1];
-        if (!base64Audio) return;
-
-        const { data, error } = await supabase.functions.invoke("transcribe-audio", {
-          body: { audio: base64Audio },
-        });
-
-        if (error) throw error;
-        
-        if (data?.text) {
-          setInput(data.text);
-        }
-      };
-    } catch (error) {
-      console.error("[VoiceRuleEditor] Transcription error:", error);
-      toast.error(`Failed to transcribe audio: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      await startListening();
     }
   };
 
@@ -332,7 +296,7 @@ Always remember you are editing "${ruleSetName}" - if the user refers to this ru
           <div className="flex flex-col items-center py-6 mb-6">
             <button
               onClick={isRealtimeConnected ? endRealtimeChat : startRealtimeChat}
-              disabled={isProcessing || isRecording}
+              disabled={isProcessing || isNativeListening}
               className={`w-32 h-32 rounded-full border-2 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed ${
                 isRealtimeConnected 
                   ? "bg-primary border-primary" 
@@ -439,12 +403,13 @@ Always remember you are editing "${ruleSetName}" - if the user refers to this ru
               <div className="absolute bottom-2 right-2 flex items-center gap-1">
                 <Button
                   size="icon"
-                  variant={isRecording ? "default" : "ghost"}
-                  onClick={isRecording ? stopRecording : startRecording}
-                  disabled={isProcessing || isRealtimeConnected}
+                  variant={isNativeListening ? "default" : "ghost"}
+                  onClick={handleDictateToggle}
+                  disabled={isProcessing || isRealtimeConnected || !isSpeechSupported}
                   className="rounded-full h-8 w-8"
+                  title={!isSpeechSupported ? "Speech recognition not supported" : undefined}
                 >
-                  {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  {isNativeListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                 </Button>
                 
                 <Button

@@ -8,6 +8,7 @@ import { useRealtimeChat } from "@/hooks/useRealtimeChat";
 import { supabase } from "@/integrations/supabase/client";
 import { RealtimeChat } from "@/utils/RealtimeAudio";
 import { useActiveHouseRules } from "@/hooks/useActiveHouseRules";
+import { useNativeSpeechRecognition } from "@/hooks/useNativeSpeechRecognition";
 
 interface ChatInterfaceProps {
   gameName?: string;
@@ -32,17 +33,23 @@ const ChatInterface = ({
   const houseRules = houseRulesData?.rules || [];
   const { messages, sendMessage, isLoading, clearMessages } = useRealtimeChat(gameName, houseRules);
   const [input, setInput] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isVoiceChatMode, setIsVoiceChatMode] = useState(false);
   const [voiceChatModeWhenRecording, setVoiceChatModeWhenRecording] = useState(false);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const [realtimeMessages, setRealtimeMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const realtimeChatRef = useRef<RealtimeChat | null>(null);
+
+  // Native speech recognition hook
+  const { 
+    isListening: isNativeListening, 
+    transcript: nativeTranscript, 
+    startListening, 
+    stopListening,
+    isSupported: isSpeechSupported 
+  } = useNativeSpeechRecognition();
   
   const contextPrompt = gameName 
     ? `I'm playing ${gameName}. ` 
@@ -163,108 +170,24 @@ const ChatInterface = ({
     }
   };
 
-  const startRecording = async () => {
-    try {
-      console.log("[ChatInterface] Starting recording...");
-      console.log("[ChatInterface] Current voice chat mode:", isVoiceChatMode);
-      
-      // Capture voice chat mode state at recording start
-      setVoiceChatModeWhenRecording(isVoiceChatMode);
-      
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      console.log("[ChatInterface] Microphone access granted");
-      
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        console.log("[ChatInterface] Audio data available, size:", event.data.size);
-        audioChunksRef.current.push(event.data);
-      };
-
-      mediaRecorder.onstop = async () => {
-        console.log("[ChatInterface] Recording stopped, chunks:", audioChunksRef.current.length);
-        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        console.log("[ChatInterface] Audio blob created, size:", audioBlob.size);
-        await transcribeAudio(audioBlob);
-        stream.getTracks().forEach((track) => track.stop());
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-      toast.info("Recording started - speak now!");
-      console.log("[ChatInterface] MediaRecorder started");
-    } catch (error) {
-      console.error("[ChatInterface] Error accessing microphone:", error);
-      toast.error(`Could not access microphone: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  // Update input when native transcript changes
+  useEffect(() => {
+    if (nativeTranscript) {
+      if (voiceChatModeWhenRecording) {
+        handleSend(nativeTranscript, true);
+      } else {
+        setInput(nativeTranscript);
+      }
     }
-  };
+  }, [nativeTranscript]);
 
-  const stopRecording = () => {
-    console.log("[ChatInterface] Stop recording called, isRecording:", isRecording);
-    if (mediaRecorderRef.current && isRecording) {
-      console.log("[ChatInterface] Stopping MediaRecorder");
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      toast.success("Processing your audio...");
+  const handleDictateToggle = async () => {
+    if (isNativeListening) {
+      await stopListening();
+      toast.success("Dictation stopped");
     } else {
-      console.log("[ChatInterface] MediaRecorder not available or not recording");
-    }
-  };
-
-  const transcribeAudio = async (audioBlob: Blob) => {
-    try {
-      console.log("[ChatInterface] Starting transcription...");
-      const reader = new FileReader();
-      reader.readAsDataURL(audioBlob);
-      reader.onloadend = async () => {
-        const base64Audio = reader.result?.toString().split(",")[1];
-        if (!base64Audio) {
-          console.error("[ChatInterface] No base64 audio data");
-          return;
-        }
-
-        console.log("[ChatInterface] Calling transcribe-audio edge function...");
-        const { data, error } = await supabase.functions.invoke("transcribe-audio", {
-          body: { audio: base64Audio },
-        });
-
-        console.log("[ChatInterface] Transcription response:", { hasData: !!data, error, text: data?.text });
-
-        if (error) {
-          console.error("[ChatInterface] Transcription error:", error);
-          throw error;
-        }
-        
-        if (data?.text) {
-          console.log("[ChatInterface] Transcribed text:", data.text);
-          console.log("[ChatInterface] Voice chat mode when recording started:", voiceChatModeWhenRecording);
-          console.log("[ChatInterface] Current voice chat mode:", isVoiceChatMode);
-          console.log("[ChatInterface] Context type:", contextType);
-          
-          // Use the voice chat mode from when recording started, not current state
-          if (voiceChatModeWhenRecording) {
-            console.log("[ChatInterface] Voice chat was active during recording, calling handleSend with text and shouldSpeak=true");
-            try {
-              await handleSend(data.text, true); // Always speak if voice chat was on when recording started
-              console.log("[ChatInterface] handleSend completed successfully");
-            } catch (error) {
-              console.error("[ChatInterface] Error in handleSend:", error);
-              toast.error("Failed to process voice message");
-            }
-          } else {
-            // Voice chat was not active during recording, just set the input for manual sending
-            console.log("[ChatInterface] Voice chat was not active during recording, text set in input");
-            setInput(data.text);
-          }
-        } else {
-          console.log("[ChatInterface] No text in transcription response");
-        }
-      };
-    } catch (error) {
-      console.error("[ChatInterface] Transcription error:", error);
-      toast.error(`Failed to transcribe audio: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setVoiceChatModeWhenRecording(isVoiceChatMode);
+      await startListening();
     }
   };
 
@@ -422,12 +345,12 @@ const ChatInterface = ({
         <div className="flex items-center justify-center gap-2 bg-muted/50 rounded-full px-4 py-2 w-fit mx-auto">
           <Button
             size="icon"
-            variant={isRecording ? "default" : "ghost"}
-            onClick={isRecording ? stopRecording : startRecording}
-            disabled={isLoading || isProcessingCommand || isRealtimeConnected}
+            variant={isNativeListening ? "default" : "ghost"}
+            onClick={handleDictateToggle}
+            disabled={isLoading || isProcessingCommand || isRealtimeConnected || !isSpeechSupported}
             className="rounded-full h-10 w-10"
           >
-            {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+            {isNativeListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
           </Button>
           
           <Button
