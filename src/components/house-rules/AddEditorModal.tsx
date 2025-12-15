@@ -392,7 +392,7 @@ export const AddEditorModal = ({ isOpen, onClose, ruleSetId }: AddEditorModalPro
                 </TabsContent>
 
                 <TabsContent value="qr" className="space-y-4">
-                  <QRCodeScanner onScan={handleQRScan} onClose={() => {}} />
+                  <QRCodeScanner onScan={handleQRScan} onClose={onClose} />
                 </TabsContent>
               </Tabs>
             </TabsContent>
