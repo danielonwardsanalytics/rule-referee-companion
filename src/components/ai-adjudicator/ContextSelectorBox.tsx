@@ -153,14 +153,6 @@ export const ContextSelectorBox = ({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
-      {/* Helper text for Rule Sets */}
-      {type === "ruleSet" && (
-        <p className="text-xs text-muted-foreground text-center mt-1">
-          {isActive 
-            ? "AI Adjudicator is using these house rules" 
-            : "Turn on to use custom house rules"}
-        </p>
-      )}
     </div>
   );
 };
