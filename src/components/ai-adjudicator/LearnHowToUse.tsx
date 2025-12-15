@@ -1,23 +1,17 @@
 import { useState } from "react";
-import { ChevronDown, ChevronUp, HelpCircle } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export const LearnHowToUse = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="border-t border-border pt-4 mt-4">
-      <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full justify-between">
-        <div className="flex items-center gap-2">
-          <HelpCircle className="h-4 w-4" />
-          <span>Learn how to use the AI Adjudicator</span>
-        </div>
-        {isOpen ? (
-          <ChevronUp className="h-4 w-4" />
-        ) : (
-          <ChevronDown className="h-4 w-4" />
-        )}
-      </CollapsibleTrigger>
+    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="mt-6">
+      <div className="flex justify-center">
+        <CollapsibleTrigger className="flex items-center justify-center w-8 h-8 rounded-full bg-secondary/50 hover:bg-secondary transition-colors">
+          <HelpCircle className={`h-5 w-5 transition-colors ${isOpen ? "text-primary" : "text-muted-foreground"}`} />
+        </CollapsibleTrigger>
+      </div>
       <CollapsibleContent className="pt-4">
         <div className="bg-secondary/50 rounded-lg p-4 space-y-3">
           <h4 className="font-medium text-sm text-foreground">Voice Commands You Can Use:</h4>
