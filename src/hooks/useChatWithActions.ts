@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 type Message = { role: 'user' | 'assistant'; content: string };
@@ -19,6 +20,7 @@ export const useChatWithActions = (
   tournamentNotes?: Array<{ title: string; content: string; created_at: string }>,
   gameResults?: Array<{ winner_name: string; created_at: string; notes?: string | null }>
 ) => {
+  const queryClient = useQueryClient();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
@@ -167,6 +169,28 @@ export const useChatWithActions = (
       setMessages((prev) => [...prev, successMsg]);
       
       toast.success(data.message);
+
+      // Invalidate relevant queries based on action type to refresh the page data
+      const actionType = pendingAction.type;
+      console.log('[useChatWithActions] Invalidating queries for action type:', actionType);
+      
+      if (actionType === 'add_tournament_note' && activeTournamentId) {
+        await queryClient.invalidateQueries({ queryKey: ['tournament-notes', activeTournamentId] });
+      } else if (actionType === 'add_tournament_player' && activeTournamentId) {
+        await queryClient.invalidateQueries({ queryKey: ['tournament-players', activeTournamentId] });
+      } else if (actionType === 'record_game_result' && activeTournamentId) {
+        await queryClient.invalidateQueries({ queryKey: ['game-results', activeTournamentId] });
+        await queryClient.invalidateQueries({ queryKey: ['tournament-players', activeTournamentId] });
+      } else if (actionType === 'update_player_status' && activeTournamentId) {
+        await queryClient.invalidateQueries({ queryKey: ['tournament-players', activeTournamentId] });
+      } else if (actionType === 'create_house_rule_set') {
+        await queryClient.invalidateQueries({ queryKey: ['house-rule-sets'] });
+      } else if (actionType === 'add_house_rule' && activeRuleSetId) {
+        await queryClient.invalidateQueries({ queryKey: ['house-rules', activeRuleSetId] });
+      } else if (actionType === 'create_tournament') {
+        await queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+      }
+
       setPendingAction(null);
 
       return data;
@@ -176,7 +200,7 @@ export const useChatWithActions = (
     } finally {
       setIsExecutingAction(false);
     }
-  }, [pendingAction]);
+  }, [pendingAction, queryClient, activeTournamentId, activeRuleSetId]);
 
   const cancelAction = useCallback(() => {
     if (!pendingAction) return;
