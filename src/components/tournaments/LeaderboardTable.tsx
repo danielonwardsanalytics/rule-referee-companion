@@ -1,5 +1,6 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Trophy, Mail } from "lucide-react";
 import { useRef, useState, useCallback } from "react";
 
@@ -17,6 +18,7 @@ interface LeaderboardTableProps {
   players: Player[];
   isAdmin: boolean;
   accentColor: string;
+  onRecordGame?: () => void;
 }
 
 const truncateName = (name: string): string => {
@@ -25,7 +27,7 @@ const truncateName = (name: string): string => {
   return `${words[0]} ${words[1]}...`;
 };
 
-export const LeaderboardTable = ({ players, isAdmin, accentColor }: LeaderboardTableProps) => {
+export const LeaderboardTable = ({ players, isAdmin, accentColor, onRecordGame }: LeaderboardTableProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
@@ -160,6 +162,15 @@ export const LeaderboardTable = ({ players, isAdmin, accentColor }: LeaderboardT
           </Table>
         </div>
       </div>
+      
+      {/* Record Game Button */}
+      {isAdmin && players.length >= 2 && onRecordGame && (
+        <div className="p-4 border-t border-border">
+          <Button onClick={onRecordGame} className="w-full hover-scale">
+            Record Winner
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
