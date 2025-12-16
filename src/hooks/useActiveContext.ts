@@ -59,7 +59,7 @@ export const useActiveContext = () => {
     enabled: !!activeRuleSetId,
   });
 
-  // Fetch active tournament details
+  // Fetch active tournament details (including its locked rule set)
   const { data: activeTournament } = useQuery({
     queryKey: ["active-tournament", activeTournamentId],
     queryFn: async () => {
@@ -70,6 +70,7 @@ export const useActiveContext = () => {
         .select(`
           id,
           name,
+          house_rule_set_id,
           games:game_id (
             id,
             name
@@ -84,10 +85,21 @@ export const useActiveContext = () => {
         name: data.name,
         gameName: data.games.name,
         gameId: data.games.id,
-      } as ActiveTournament;
+        houseRuleSetId: data.house_rule_set_id,
+      } as ActiveTournament & { houseRuleSetId: string | null };
     },
     enabled: !!activeTournamentId,
   });
+
+  // Auto-sync rule set when tournament changes (if tournament has locked rules)
+  useEffect(() => {
+    if (activeTournament?.houseRuleSetId) {
+      // Tournament has locked rules - sync to that rule set
+      if (activeRuleSetId !== activeTournament.houseRuleSetId) {
+        setActiveRuleSet(activeTournament.houseRuleSetId);
+      }
+    }
+  }, [activeTournament?.houseRuleSetId, activeRuleSetId]);
 
   // Fetch user's rule sets for selection
   const { data: userRuleSets = [] } = useQuery({

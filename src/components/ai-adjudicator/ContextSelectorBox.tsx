@@ -9,8 +9,6 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { LeaveTournamentDialog } from "./LeaveTournamentDialog";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useActiveContext } from "@/hooks/useActiveContext";
 
 interface ContextItem {
@@ -41,26 +39,11 @@ export const ContextSelectorBox = ({
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [showLeaveTournamentDialog, setShowLeaveTournamentDialog] = useState(false);
-  const { activeTournamentId } = useActiveContext();
+  const { activeTournamentId, activeTournament } = useActiveContext();
 
-  // Check if active tournament has locked rules
-  const { data: activeTournamentWithRules } = useQuery({
-    queryKey: ["active-tournament-rules-check", activeTournamentId],
-    queryFn: async () => {
-      if (!activeTournamentId) return null;
-      const { data, error } = await supabase
-        .from("tournaments")
-        .select("id, name, house_rule_set_id")
-        .eq("id", activeTournamentId)
-        .single();
-      if (error) return null;
-      return data;
-    },
-    enabled: !!activeTournamentId && type === "ruleSet",
-  });
-
-  const hasLockedTournament = !!activeTournamentWithRules?.house_rule_set_id;
-  const lockedTournamentName = activeTournamentWithRules?.name || "";
+  // When a tournament is active, the rule set is locked to the tournament's rule set
+  const hasActiveTournament = !!activeTournamentId;
+  const activeTournamentName = activeTournament?.name || "";
 
   const isActive = !!activeItem;
   const displayText = isActive ? activeItem.name : `No ${type === "ruleSet" ? "rules" : "tournament"} active`;
@@ -75,8 +58,8 @@ export const ContextSelectorBox = ({
   );
 
   const handleChooseNavigation = () => {
-    // If trying to change rule set while a tournament with locked rules is active
-    if (type === "ruleSet" && hasLockedTournament) {
+    // If trying to change rule set while a tournament is active
+    if (type === "ruleSet" && hasActiveTournament) {
       setShowLeaveTournamentDialog(true);
       setIsOpen(false);
       return;
@@ -110,18 +93,18 @@ export const ContextSelectorBox = ({
     setIsOpen(false);
   };
 
-  // Handle switch toggle for rule sets - check for locked tournament
+  // Handle switch toggle for rule sets - check for active tournament
   const handleSwitchClick = () => {
     if (isActive) {
-      // Turning off - check for locked tournament first
-      if (hasLockedTournament) {
+      // Turning off - check for active tournament first
+      if (hasActiveTournament) {
         setShowLeaveTournamentDialog(true);
         return;
       }
       onClear();
     } else {
-      // When OFF, check for locked tournament before opening dropdown
-      if (hasLockedTournament) {
+      // When OFF, check for active tournament before opening dropdown
+      if (hasActiveTournament) {
         setShowLeaveTournamentDialog(true);
         return;
       }
@@ -240,11 +223,11 @@ export const ContextSelectorBox = ({
       </DropdownMenu>
       </div>
 
-      {/* Leave Tournament Dialog */}
+      {/* Turn Off Tournament Dialog */}
       <LeaveTournamentDialog
         open={showLeaveTournamentDialog}
         onOpenChange={setShowLeaveTournamentDialog}
-        tournamentName={lockedTournamentName}
+        tournamentName={activeTournamentName}
       />
     </>
   );
