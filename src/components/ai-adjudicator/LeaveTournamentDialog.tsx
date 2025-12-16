@@ -1,4 +1,3 @@
-import { useNavigate } from "react-router-dom";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,33 +21,27 @@ export const LeaveTournamentDialog = ({
   onOpenChange,
   tournamentName,
 }: LeaveTournamentDialogProps) => {
-  const navigate = useNavigate();
   const { clearActiveTournament } = useActiveContext();
 
-  const handleLeaveTournament = () => {
+  const handleTurnOffTournament = () => {
     clearActiveTournament();
     onOpenChange(false);
-    navigate("/house-rules");
   };
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Leave Tournament to Change Rules?</AlertDialogTitle>
-          <AlertDialogDescription className="space-y-3">
-            <p>
-              You're currently in the <strong>"{tournamentName}"</strong> tournament which has locked house rules.
-            </p>
-            <p>
-              To change your active rule set, you need to leave this tournament first.
-            </p>
+          <AlertDialogTitle>Turn Off Tournament to Change Rule Set</AlertDialogTitle>
+          <AlertDialogDescription>
+            You're currently in the <strong>"{tournamentName}"</strong> tournament. 
+            Turn off the tournament first to change your rule set.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleLeaveTournament}>
-            Leave Tournament
+          <AlertDialogAction onClick={handleTurnOffTournament}>
+            Turn Off Tournament
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
