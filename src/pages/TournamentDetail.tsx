@@ -175,23 +175,10 @@ const TournamentDetail = () => {
                   players={players} 
                   isAdmin={isAdmin}
                   accentColor={tournament.games.accent_color}
+                  onRecordGame={() => setIsRecordGameOpen(true)}
                 />
               </CardContent>
             </Card>
-
-            {/* Record Game Result */}
-            {isAdmin && players.length >= 2 && (
-              <Card className="animate-fade-in">
-                <CardHeader>
-                  <CardTitle className="text-xl">Record Game Result</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Button onClick={() => setIsRecordGameOpen(true)} className="hover-scale">
-                    Record Winner
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Game History */}
             {results.length > 0 && (
