@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      beta_feedback: {
+        Row: {
+          admin_notes: string | null
+          category: string
+          created_at: string
+          feedback_text: string
+          id: string
+          page_url: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          category: string
+          created_at?: string
+          feedback_text: string
+          id?: string
+          page_url?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          category?: string
+          created_at?: string
+          feedback_text?: string
+          id?: string
+          page_url?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       friend_requests: {
         Row: {
           created_at: string | null
