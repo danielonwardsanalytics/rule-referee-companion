@@ -9,6 +9,7 @@ import { SkipLink } from "./components/SkipLink";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { BottomNav } from "./components/BottomNav";
 import { MenuOverlay } from "./components/MenuOverlay";
+import { BetaFeedbackButton } from "./components/beta/BetaFeedbackButton";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import Settings from "./pages/Settings";
@@ -22,6 +23,7 @@ import PublicHouseRules from "./pages/PublicHouseRules";
 import Friends from "./pages/Friends";
 import GameRequests from "./pages/GameRequests";
 import PremiumFeatures from "./pages/PremiumFeatures";
+import AdminFeedback from "./pages/AdminFeedback";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +49,7 @@ const App = () => {
                     <Home />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+                    <BetaFeedbackButton />
                   </>
                 </ProtectedRoute>
               }
@@ -59,6 +62,7 @@ const App = () => {
                     <Settings />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+                    <BetaFeedbackButton />
                   </>
                 </ProtectedRoute>
               }
@@ -71,6 +75,7 @@ const App = () => {
                     <Tournaments />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+                    <BetaFeedbackButton />
                   </>
                 </ProtectedRoute>
               }
@@ -83,6 +88,7 @@ const App = () => {
                     <CreateTournament />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+                    <BetaFeedbackButton />
                   </>
                 </ProtectedRoute>
               }
@@ -95,6 +101,7 @@ const App = () => {
                     <TournamentDetail />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+                    <BetaFeedbackButton />
                   </>
                 </ProtectedRoute>
               }
@@ -107,6 +114,7 @@ const App = () => {
                     <GameDetail />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+                    <BetaFeedbackButton />
                   </>
                 </ProtectedRoute>
               }
@@ -119,6 +127,7 @@ const App = () => {
                     <HouseRules />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+                    <BetaFeedbackButton />
                   </>
                 </ProtectedRoute>
               }
@@ -131,6 +140,7 @@ const App = () => {
                     <HouseRuleDetail />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+                    <BetaFeedbackButton />
                   </>
                 </ProtectedRoute>
               }
@@ -143,6 +153,7 @@ const App = () => {
                     <Friends />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+                    <BetaFeedbackButton />
                   </>
                 </ProtectedRoute>
               }
@@ -155,6 +166,7 @@ const App = () => {
                     <PublicHouseRules />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+                    <BetaFeedbackButton />
                   </>
                 </ProtectedRoute>
               }
@@ -167,6 +179,7 @@ const App = () => {
                     <GameRequests />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+                    <BetaFeedbackButton />
                   </>
                 </ProtectedRoute>
               }
@@ -179,6 +192,18 @@ const App = () => {
                     <PremiumFeatures />
                     <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
                     <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+                    <BetaFeedbackButton />
+                  </>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/feedback"
+              element={
+                <ProtectedRoute>
+                  <>
+                    <AdminFeedback />
+                    <BetaFeedbackButton />
                   </>
                 </ProtectedRoute>
               }
