@@ -1,17 +1,33 @@
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Check } from "lucide-react";
+import { ArrowLeft, Plus, Check, Search, MessageSquarePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useAllGames } from "@/hooks/useAllGames";
 import { useUserGames } from "@/hooks/useUserGames";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { RequestGameModal } from "@/components/games/RequestGameModal";
 
 const Games = () => {
   const navigate = useNavigate();
   const { games, isLoading } = useAllGames();
   const { userGames, addGame, isAddingGame } = useUserGames();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
   const userGameIds = userGames.map((ug) => ug.game_id);
+
+  // Filter games based on search query
+  const filteredGames = useMemo(() => {
+    if (!searchQuery.trim()) return games;
+    const query = searchQuery.toLowerCase().trim();
+    return games.filter(
+      (game) =>
+        game.name.toLowerCase().includes(query) ||
+        game.description?.toLowerCase().includes(query)
+    );
+  }, [games, searchQuery]);
 
   const handleAddGame = async (gameId: string, gameName: string) => {
     try {
@@ -21,6 +37,8 @@ const Games = () => {
       toast.error("Failed to add game");
     }
   };
+
+  const noResults = searchQuery.trim() && filteredGames.length === 0;
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -44,6 +62,20 @@ const Games = () => {
         </div>
       </div>
 
+      {/* Search Bar */}
+      <div className="max-w-4xl mx-auto px-4 pt-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Search for a game..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 pr-4"
+          />
+        </div>
+      </div>
+
       {/* Games Grid */}
       <div className="max-w-4xl mx-auto px-4 py-6">
         {isLoading ? (
@@ -52,9 +84,31 @@ const Games = () => {
               <Skeleton key={i} className="h-24 rounded-xl" />
             ))}
           </div>
+        ) : noResults ? (
+          /* No Results State */
+          <div className="text-center py-12 space-y-4">
+            <div className="w-16 h-16 mx-auto rounded-full bg-muted flex items-center justify-center">
+              <Search className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-foreground font-medium">
+                No games found for "{searchQuery}"
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Can't find what you're looking for?
+              </p>
+            </div>
+            <Button
+              onClick={() => setIsRequestModalOpen(true)}
+              className="mt-4"
+            >
+              <MessageSquarePlus className="h-4 w-4 mr-2" />
+              Request "{searchQuery}" to be added
+            </Button>
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {games.map((game) => {
+            {filteredGames.map((game) => {
               const isAdded = userGameIds.includes(game.id);
               return (
                 <div
@@ -134,13 +188,33 @@ const Games = () => {
           </div>
         )}
 
-        {/* Empty State */}
+        {/* Empty State (no games in DB) */}
         {!isLoading && games.length === 0 && (
           <div className="text-center py-12">
             <p className="text-muted-foreground">No games available yet.</p>
           </div>
         )}
+
+        {/* Request Game Button (always visible at bottom when there are results) */}
+        {!isLoading && !noResults && filteredGames.length > 0 && (
+          <div className="mt-8 text-center">
+            <Button
+              variant="outline"
+              onClick={() => setIsRequestModalOpen(true)}
+            >
+              <MessageSquarePlus className="h-4 w-4 mr-2" />
+              Can't find your game? Request it
+            </Button>
+          </div>
+        )}
       </div>
+
+      {/* Request Game Modal */}
+      <RequestGameModal
+        open={isRequestModalOpen}
+        onOpenChange={setIsRequestModalOpen}
+        prefillGameName={noResults ? searchQuery : ""}
+      />
     </div>
   );
 };
