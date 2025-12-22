@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Edit2, Trash2, StickyNote } from "lucide-react";
+import { Plus, Edit2, Trash2, StickyNote, ChevronDown, ChevronUp } from "lucide-react";
 import { useTournamentNotes } from "@/hooks/useTournamentNotes";
 import { AddNoteModal } from "./AddNoteModal";
 import { formatDistanceToNow } from "date-fns";
@@ -27,6 +27,25 @@ export const TournamentNotes = ({ tournamentId, isAdmin }: TournamentNotesProps)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editNote, setEditNote] = useState<{ id: string; title: string; content: string } | null>(null);
   const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
+  const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
+
+  const MAX_CONTENT_LENGTH = 200;
+
+  const toggleNoteExpansion = (noteId: string) => {
+    setExpandedNotes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(noteId)) {
+        newSet.delete(noteId);
+      } else {
+        newSet.add(noteId);
+      }
+      return newSet;
+    });
+  };
+
+  const isNoteExpanded = (noteId: string) => expandedNotes.has(noteId);
+  const shouldTruncate = (content: string) => content.length > MAX_CONTENT_LENGTH;
+  const getTruncatedContent = (content: string) => content.slice(0, MAX_CONTENT_LENGTH) + "...";
 
   const handleSave = (title: string, content: string) => {
     if (editNote) {
@@ -110,8 +129,32 @@ export const TournamentNotes = ({ tournamentId, isAdmin }: TournamentNotesProps)
                         </div>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap">{note.content}</p>
-                    <p className="text-xs text-muted-foreground/70 mt-3">
+                    <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap">
+                      {shouldTruncate(note.content) && !isNoteExpanded(note.id)
+                        ? getTruncatedContent(note.content)
+                        : note.content}
+                    </p>
+                    {shouldTruncate(note.content) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 mt-1 text-xs text-primary hover:text-primary/80"
+                        onClick={() => toggleNoteExpansion(note.id)}
+                      >
+                        {isNoteExpanded(note.id) ? (
+                          <>
+                            <ChevronUp className="h-3 w-3 mr-1" />
+                            Show less
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="h-3 w-3 mr-1" />
+                            Show more
+                          </>
+                        )}
+                      </Button>
+                    )}
+                    <p className="text-xs text-muted-foreground/70 mt-2">
                       {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
                     </p>
                   </div>
