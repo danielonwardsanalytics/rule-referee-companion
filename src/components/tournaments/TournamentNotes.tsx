@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Edit2, Trash2, StickyNote } from "lucide-react";
 import { useTournamentNotes } from "@/hooks/useTournamentNotes";
 import { AddNoteModal } from "./AddNoteModal";
@@ -79,42 +80,44 @@ export const TournamentNotes = ({ tournamentId, isAdmin }: TournamentNotesProps)
               )}
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {notes.map((note) => (
-                <div
-                  key={note.id}
-                  className="p-4 bg-secondary/50 rounded-lg border border-border group"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <h4 className="font-semibold text-foreground">{note.title}</h4>
-                    {isAdmin && (
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7"
-                          onClick={() => handleEdit({ id: note.id, title: note.title, content: note.content })}
-                        >
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => setDeleteNoteId(note.id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    )}
+            <ScrollArea className="h-[320px] pr-3">
+              <div className="grid gap-4 sm:grid-cols-2">
+                {notes.map((note) => (
+                  <div
+                    key={note.id}
+                    className="p-4 bg-secondary/50 rounded-lg border border-border group"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <h4 className="font-semibold text-foreground">{note.title}</h4>
+                      {isAdmin && (
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            onClick={() => handleEdit({ id: note.id, title: note.title, content: note.content })}
+                          >
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={() => setDeleteNoteId(note.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap">{note.content}</p>
+                    <p className="text-xs text-muted-foreground/70 mt-3">
+                      {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap">{note.content}</p>
-                  <p className="text-xs text-muted-foreground/70 mt-3">
-                    {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
-                  </p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </ScrollArea>
           )}
         </CardContent>
       </Card>
