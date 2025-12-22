@@ -24,6 +24,7 @@ import Friends from "./pages/Friends";
 import GameRequests from "./pages/GameRequests";
 import PremiumFeatures from "./pages/PremiumFeatures";
 import AdminFeedback from "./pages/AdminFeedback";
+import Games from "./pages/Games";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -203,6 +204,19 @@ const App = () => {
                 <ProtectedRoute>
                   <>
                     <AdminFeedback />
+                    <BetaFeedbackButton />
+                  </>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/games"
+              element={
+                <ProtectedRoute>
+                  <>
+                    <Games />
+                    <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
+                    <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
                     <BetaFeedbackButton />
                   </>
                 </ProtectedRoute>
