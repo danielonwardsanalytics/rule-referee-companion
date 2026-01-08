@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -9,6 +9,14 @@ import { Bug, RefreshCw, Check, X, Loader2, ChevronUp, ChevronDown } from "lucid
 import { supabase } from "@/integrations/supabase/client";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
+interface SdkGlobals {
+  hasNatively: boolean;
+  hasNativelyNotifications: boolean;
+  hasNativelyInfo: boolean;
+  rawOneSignalId: string | null;
+  rawPermissionStatus: string | null;
+}
+
 export const PushDebugPanel = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
@@ -18,7 +26,16 @@ export const PushDebugPanel = () => {
     success: boolean;
     message: string;
     timestamp: string;
+    rawData?: object;
   } | null>(null);
+  
+  const [sdkGlobals, setSdkGlobals] = useState<SdkGlobals>({
+    hasNatively: false,
+    hasNativelyNotifications: false,
+    hasNativelyInfo: false,
+    rawOneSignalId: null,
+    rawPermissionStatus: null,
+  });
   
   const {
     isNatively,
@@ -48,6 +65,49 @@ export const PushDebugPanel = () => {
     }
   }, [user?.id]);
 
+  // Check SDK globals
+  const refreshSdkStatus = useCallback(() => {
+    const globals: SdkGlobals = {
+      hasNatively: typeof window !== 'undefined' && !!window.natively,
+      hasNativelyNotifications: typeof window !== 'undefined' && typeof window.NativelyNotifications !== 'undefined',
+      hasNativelyInfo: typeof window !== 'undefined' && typeof window.NativelyInfo !== 'undefined',
+      rawOneSignalId: null,
+      rawPermissionStatus: null,
+    };
+
+    // Try to get raw OneSignal ID if available
+    if (globals.hasNativelyNotifications && window.NativelyNotifications) {
+      try {
+        const notifications = new window.NativelyNotifications();
+        notifications.getOneSignalId((response) => {
+          setSdkGlobals(prev => ({ ...prev, rawOneSignalId: response.player_id }));
+        });
+        notifications.getPermissionStatus((response) => {
+          setSdkGlobals(prev => ({ ...prev, rawPermissionStatus: response.status }));
+        });
+      } catch (e) {
+        console.error("[PushDebugPanel] Error getting SDK values:", e);
+      }
+    }
+
+    setSdkGlobals(globals);
+  }, []);
+
+  // Check SDK globals on mount and when visibility changes
+  useEffect(() => {
+    refreshSdkStatus();
+    
+    // Also refresh when the page becomes visible (app foregrounded)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshSdkStatus();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [refreshSdkStatus]);
+
   // Only show if debug=1 or user is admin
   if (!debugMode && !isAdmin) {
     return null;
@@ -62,6 +122,7 @@ export const PushDebugPanel = () => {
     isRegistered,
     isLoading,
     error,
+    sdkGlobals,
   });
 
   const handleForceRegister = async () => {
@@ -69,24 +130,28 @@ export const PushDebugPanel = () => {
     setLastUpsertResult(null);
     
     try {
-      const success = await requestPermissionAndRegister();
-      const result = {
-        success,
-        message: success 
-          ? "Token registered successfully" 
-          : error || "Registration failed - check if running in Natively",
+      const result = await requestPermissionAndRegister();
+      const upsertResult = {
+        success: result.success,
+        message: result.success 
+          ? `Token registered: ${result.rawOneSignalId}` 
+          : error || "Registration failed - check SDK globals",
         timestamp: new Date().toISOString(),
+        rawData: result,
       };
-      setLastUpsertResult(result);
-      console.log("[PushDebugPanel] Registration result:", result);
+      setLastUpsertResult(upsertResult);
+      console.log("[PushDebugPanel] Registration result:", upsertResult);
+      
+      // Refresh SDK status after registration attempt
+      refreshSdkStatus();
     } catch (err) {
-      const result = {
+      const upsertResult = {
         success: false,
         message: err instanceof Error ? err.message : "Unknown error",
         timestamp: new Date().toISOString(),
       };
-      setLastUpsertResult(result);
-      console.error("[PushDebugPanel] Registration error:", result);
+      setLastUpsertResult(upsertResult);
+      console.error("[PushDebugPanel] Registration error:", upsertResult);
     }
   };
 
@@ -112,7 +177,47 @@ export const PushDebugPanel = () => {
             
             <CollapsibleContent>
               <CardContent className="space-y-3 text-sm pt-0">
+                {/* SDK Globals Section */}
+                <div className="text-xs font-medium text-muted-foreground mb-1">SDK Globals</div>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="flex items-center justify-between p-2 bg-muted rounded">
+                    <span className="text-muted-foreground">natively</span>
+                    <Badge variant={sdkGlobals.hasNatively ? "default" : "secondary"} className="text-[10px]">
+                      {sdkGlobals.hasNatively ? "✓" : "✗"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-muted rounded">
+                    <span className="text-muted-foreground">Notifications</span>
+                    <Badge variant={sdkGlobals.hasNativelyNotifications ? "default" : "secondary"} className="text-[10px]">
+                      {sdkGlobals.hasNativelyNotifications ? "✓" : "✗"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-muted rounded">
+                    <span className="text-muted-foreground">Info</span>
+                    <Badge variant={sdkGlobals.hasNativelyInfo ? "default" : "secondary"} className="text-[10px]">
+                      {sdkGlobals.hasNativelyInfo ? "✓" : "✗"}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Raw SDK Values */}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="flex items-center justify-between p-2 bg-muted rounded">
+                    <span className="text-muted-foreground">raw getOneSignalId</span>
+                    <code className="text-[10px] font-mono truncate max-w-[80px]">
+                      {sdkGlobals.rawOneSignalId || "null"}
+                    </code>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-muted rounded">
+                    <span className="text-muted-foreground">raw permStatus</span>
+                    <code className="text-[10px] font-mono">
+                      {sdkGlobals.rawPermissionStatus || "null"}
+                    </code>
+                  </div>
+                </div>
+
                 {/* Status Grid */}
+                <div className="text-xs font-medium text-muted-foreground mb-1 mt-3">Hook State</div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="flex items-center justify-between p-2 bg-muted rounded">
                     <span className="text-muted-foreground">isNatively</span>
@@ -174,11 +279,19 @@ export const PushDebugPanel = () => {
                     ) : (
                       <X className="h-4 w-4 shrink-0 mt-0.5" />
                     )}
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <div className="font-medium">
                         {lastUpsertResult.success ? "Success" : "Failed"}
                       </div>
-                      <div className="text-xs opacity-80">{lastUpsertResult.message}</div>
+                      <div className="text-xs opacity-80 break-all">{lastUpsertResult.message}</div>
+                      {lastUpsertResult.rawData && (
+                        <details className="mt-1">
+                          <summary className="text-[10px] opacity-50 cursor-pointer">Raw response</summary>
+                          <pre className="text-[10px] opacity-50 mt-1 overflow-auto max-h-20">
+                            {JSON.stringify(lastUpsertResult.rawData, null, 2)}
+                          </pre>
+                        </details>
+                      )}
                       <div className="text-xs opacity-50 mt-1">
                         {new Date(lastUpsertResult.timestamp).toLocaleTimeString()}
                       </div>
@@ -186,26 +299,35 @@ export const PushDebugPanel = () => {
                   </div>
                 )}
 
-                {/* Force Register Button */}
-                <Button
-                  onClick={handleForceRegister}
-                  disabled={isLoading}
-                  size="sm"
-                  className="w-full"
-                  variant="outline"
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                  )}
-                  Force Register Push Token
-                </Button>
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleForceRegister}
+                    disabled={isLoading}
+                    size="sm"
+                    className="flex-1"
+                    variant="outline"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    Force Register
+                  </Button>
+                  <Button
+                    onClick={refreshSdkStatus}
+                    size="sm"
+                    variant="ghost"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </div>
                 
                 <p className="text-xs text-muted-foreground text-center">
                   {isNatively 
                     ? "Running in Natively - registration should work" 
-                    : "Not running in Natively - registration will be skipped"}
+                    : "Not running in Natively wrapper (SDK globals not detected)"}
                 </p>
               </CardContent>
             </CollapsibleContent>
