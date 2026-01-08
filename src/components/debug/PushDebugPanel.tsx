@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -32,7 +32,7 @@ export const PushDebugPanel = () => {
   const debugMode = searchParams.get("debug") === "1";
 
   // Check admin status on mount
-  useState(() => {
+  useEffect(() => {
     if (user?.id) {
       supabase
         .from("user_roles")
@@ -44,7 +44,7 @@ export const PushDebugPanel = () => {
           setIsAdmin(!!data);
         });
     }
-  });
+  }, [user?.id]);
 
   // Only show if debug=1 or user is admin
   if (!debugMode && !isAdmin) {
