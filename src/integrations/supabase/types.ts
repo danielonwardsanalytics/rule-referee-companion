@@ -372,36 +372,96 @@ export type Database = {
           },
         ]
       }
+      notification_entity_overrides: {
+        Row: {
+          created_at: string | null
+          entity_id: string
+          entity_type: string
+          following: boolean | null
+          id: string
+          muted: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          entity_id: string
+          entity_type: string
+          following?: boolean | null
+          id?: string
+          muted?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          entity_id?: string
+          entity_type?: string
+          following?: boolean | null
+          id?: string
+          muted?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           created_at: string
+          editor_invites: boolean | null
           friend_requests: boolean
           game_requests: boolean
           game_results: boolean
           id: string
+          mentions: boolean | null
+          push_enabled: boolean | null
+          quiet_hours_enabled: boolean | null
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          rule_updates: boolean | null
+          timezone: string | null
           tournament_invites: boolean
           updated_at: string
           user_id: string
+          vote_notifications: boolean | null
         }
         Insert: {
           created_at?: string
+          editor_invites?: boolean | null
           friend_requests?: boolean
           game_requests?: boolean
           game_results?: boolean
           id?: string
+          mentions?: boolean | null
+          push_enabled?: boolean | null
+          quiet_hours_enabled?: boolean | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          rule_updates?: boolean | null
+          timezone?: string | null
           tournament_invites?: boolean
           updated_at?: string
           user_id: string
+          vote_notifications?: boolean | null
         }
         Update: {
           created_at?: string
+          editor_invites?: boolean | null
           friend_requests?: boolean
           game_requests?: boolean
           game_results?: boolean
           id?: string
+          mentions?: boolean | null
+          push_enabled?: boolean | null
+          quiet_hours_enabled?: boolean | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          rule_updates?: boolean | null
+          timezone?: string | null
           tournament_invites?: boolean
           updated_at?: string
           user_id?: string
+          vote_notifications?: boolean | null
         }
         Relationships: []
       }
@@ -479,6 +539,131 @@ export type Database = {
             | Database["public"]["Enums"]["subscription_status"]
             | null
           trial_ends_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      push_notification_delivery: {
+        Row: {
+          created_at: string | null
+          error_code: string | null
+          id: string
+          onesignal_notification_id: string | null
+          player_id: string
+          queue_id: string
+          sent_at: string | null
+          skip_reason: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          error_code?: string | null
+          id?: string
+          onesignal_notification_id?: string | null
+          player_id: string
+          queue_id: string
+          sent_at?: string | null
+          skip_reason?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          error_code?: string | null
+          id?: string
+          onesignal_notification_id?: string | null
+          player_id?: string
+          queue_id?: string
+          sent_at?: string | null
+          skip_reason?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_notification_delivery_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "push_notification_queue"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_notification_queue: {
+        Row: {
+          actor_user_id: string | null
+          body: string
+          category: string
+          created_at: string | null
+          dedupe_key: string | null
+          deeplink: Json
+          entity_id: string | null
+          entity_type: string | null
+          error_message: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          onesignal_response: Json | null
+          priority: string | null
+          processed_at: string | null
+          recipients_failed: number | null
+          recipients_sent: number | null
+          recipients_total: number | null
+          scheduled_at: string | null
+          status: string | null
+          targeting: Json
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          actor_user_id?: string | null
+          body: string
+          category: string
+          created_at?: string | null
+          dedupe_key?: string | null
+          deeplink: Json
+          entity_id?: string | null
+          entity_type?: string | null
+          error_message?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          onesignal_response?: Json | null
+          priority?: string | null
+          processed_at?: string | null
+          recipients_failed?: number | null
+          recipients_sent?: number | null
+          recipients_total?: number | null
+          scheduled_at?: string | null
+          status?: string | null
+          targeting: Json
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          actor_user_id?: string | null
+          body?: string
+          category?: string
+          created_at?: string | null
+          dedupe_key?: string | null
+          deeplink?: Json
+          entity_id?: string | null
+          entity_type?: string | null
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          onesignal_response?: Json | null
+          priority?: string | null
+          processed_at?: string | null
+          recipients_failed?: number | null
+          recipients_sent?: number | null
+          recipients_total?: number | null
+          scheduled_at?: string | null
+          status?: string | null
+          targeting?: Json
+          title?: string
           updated_at?: string | null
         }
         Relationships: []
@@ -690,6 +875,51 @@ export type Database = {
           },
         ]
       }
+      user_push_tokens: {
+        Row: {
+          app_version: string | null
+          created_at: string | null
+          device_model: string | null
+          environment: string | null
+          id: string
+          is_active: boolean | null
+          last_seen_at: string | null
+          os_version: string | null
+          platform: string
+          player_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          app_version?: string | null
+          created_at?: string | null
+          device_model?: string | null
+          environment?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_seen_at?: string | null
+          os_version?: string | null
+          platform: string
+          player_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          app_version?: string | null
+          created_at?: string | null
+          device_model?: string | null
+          environment?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_seen_at?: string | null
+          os_version?: string | null
+          platform?: string
+          player_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -719,6 +949,15 @@ export type Database = {
       auto_accept_tournament_invitations: {
         Args: { _email: string; _user_id: string }
         Returns: undefined
+      }
+      check_notification_throttle: {
+        Args: {
+          p_entity_id: string
+          p_entity_type: string
+          p_event_type: string
+          p_target_user_id: string
+        }
+        Returns: boolean
       }
       cleanup_expired_tournament_invitations: {
         Args: never
