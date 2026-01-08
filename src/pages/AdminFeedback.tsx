@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useAdminFeedback, useUpdateFeedbackStatus, exportFeedbackToCSV, FEEDBACK_CATEGORIES } from "@/hooks/useBetaFeedback";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { PushDebugPanel } from "@/components/debug/PushDebugPanel";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -120,6 +121,11 @@ export default function AdminFeedback() {
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      {/* Push Debug Panel */}
+      <div className="p-4">
+        <PushDebugPanel />
       </div>
 
       {/* Feedback List */}
