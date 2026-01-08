@@ -8,6 +8,7 @@ import { TrialBanner } from "@/components/premium/TrialBanner";
 import { usePremium } from "@/hooks/usePremium";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Button } from "@/components/ui/button";
+import { PushDebugPanel } from "@/components/debug/PushDebugPanel";
 
 const Home = () => {
   const { hasPremiumAccess, isFree, isTrial } = usePremium();
@@ -87,6 +88,11 @@ const Home = () => {
 
       {/* My House Rules Section */}
       <MyHouseRules />
+
+      {/* Push Debug Panel - Only visible with ?debug=1 or for admins */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <PushDebugPanel />
+      </section>
 
       {/* Main Content */}
       <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
