@@ -5,13 +5,15 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bug, RefreshCw, Check, X, Loader2 } from "lucide-react";
+import { Bug, RefreshCw, Check, X, Loader2, ChevronUp, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export const PushDebugPanel = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [isOpen, setIsOpen] = useState(true);
   const [lastUpsertResult, setLastUpsertResult] = useState<{
     success: boolean;
     message: string;
@@ -89,113 +91,127 @@ export const PushDebugPanel = () => {
   };
 
   return (
-    <Card className="border-dashed border-2 border-yellow-500/50 bg-yellow-500/5">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <Bug className="h-4 w-4" />
-          Push Notification Debug Panel
-          <Badge variant="outline" className="ml-auto text-xs">
-            {debugMode ? "?debug=1" : "admin"}
-          </Badge>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3 text-sm">
-        {/* Status Grid */}
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="flex items-center justify-between p-2 bg-muted rounded">
-            <span className="text-muted-foreground">isNatively</span>
-            <Badge variant={isNatively ? "default" : "secondary"}>
-              {isNatively ? "true" : "false"}
-            </Badge>
-          </div>
-          
-          <div className="flex items-center justify-between p-2 bg-muted rounded">
-            <span className="text-muted-foreground">isRegistered</span>
-            <Badge variant={isRegistered ? "default" : "secondary"}>
-              {isRegistered ? "true" : "false"}
-            </Badge>
-          </div>
-          
-          <div className="col-span-2 flex items-center justify-between p-2 bg-muted rounded">
-            <span className="text-muted-foreground">user.id</span>
-            <code className="text-xs font-mono truncate max-w-[200px]">
-              {user?.id || "null"}
-            </code>
-          </div>
-          
-          <div className="col-span-2 flex items-center justify-between p-2 bg-muted rounded">
-            <span className="text-muted-foreground">playerId (OneSignal)</span>
-            <code className="text-xs font-mono truncate max-w-[200px]">
-              {playerId || "null"}
-            </code>
-          </div>
-          
-          <div className="flex items-center justify-between p-2 bg-muted rounded">
-            <span className="text-muted-foreground">platform</span>
-            <Badge variant="outline">{platform || "null"}</Badge>
-          </div>
-          
-          <div className="flex items-center justify-between p-2 bg-muted rounded">
-            <span className="text-muted-foreground">isLoading</span>
-            <Badge variant={isLoading ? "default" : "secondary"}>
-              {isLoading ? "true" : "false"}
-            </Badge>
-          </div>
-        </div>
+    <div className="fixed bottom-20 left-0 right-0 z-50 px-4 pointer-events-none">
+      <div className="max-w-7xl mx-auto pointer-events-auto">
+        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+          <Card className="border-dashed border-2 border-yellow-500/50 bg-yellow-500/10 backdrop-blur-sm shadow-lg">
+            <CollapsibleTrigger asChild>
+              <CardHeader className="pb-2 cursor-pointer hover:bg-yellow-500/5 transition-colors">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Bug className="h-4 w-4" />
+                  Push Notification Debug Panel
+                  <Badge variant="outline" className="ml-2 text-xs">
+                    {debugMode ? "?debug=1" : "admin"}
+                  </Badge>
+                  <span className="ml-auto">
+                    {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+                  </span>
+                </CardTitle>
+              </CardHeader>
+            </CollapsibleTrigger>
+            
+            <CollapsibleContent>
+              <CardContent className="space-y-3 text-sm pt-0">
+                {/* Status Grid */}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="flex items-center justify-between p-2 bg-muted rounded">
+                    <span className="text-muted-foreground">isNatively</span>
+                    <Badge variant={isNatively ? "default" : "secondary"}>
+                      {isNatively ? "true" : "false"}
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-2 bg-muted rounded">
+                    <span className="text-muted-foreground">isRegistered</span>
+                    <Badge variant={isRegistered ? "default" : "secondary"}>
+                      {isRegistered ? "true" : "false"}
+                    </Badge>
+                  </div>
+                  
+                  <div className="col-span-2 flex items-center justify-between p-2 bg-muted rounded">
+                    <span className="text-muted-foreground">user.id</span>
+                    <code className="text-xs font-mono truncate max-w-[200px]">
+                      {user?.id || "null"}
+                    </code>
+                  </div>
+                  
+                  <div className="col-span-2 flex items-center justify-between p-2 bg-muted rounded">
+                    <span className="text-muted-foreground">playerId (OneSignal)</span>
+                    <code className="text-xs font-mono truncate max-w-[200px]">
+                      {playerId || "null"}
+                    </code>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-2 bg-muted rounded">
+                    <span className="text-muted-foreground">platform</span>
+                    <Badge variant="outline">{platform || "null"}</Badge>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-2 bg-muted rounded">
+                    <span className="text-muted-foreground">isLoading</span>
+                    <Badge variant={isLoading ? "default" : "secondary"}>
+                      {isLoading ? "true" : "false"}
+                    </Badge>
+                  </div>
+                </div>
 
-        {/* Error display */}
-        {error && (
-          <div className="p-2 bg-destructive/10 border border-destructive/20 rounded text-destructive text-xs">
-            <strong>Error:</strong> {error}
-          </div>
-        )}
+                {/* Error display */}
+                {error && (
+                  <div className="p-2 bg-destructive/10 border border-destructive/20 rounded text-destructive text-xs">
+                    <strong>Error:</strong> {error}
+                  </div>
+                )}
 
-        {/* Last upsert result */}
-        {lastUpsertResult && (
-          <div className={`p-2 rounded text-xs flex items-start gap-2 ${
-            lastUpsertResult.success 
-              ? "bg-green-500/10 border border-green-500/20 text-green-600" 
-              : "bg-destructive/10 border border-destructive/20 text-destructive"
-          }`}>
-            {lastUpsertResult.success ? (
-              <Check className="h-4 w-4 shrink-0 mt-0.5" />
-            ) : (
-              <X className="h-4 w-4 shrink-0 mt-0.5" />
-            )}
-            <div>
-              <div className="font-medium">
-                {lastUpsertResult.success ? "Success" : "Failed"}
-              </div>
-              <div className="text-xs opacity-80">{lastUpsertResult.message}</div>
-              <div className="text-xs opacity-50 mt-1">
-                {new Date(lastUpsertResult.timestamp).toLocaleTimeString()}
-              </div>
-            </div>
-          </div>
-        )}
+                {/* Last upsert result */}
+                {lastUpsertResult && (
+                  <div className={`p-2 rounded text-xs flex items-start gap-2 ${
+                    lastUpsertResult.success 
+                      ? "bg-green-500/10 border border-green-500/20 text-green-600" 
+                      : "bg-destructive/10 border border-destructive/20 text-destructive"
+                  }`}>
+                    {lastUpsertResult.success ? (
+                      <Check className="h-4 w-4 shrink-0 mt-0.5" />
+                    ) : (
+                      <X className="h-4 w-4 shrink-0 mt-0.5" />
+                    )}
+                    <div>
+                      <div className="font-medium">
+                        {lastUpsertResult.success ? "Success" : "Failed"}
+                      </div>
+                      <div className="text-xs opacity-80">{lastUpsertResult.message}</div>
+                      <div className="text-xs opacity-50 mt-1">
+                        {new Date(lastUpsertResult.timestamp).toLocaleTimeString()}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-        {/* Force Register Button */}
-        <Button
-          onClick={handleForceRegister}
-          disabled={isLoading}
-          size="sm"
-          className="w-full"
-          variant="outline"
-        >
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <RefreshCw className="h-4 w-4 mr-2" />
-          )}
-          Force Register Push Token
-        </Button>
-        
-        <p className="text-xs text-muted-foreground text-center">
-          {isNatively 
-            ? "Running in Natively - registration should work" 
-            : "Not running in Natively - registration will be skipped"}
-        </p>
-      </CardContent>
-    </Card>
+                {/* Force Register Button */}
+                <Button
+                  onClick={handleForceRegister}
+                  disabled={isLoading}
+                  size="sm"
+                  className="w-full"
+                  variant="outline"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Force Register Push Token
+                </Button>
+                
+                <p className="text-xs text-muted-foreground text-center">
+                  {isNatively 
+                    ? "Running in Natively - registration should work" 
+                    : "Not running in Natively - registration will be skipped"}
+                </p>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+      </div>
+    </div>
   );
 };
