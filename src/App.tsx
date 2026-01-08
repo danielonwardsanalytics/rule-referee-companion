@@ -9,6 +9,7 @@ import { SkipLink } from "./components/SkipLink";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { BottomNav } from "./components/BottomNav";
 import { MenuOverlay } from "./components/MenuOverlay";
+import { PushNotificationProvider } from "./components/PushNotificationProvider";
 import { BetaFeedbackButton } from "./components/beta/BetaFeedbackButton";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
@@ -40,6 +41,7 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
+          <PushNotificationProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route
@@ -225,6 +227,7 @@ const App = () => {
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </PushNotificationProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
