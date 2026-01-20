@@ -7,6 +7,7 @@ declare global {
   interface Window {
     natively?: {
       isNativeApp: boolean;
+      onDeepLink?: (callback: (url: string) => void) => void;
     };
     NativelyNotifications?: new () => {
       getOneSignalId: (callback: (response: { player_id: string | null }) => void) => void;

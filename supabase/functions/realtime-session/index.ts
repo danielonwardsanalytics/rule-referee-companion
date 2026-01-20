@@ -57,7 +57,17 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "gpt-4o-realtime-preview-2024-12-17",
         voice: voice,
-        instructions: instructions || buildInstructions(gameName, houseRules)
+        instructions: instructions || buildInstructions(gameName, houseRules),
+        // VAD settings for natural conversation pauses
+        turn_detection: {
+          type: "server_vad",
+          threshold: 0.5,              // Speech detection sensitivity (0-1)
+          prefix_padding_ms: 300,      // Audio to include before speech detected
+          silence_duration_ms: 2500    // Wait 2.5 seconds of silence before responding
+        },
+        input_audio_transcription: {
+          model: "whisper-1"           // Enable speech-to-text for transcript display
+        }
       }),
     });
 
