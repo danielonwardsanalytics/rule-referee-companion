@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { voiceChatRegistry } from "@/components/VoiceChatLifecycleManager";
 
 export class AudioRecorder {
   private stream: MediaStream | null = null;
@@ -163,6 +164,9 @@ export class RealtimeChat {
       await this.pc.setRemoteDescription(answer);
       console.log("[RealtimeChat] WebRTC connection established");
 
+      // Register with global lifecycle manager for reliable cleanup
+      voiceChatRegistry.register(this);
+
     } catch (error) {
       console.error("[RealtimeChat] Error initializing chat:", error);
       throw error;
@@ -194,21 +198,67 @@ export class RealtimeChat {
 
   disconnect() {
     console.log("[RealtimeChat] Disconnecting...");
-    this.recorder?.stop();
     
-    // Stop the media stream to release microphone
+    // Unregister from global registry first
+    voiceChatRegistry.unregister();
+    
+    // Stop recorder if exists
+    if (this.recorder) {
+      try {
+        this.recorder.stop();
+      } catch (e) {
+        console.error("[RealtimeChat] Error stopping recorder:", e);
+      }
+      this.recorder = null;
+    }
+    
+    // Stop all media stream tracks (release microphone)
     if (this.mediaStream) {
       this.mediaStream.getTracks().forEach(track => {
-        track.stop();
-        console.log("[RealtimeChat] Stopped track:", track.kind);
+        try {
+          track.stop();
+          console.log("[RealtimeChat] Stopped track:", track.kind, track.readyState);
+        } catch (e) {
+          console.error("[RealtimeChat] Error stopping track:", e);
+        }
       });
       this.mediaStream = null;
     }
     
-    this.dc?.close();
-    this.pc?.close();
-    this.audioEl.srcObject = null;
-    this.audioEl.pause();
+    // Close data channel
+    if (this.dc) {
+      try {
+        this.dc.close();
+      } catch (e) {
+        console.error("[RealtimeChat] Error closing data channel:", e);
+      }
+      this.dc = null;
+    }
+    
+    // Close peer connection and stop any attached tracks
+    if (this.pc) {
+      try {
+        this.pc.getSenders().forEach(sender => {
+          if (sender.track) {
+            try {
+              sender.track.stop();
+            } catch (e) {
+              console.error("[RealtimeChat] Error stopping sender track:", e);
+            }
+          }
+        });
+        this.pc.close();
+      } catch (e) {
+        console.error("[RealtimeChat] Error closing peer connection:", e);
+      }
+      this.pc = null;
+    }
+    
+    // Clean up audio element
+    if (this.audioEl) {
+      this.audioEl.srcObject = null;
+      this.audioEl.pause();
+    }
     
     console.log("[RealtimeChat] Disconnected successfully");
   }

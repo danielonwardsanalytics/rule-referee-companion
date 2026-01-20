@@ -10,6 +10,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { BottomNav } from "./components/BottomNav";
 import { MenuOverlay } from "./components/MenuOverlay";
 import { PushNotificationProvider } from "./components/PushNotificationProvider";
+import { VoiceChatLifecycleManager } from "./components/VoiceChatLifecycleManager";
 import { BetaFeedbackButton } from "./components/beta/BetaFeedbackButton";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
@@ -41,6 +42,7 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
+          <VoiceChatLifecycleManager>
           <PushNotificationProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
@@ -228,6 +230,7 @@ const App = () => {
             <Route path="*" element={<NotFound />} />
           </Routes>
           </PushNotificationProvider>
+          </VoiceChatLifecycleManager>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

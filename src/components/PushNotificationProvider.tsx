@@ -36,8 +36,10 @@ export const PushNotificationProvider = ({ children }: { children: React.ReactNo
     };
 
     // Register the deep link handler
-    if (window.natively.onDeepLink) {
-      window.natively.onDeepLink(handleDeepLink);
+    // Note: window.natively typing may not be complete, so we use type assertion
+    const natively = window.natively as { isNativeApp: boolean; onDeepLink?: (callback: (url: string) => void) => void } | undefined;
+    if (natively?.onDeepLink) {
+      natively.onDeepLink(handleDeepLink);
     }
   }, [isNatively, navigate]);
 
