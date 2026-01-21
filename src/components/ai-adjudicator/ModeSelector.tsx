@@ -27,8 +27,8 @@ export function ModeSelector({ activeMode, onModeChange }: ModeSelectorProps) {
               "min-h-[48px] px-4 py-3 rounded-lg border text-sm font-medium transition-all",
               "focus:outline-none focus:ring-2 focus:ring-primary/50",
               isActive
-                ? "bg-primary/10 border-primary text-primary shadow-[0_0_12px_hsl(var(--primary)/0.3)]"
-                : "bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                ? "bg-primary/10 border-primary text-white shadow-[0_0_12px_hsl(var(--primary)/0.3)]"
+                : "bg-card border-border text-white hover:border-primary/50"
             )}
           >
             {mode.label}
