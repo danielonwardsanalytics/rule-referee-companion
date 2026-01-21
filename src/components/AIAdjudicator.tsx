@@ -18,7 +18,7 @@ import { TournamentRulesSelector } from "@/components/ai-adjudicator/TournamentR
 import { LearnHowToUse } from "@/components/ai-adjudicator/LearnHowToUse";
 import { ActionConfirmation } from "@/components/ai-adjudicator/ActionConfirmation";
 import { useNativeSpeechRecognition } from "@/hooks/useNativeSpeechRecognition";
-
+import { ModeSelector, CompanionMode } from "@/components/ai-adjudicator/ModeSelector";
 interface AIAdjudicatorProps {
   title?: string;
   subtitle?: string;
@@ -37,9 +37,29 @@ interface AIAdjudicatorProps {
   onLockRuleSet?: (ruleSetId: string) => void;
 }
 
+// Mode configuration for dynamic title/subtitle
+const modeConfig: Record<CompanionMode, { title: string; subtitle: string }> = {
+  hub: {
+    title: "Game Companion",
+    subtitle: "Settle something, ask anything"
+  },
+  quickStart: {
+    title: "Quick Start Mode",
+    subtitle: "Let's get you playing in two minutes"
+  },
+  tournament: {
+    title: "Tournament Mode",
+    subtitle: "Track competition without thinking"
+  },
+  guided: {
+    title: "Guided Play Mode",
+    subtitle: "Let's walk you through without thinking"
+  }
+};
+
 const AIAdjudicator = ({
-  title = "AI Adjudicator",
-  subtitle = "Your rules, your rulings — ask away",
+  title,
+  subtitle,
   preSelectedRuleSetId,
   preSelectedTournamentId,
   hideContextSelectors = false,
@@ -53,6 +73,8 @@ const AIAdjudicator = ({
   lockedRuleSetName,
   onLockRuleSet,
 }: AIAdjudicatorProps) => {
+  // Mode state for Game Companion hub
+  const [activeMode, setActiveMode] = useState<CompanionMode>('hub');
   const {
     activeRuleSet,
     activeTournament,
@@ -392,25 +414,29 @@ Keep responses under 3 sentences unless more detail is requested.`;
 
   const allMessages = [...messages, ...realtimeMessages];
 
-  // Dynamic title based on active rule set
-  const displayTitle = activeRuleSet 
-    ? (
-        <>
-          <span className="text-emerald-300">{activeRuleSet.name}</span>
-          <span className="text-white"> {title}</span>
-        </>
-      )
-    : title;
+  // Get current mode configuration (use props if provided, otherwise use mode config)
+  const currentModeConfig = modeConfig[activeMode];
+  const displayTitle = title ? title : (
+    activeRuleSet && activeMode === 'tournament'
+      ? (
+          <>
+            <span className="text-emerald-300">{activeRuleSet.name}</span>
+            <span className="text-white"> {currentModeConfig.title}</span>
+          </>
+        )
+      : currentModeConfig.title
+  );
+  const displaySubtitle = subtitle ? subtitle : currentModeConfig.subtitle;
 
   const cardContent = (
     <div className="bg-card border border-border rounded-2xl shadow-[var(--shadow-card)] overflow-hidden backdrop-blur-sm hover-lift">
       <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-5">
-          <h2 className="text-2xl font-bold">{displayTitle}</h2>
-          <p className="text-white/90 text-sm mt-1">{subtitle}</p>
-        </div>
+        <h2 className="text-2xl font-bold">{displayTitle}</h2>
+        <p className="text-white/90 text-sm mt-1">{displaySubtitle}</p>
+      </div>
 
-        <div className="p-6">
-          <audio ref={audioRef} onEnded={() => setIsSpeaking(false)} />
+      <div className="p-6">
+        <audio ref={audioRef} onEnded={() => setIsSpeaking(false)} />
 
           {/* Big Voice Chat Button */}
           <div className="flex flex-col items-center py-6 mb-6">
@@ -538,30 +564,41 @@ Keep responses under 3 sentences unless more detail is requested.`;
             </div>
           )}
 
-          {/* Context Selector Boxes - Below Input */}
+          {/* Mode Selector and Context Selectors - Below Input */}
           {!hideContextSelectors && !tournamentMode && (
-            <div className="mt-8 space-y-2">
-              <div className="flex gap-4">
-                <ContextSelectorBox
-                  label="Rules Set"
-                  type="ruleSet"
-                  activeItem={activeRuleSet}
-                  availableItems={userRuleSets}
-                  onSelect={setActiveRuleSet}
-                  onClear={clearActiveRuleSet}
-                />
-                <ContextSelectorBox
-                  label="Tournaments"
-                  type="tournament"
-                  activeItem={activeTournament}
-                  availableItems={userTournaments}
-                  onSelect={setActiveTournament}
-                  onClear={clearActiveTournament}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground text-center">
-                When a rule set is active, the AI Adjudicator will abide by these rules.
-              </p>
+            <div className="mt-8 space-y-4">
+              {/* Context Selectors - Only visible in Tournament mode */}
+              {activeMode === 'tournament' && (
+                <>
+                  <div className="flex gap-4">
+                    <ContextSelectorBox
+                      label="Rules Set"
+                      type="ruleSet"
+                      activeItem={activeRuleSet}
+                      availableItems={userRuleSets}
+                      onSelect={setActiveRuleSet}
+                      onClear={clearActiveRuleSet}
+                    />
+                    <ContextSelectorBox
+                      label="Tournaments"
+                      type="tournament"
+                      activeItem={activeTournament}
+                      availableItems={userTournaments}
+                      onSelect={setActiveTournament}
+                      onClear={clearActiveTournament}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center">
+                    When a rule set is active, the AI Adjudicator will abide by these rules.
+                  </p>
+                </>
+              )}
+
+              {/* Mode Selector - Always visible */}
+              <ModeSelector 
+                activeMode={activeMode}
+                onModeChange={setActiveMode}
+              />
             </div>
           )}
 
