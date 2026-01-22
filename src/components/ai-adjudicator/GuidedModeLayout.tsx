@@ -101,23 +101,6 @@ export function GuidedModeLayout({
   return (
     <div className="space-y-4">
       <audio ref={audioRef} />
-      
-      {/* Guided Mode Header */}
-      <div className="bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 rounded-xl p-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
-            <BookOpen className="h-5 w-5 text-amber-400" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-amber-200">Guided Walkthrough</h3>
-            <p className="text-xs text-amber-300/70">
-              {hasStartedWalkthrough 
-                ? "Follow each step, press Next when ready"
-                : "Tell me which game to walk you through"}
-            </p>
-          </div>
-        </div>
-      </div>
 
       {/* Voice Chat Button - Same size as other modes */}
       <div className="flex flex-col items-center gap-3 py-4">
