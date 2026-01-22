@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Mic, MicOff, Send, Loader2, Volume2, ChevronRight, Home } from "lucide-react";
 import { toast } from "sonner";
@@ -27,17 +26,27 @@ interface GuidedModeLayoutProps {
   onModeChange: (mode: CompanionMode) => void;
 }
 
-// Helper to extract step title and summary from AI response
+// Helper to extract step title and summary from AI response for the compact card
 function extractStepInfo(content: string): { title: string; summary: string } {
-  // Try to extract a step title pattern like "STEP 1:" or "**Step 1:**"
+  // Try to find "DO THIS NOW:" pattern first
+  const doThisMatch = content.match(/\*\*DO THIS NOW:\*\*\s*([^\n]+)/i);
+  if (doThisMatch) {
+    const summary = doThisMatch[1].trim();
+    // Try to find step title like "**Setup – Shuffle & Deal**"
+    const titleMatch = content.match(/\*\*([^*]+(?:–|-)[^*]+)\*\*/);
+    const title = titleMatch?.[1]?.trim() || "Current Step";
+    return { title, summary: summary.length > 100 ? summary.substring(0, 97) + "..." : summary };
+  }
+  
+  // Fallback: Try to extract a step title pattern
   const stepMatch = content.match(/(?:\*\*)?(?:STEP\s*\d+[:\s-]*)?([^.!?\n]{5,50})/i);
   const title = stepMatch?.[1]?.trim() || "Current Step";
   
-  // Get first sentence or first 80 chars as summary
+  // Get first sentence as summary
   const firstSentence = content.split(/[.!?]/)[0]?.trim() || "";
-  const summary = firstSentence.length > 80 
-    ? firstSentence.substring(0, 77) + "..." 
-    : firstSentence || "Follow the instructions above";
+  const summary = firstSentence.length > 100 
+    ? firstSentence.substring(0, 97) + "..." 
+    : firstSentence || "Follow the instructions";
   
   return { title, summary };
 }
@@ -60,7 +69,7 @@ export function GuidedModeLayout({
   houseRulesText,
   onModeChange,
 }: GuidedModeLayoutProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [wasSpeaking, setWasSpeaking] = useState(false);
   
@@ -81,18 +90,14 @@ export function GuidedModeLayout({
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
-    if (scrollRef.current) {
-      const scrollContainer = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-      }
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, realtimeMessages]);
 
-  // Turn off audio when AI finishes speaking
+  // Turn off audio AND disconnect realtime when AI finishes speaking
+  // This prevents the microphone from picking up player conversations
   useEffect(() => {
     if (wasSpeaking && !isSpeaking) {
-      // AI just finished speaking, turn off audio mode
+      // AI just finished speaking, turn off audio mode and disconnect
       setIsAudioEnabled(false);
       if (isRealtimeConnected) {
         onEndRealtime();
@@ -118,7 +123,7 @@ export function GuidedModeLayout({
   };
 
   const handleNextStep = () => {
-    // Enable audio for the next instruction
+    // Enable audio so the next instruction is read aloud
     setIsAudioEnabled(true);
     onSend("Next", true);
   };
@@ -136,6 +141,11 @@ export function GuidedModeLayout({
   const hasStartedWalkthrough = allMessages.some(m => m.role === 'assistant');
   const latestAssistantMessage = [...allMessages].reverse().find(m => m.role === 'assistant');
   const stepInfo = latestAssistantMessage ? extractStepInfo(latestAssistantMessage.content) : null;
+  
+  // Check if game is finished
+  const isGameFinished = latestAssistantMessage?.content.toLowerCase().includes("game is now finished") ||
+                         latestAssistantMessage?.content.toLowerCase().includes("game has ended") ||
+                         latestAssistantMessage?.content.toLowerCase().includes("congratulations");
 
   return (
     <div className="space-y-4">
@@ -178,12 +188,24 @@ export function GuidedModeLayout({
         </div>
       )}
 
-      {/* Chat Message Area - Scrollable like messenger */}
+      {/* Chat Message Area - Scrollable with thumb, no visible scrollbar */}
       <div className="border border-border rounded-xl bg-background overflow-hidden">
-        <ScrollArea className="h-[200px]" ref={scrollRef}>
-          <div className="p-4 space-y-3">
+        <div 
+          className="overflow-y-auto overscroll-contain touch-pan-y"
+          style={{ 
+            maxHeight: hasStartedWalkthrough ? '280px' : '120px',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+          }}
+        >
+          <style>{`
+            .hide-scrollbar::-webkit-scrollbar {
+              display: none;
+            }
+          `}</style>
+          <div className="p-4 space-y-3 hide-scrollbar">
             {allMessages.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8 italic">
+              <p className="text-sm text-muted-foreground text-center py-4 italic">
                 Tell me which game you'd like me to run you through.
               </p>
             ) : (
@@ -201,8 +223,9 @@ export function GuidedModeLayout({
                 </div>
               ))
             )}
+            <div ref={messagesEndRef} />
           </div>
-        </ScrollArea>
+        </div>
 
         {/* Text Input - Below messages like messenger */}
         <div className="border-t border-border p-3 bg-muted/30">
@@ -221,8 +244,8 @@ export function GuidedModeLayout({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyPress}
-              placeholder="Type your question or response..."
-              className="resize-none pr-20 text-sm min-h-[44px] max-h-[100px]"
+              placeholder="Type your question..."
+              className="resize-none pr-20 text-sm min-h-[44px] max-h-[80px]"
               rows={1}
               disabled={isLoading || isRealtimeConnected}
             />
@@ -259,12 +282,17 @@ export function GuidedModeLayout({
               <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{stepInfo.summary}</p>
             </div>
             <Button
-              onClick={handleNextStep}
+              onClick={isGameFinished ? () => onModeChange('hub') : handleNextStep}
               disabled={isLoading || isSpeaking}
               className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 font-semibold shrink-0"
             >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isGameFinished ? (
+                <>
+                  Finish
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </>
               ) : (
                 <>
                   Next
