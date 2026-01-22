@@ -149,57 +149,7 @@ export function GuidedModeLayout({
         </div>
       )}
 
-      {/* Current Step Display - Prominent when in walkthrough */}
-      {hasStartedWalkthrough && latestAssistantMessage && (
-        <div className="bg-slate-800/80 border border-slate-700 rounded-xl p-5">
-          <div className="prose prose-invert prose-sm max-w-none">
-            <div className="whitespace-pre-wrap text-sm leading-relaxed">
-              {latestAssistantMessage.content}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Next Button - Prominent when in active walkthrough */}
-      {hasStartedWalkthrough && (
-        <Button
-          onClick={() => onSend("Next", isAudioEnabled)}
-          disabled={isLoading}
-          className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0"
-        >
-          {isLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            <>
-              Next Step
-              <ChevronRight className="h-5 w-5 ml-2" />
-            </>
-          )}
-        </Button>
-      )}
-
-      {/* Conversation History - Scrollable */}
-      {allMessages.length > 1 && (
-        <ScrollArea className="h-[150px] border border-border rounded-lg" ref={scrollRef}>
-          <div className="space-y-3 p-3">
-            {allMessages.slice(0, -1).map((msg, idx) => (
-              <div key={`msg-${idx}`} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div
-                  className={`max-w-[85%] rounded-lg px-3 py-2 ${
-                    msg.role === "user" 
-                      ? "bg-primary text-primary-foreground" 
-                      : "bg-secondary/50 text-secondary-foreground"
-                  }`}
-                >
-                  <p className="text-xs whitespace-pre-wrap">{msg.content}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
-      )}
-
-      {/* Text Input Area */}
+      {/* Text Input Area - Now above the step display */}
       <div className="space-y-2">
         <div className="flex items-center justify-end gap-2">
           <span className={`text-xs font-medium ${isAudioEnabled ? "text-green-500" : "text-red-500"}`}>
@@ -251,7 +201,7 @@ export function GuidedModeLayout({
         </div>
       </div>
 
-      {/* Quick Tips */}
+      {/* Quick Tips - Show when walkthrough hasn't started */}
       {!hasStartedWalkthrough && (
         <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
           <p className="text-xs text-muted-foreground mb-2 font-medium">Try saying:</p>
@@ -261,6 +211,56 @@ export function GuidedModeLayout({
             <li>• "Run us through Monopoly Deal step by step"</li>
           </ul>
         </div>
+      )}
+
+      {/* Current Step Display - NOW BELOW TEXT INPUT */}
+      {hasStartedWalkthrough && latestAssistantMessage && (
+        <div className="bg-slate-800/80 border border-slate-700 rounded-xl p-5">
+          <div className="prose prose-invert prose-sm max-w-none">
+            <div className="whitespace-pre-wrap text-sm leading-relaxed">
+              {latestAssistantMessage.content}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Next Button - Prominent when in active walkthrough */}
+      {hasStartedWalkthrough && (
+        <Button
+          onClick={() => onSend("Next", isAudioEnabled)}
+          disabled={isLoading}
+          className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0"
+        >
+          {isLoading ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <>
+              Next Step
+              <ChevronRight className="h-5 w-5 ml-2" />
+            </>
+          )}
+        </Button>
+      )}
+
+      {/* Conversation History - Scrollable */}
+      {allMessages.length > 1 && (
+        <ScrollArea className="h-[150px] border border-border rounded-lg" ref={scrollRef}>
+          <div className="space-y-3 p-3">
+            {allMessages.slice(0, -1).map((msg, idx) => (
+              <div key={`msg-${idx}`} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div
+                  className={`max-w-[85%] rounded-lg px-3 py-2 ${
+                    msg.role === "user" 
+                      ? "bg-primary text-primary-foreground" 
+                      : "bg-secondary/50 text-secondary-foreground"
+                  }`}
+                >
+                  <p className="text-xs whitespace-pre-wrap">{msg.content}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
       )}
 
       {/* Mode Exit Hint */}
