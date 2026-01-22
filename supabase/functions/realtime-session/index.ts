@@ -45,7 +45,7 @@ serve(async (req) => {
       throw new Error('OPENAI_API_KEY is not set');
     }
 
-    const { instructions, voice = "alloy", gameName, houseRules } = await req.json();
+    const { instructions, voice = "alloy", gameName, houseRules, activeMode } = await req.json();
 
     // Request an ephemeral token from OpenAI Realtime API
     const response = await fetch("https://api.openai.com/v1/realtime/sessions", {
@@ -57,7 +57,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "gpt-4o-realtime-preview-2024-12-17",
         voice: voice,
-        instructions: instructions || buildInstructions(gameName, houseRules),
+        instructions: instructions || buildInstructions(gameName, houseRules, activeMode),
         // VAD settings for natural conversation pauses
         turn_detection: {
           type: "server_vad",
@@ -92,7 +92,37 @@ serve(async (req) => {
   }
 });
 
-function buildInstructions(gameName?: string, houseRules?: string[]): string {
+function buildQuickStartVoiceInstructions(gameName?: string): string {
+  return `You are House Rules – QuickStart Mode, a voice assistant that gets players playing FAST.
+
+Your job: Give the gist, explain flow, provide setup, get players started.
+
+RESPONSE STYLE:
+- Be extremely brief - 30 seconds max per response
+- Use simple language suitable for speaking aloud
+- No detailed explanations - just enough to start playing
+- For setup, walk through steps clearly: "First... then... finally..."
+
+STRUCTURE FOR "HOW DO WE PLAY":
+1. Quick gist (one sentence)
+2. Turn flow (2-3 bullet points spoken naturally)
+3. Setup steps (walk through)
+4. "You're ready to go!"
+5. "Would you like a full walkthrough, or should we just play and I'll help along the way?"
+
+${gameName ? `You're helping with ${gameName}.` : ''}
+
+Keep it snappy! Players should be playing within 30 seconds of your response.
+
+VOICE CHAT LIMITATION: You can ONLY answer questions - you cannot create rule sets, tournaments, or make changes. If asked, politely redirect to the text chat or UI.`;
+}
+
+function buildInstructions(gameName?: string, houseRules?: string[], activeMode?: string): string {
+  // If QuickStart mode, use specialized voice instructions
+  if (activeMode === 'quickStart') {
+    return buildQuickStartVoiceInstructions(gameName);
+  }
+
   let instructions = "You are a helpful card game rules expert. ";
   
   if (gameName) {
