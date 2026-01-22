@@ -603,18 +603,14 @@ Keep responses under 3 sentences unless more detail is requested.`;
               
               {/* Mini Tournament Scoreboard - Below buttons so they don't move */}
               {activeMode === 'tournament' && (
-                <>
+                <div className="mt-4">
                   <TournamentMiniScoreboard
                     tournament={activeTournament}
                     players={tournamentPlayers}
                     isLoading={false}
                     onAddPlayer={() => setShowAddPlayerModal(true)}
                   />
-                  
-                  <p className="text-xs text-muted-foreground text-center">
-                    When a rule set is active, the AI Adjudicator will abide by these rules.
-                  </p>
-                </>
+                </div>
               )}
             </div>
           )}
