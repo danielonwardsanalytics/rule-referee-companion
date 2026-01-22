@@ -20,6 +20,7 @@ import { LearnHowToUse } from "@/components/ai-adjudicator/LearnHowToUse";
 import { ActionConfirmation } from "@/components/ai-adjudicator/ActionConfirmation";
 import { useNativeSpeechRecognition } from "@/hooks/useNativeSpeechRecognition";
 import { ModeSelector, CompanionMode } from "@/components/ai-adjudicator/ModeSelector";
+import { GuidedModeLayout } from "@/components/ai-adjudicator/GuidedModeLayout";
 import { AddPlayerModal } from "@/components/tournaments/AddPlayerModal";
 interface AIAdjudicatorProps {
   title?: string;
@@ -444,75 +445,99 @@ Keep responses under 3 sentences unless more detail is requested.`;
       <div className="p-6">
         <audio ref={audioRef} onEnded={() => setIsSpeaking(false)} />
 
-          {/* Big Voice Chat Button */}
-          <div className="flex flex-col items-center py-6 mb-6">
-            <button
-              onClick={isRealtimeConnected ? endRealtimeChat : startRealtimeChat}
-              disabled={isLoading || isNativeListening}
-              className={`w-32 h-32 rounded-full border-2 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed ${
-                isRealtimeConnected
-                  ? "bg-primary border-primary animate-pulse-glow"
-                  : "bg-primary border-primary/50 hover:border-primary hover:shadow-lg hover:shadow-primary/30"
-              }`}
-            >
-              <div className="flex items-center gap-1.5">
-                {[6, 10, 14, 10, 6].map((h, i) => (
-                  <div
-                    key={i}
-                    className="w-2 rounded-full bg-primary-foreground transition-all"
-                    style={{
-                      height: `${h * 4}px`,
-                      animation: isRealtimeConnected ? `soundWave 0.8s ease-in-out infinite ${i * 0.1}s` : "none",
-                    }}
-                  />
-                ))}
-              </div>
-            </button>
-
-            <p className="mt-4 text-sm text-muted-foreground text-center">Press to speak with House Rules AI.</p>
-          </div>
-
-          {/* Speaking Indicator */}
-          {isSpeaking && (
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Volume2 className="h-5 w-5 text-primary animate-pulse" />
-              <span className="text-sm text-primary">Speaking...</span>
-            </div>
-          )}
-
-          {/* Response Area */}
-          {allMessages.length > 0 && (
-            <ScrollArea className="h-[200px] mb-4 border border-border rounded-lg" ref={scrollRef}>
-              <div className="space-y-4 p-4">
-                {allMessages.map((msg, idx) => (
-                  <div key={`msg-${idx}`} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+        {/* Guided Mode - Completely different layout */}
+        {activeMode === 'guided' ? (
+          <GuidedModeLayout
+            messages={messages}
+            realtimeMessages={realtimeMessages}
+            input={input}
+            setInput={setInput}
+            isLoading={isLoading}
+            isRealtimeConnected={isRealtimeConnected}
+            isSpeaking={isSpeaking}
+            isAudioEnabled={isAudioEnabled}
+            setIsAudioEnabled={setIsAudioEnabled}
+            onSend={handleSend}
+            onStartRealtime={startRealtimeChat}
+            onEndRealtime={endRealtimeChat}
+            voice={voice}
+            gameName={gameName}
+            houseRulesText={houseRulesText}
+          />
+        ) : (
+          <>
+            {/* Big Voice Chat Button */}
+            <div className="flex flex-col items-center py-6 mb-6">
+              <button
+                onClick={isRealtimeConnected ? endRealtimeChat : startRealtimeChat}
+                disabled={isLoading || isNativeListening}
+                className={`w-32 h-32 rounded-full border-2 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed ${
+                  isRealtimeConnected
+                    ? "bg-primary border-primary animate-pulse-glow"
+                    : "bg-primary border-primary/50 hover:border-primary hover:shadow-lg hover:shadow-primary/30"
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  {[6, 10, 14, 10, 6].map((h, i) => (
                     <div
-                      className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                        msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
-                      }`}
-                    >
-                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                    </div>
-                  </div>
-                ))}
+                      key={i}
+                      className="w-2 rounded-full bg-primary-foreground transition-all"
+                      style={{
+                        height: `${h * 4}px`,
+                        animation: isRealtimeConnected ? `soundWave 0.8s ease-in-out infinite ${i * 0.1}s` : "none",
+                      }}
+                    />
+                  ))}
+                </div>
+              </button>
+
+              <p className="mt-4 text-sm text-muted-foreground text-center">Press to speak with House Rules AI.</p>
+            </div>
+
+            {/* Speaking Indicator */}
+            {isSpeaking && (
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <Volume2 className="h-5 w-5 text-primary animate-pulse" />
+                <span className="text-sm text-primary">Speaking...</span>
               </div>
-            </ScrollArea>
-          )}
+            )}
 
-          {/* Action Confirmation Buttons - PROMINENT */}
-          {pendingAction && (
-            <>
-              {console.log("[AIAdjudicator] Rendering ActionConfirmation, pendingAction:", pendingAction)}
-              <ActionConfirmation
-                onConfirm={confirmAction}
-                onCancel={cancelAction}
-                isExecuting={isExecutingAction}
-                confirmationMessage={pendingAction.confirmationMessage}
-              />
-            </>
-          )}
+            {/* Response Area */}
+            {allMessages.length > 0 && (
+              <ScrollArea className="h-[200px] mb-4 border border-border rounded-lg" ref={scrollRef}>
+                <div className="space-y-4 p-4">
+                  {allMessages.map((msg, idx) => (
+                    <div key={`msg-${idx}`} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                      <div
+                        className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                          msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
+                        }`}
+                      >
+                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
 
-          {/* Text Input Area with Audio Toggle */}
+            {/* Action Confirmation Buttons - PROMINENT */}
+            {pendingAction && (
+              <>
+                {console.log("[AIAdjudicator] Rendering ActionConfirmation, pendingAction:", pendingAction)}
+                <ActionConfirmation
+                  onConfirm={confirmAction}
+                  onCancel={cancelAction}
+                  isExecuting={isExecutingAction}
+                  confirmationMessage={pendingAction.confirmationMessage}
+                />
+              </>
+            )}
+          </>
+        )}
+
+        {/* Text Input Area with Audio Toggle - Only for non-guided modes */}
+        {activeMode !== 'guided' && (
           <div className="space-y-2">
             <div className="flex items-center justify-end gap-2">
               <span className={`text-xs font-medium ${isAudioEnabled ? "text-green-500" : "text-red-500"}`}>
@@ -560,9 +585,10 @@ Keep responses under 3 sentences unless more detail is requested.`;
               </div>
             </div>
           </div>
+        )}
 
-          {/* Tournament Pro Tips - Only shown on tournament pages */}
-          {showTournamentProTips && (
+        {/* Tournament Pro Tips - Only shown on tournament pages and not in guided mode */}
+        {showTournamentProTips && activeMode !== 'guided' && (
             <div className="mt-4 p-3 bg-secondary/50 rounded-lg border border-border">
               <p className="text-xs text-muted-foreground">
                 <span className="font-semibold text-foreground">Pro tip:</span> Ask AI to summarise where you left off or get a summary of your last session, including rules updates and notes.
