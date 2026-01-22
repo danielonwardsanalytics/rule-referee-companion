@@ -3,11 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { Mic, MicOff, Send, Loader2, Volume2, ChevronRight, BookOpen } from "lucide-react";
+import { Mic, MicOff, Send, Loader2, Volume2, ChevronRight, BookOpen, Home } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { RealtimeChat } from "@/utils/RealtimeAudio";
 import { useNativeSpeechRecognition } from "@/hooks/useNativeSpeechRecognition";
+import { CompanionMode } from "@/components/ai-adjudicator/ModeSelector";
 
 interface GuidedModeLayoutProps {
   messages: Array<{ role: 'user' | 'assistant'; content: string }>;
@@ -25,6 +24,7 @@ interface GuidedModeLayoutProps {
   voice: string;
   gameName?: string;
   houseRulesText: string[];
+  onModeChange: (mode: CompanionMode) => void;
 }
 
 export function GuidedModeLayout({
@@ -43,6 +43,7 @@ export function GuidedModeLayout({
   voice,
   gameName,
   houseRulesText,
+  onModeChange,
 }: GuidedModeLayoutProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -91,8 +92,11 @@ export function GuidedModeLayout({
   // Check if we're in an active walkthrough (has assistant messages)
   const hasStartedWalkthrough = allMessages.some(m => m.role === 'assistant');
   
-  // Find the latest step instruction (look for DO THIS NOW or step indicators)
+  // Find the latest step instruction
   const latestAssistantMessage = [...allMessages].reverse().find(m => m.role === 'assistant');
+  
+  // Get previous messages (history) - everything except the latest assistant message
+  const historyMessages = allMessages.slice(0, -1);
 
   return (
     <div className="space-y-4">
@@ -115,12 +119,12 @@ export function GuidedModeLayout({
         </div>
       </div>
 
-      {/* Voice Chat Button - Compact in Guided Mode */}
-      <div className="flex justify-center">
+      {/* Voice Chat Button - Same size as other modes */}
+      <div className="flex flex-col items-center gap-3 py-4">
         <button
           onClick={isRealtimeConnected ? onEndRealtime : onStartRealtime}
           disabled={isLoading || isNativeListening}
-          className={`w-20 h-20 rounded-full border-2 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed ${
+          className={`w-24 h-24 rounded-full border-2 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed ${
             isRealtimeConnected
               ? "bg-primary border-primary animate-pulse-glow"
               : "bg-primary border-primary/50 hover:border-primary hover:shadow-lg hover:shadow-primary/30"
@@ -139,6 +143,7 @@ export function GuidedModeLayout({
             ))}
           </div>
         </button>
+        <p className="text-sm text-muted-foreground">Press to speak with House Rules AI</p>
       </div>
 
       {/* Speaking Indicator */}
@@ -149,7 +154,7 @@ export function GuidedModeLayout({
         </div>
       )}
 
-      {/* Text Input Area - Now above the step display */}
+      {/* Text Input Area */}
       <div className="space-y-2">
         <div className="flex items-center justify-end gap-2">
           <span className={`text-xs font-medium ${isAudioEnabled ? "text-green-500" : "text-red-500"}`}>
@@ -167,7 +172,7 @@ export function GuidedModeLayout({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyPress}
-            placeholder={hasStartedWalkthrough ? "Ask a question or say 'Next'..." : "Tell me which game you'd like me to run you through..."}
+            placeholder="Tell me which game you'd like me to run you through."
             className="resize-none pr-24 italic placeholder:italic border border-border text-sm"
             rows={2}
             disabled={isLoading || isRealtimeConnected}
@@ -201,73 +206,75 @@ export function GuidedModeLayout({
         </div>
       </div>
 
-      {/* Quick Tips - Show when walkthrough hasn't started */}
-      {!hasStartedWalkthrough && (
-        <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-          <p className="text-xs text-muted-foreground mb-2 font-medium">Try saying:</p>
-          <ul className="text-xs text-muted-foreground space-y-1">
-            <li>• "Walk me through UNO"</li>
-            <li>• "Guide us through Phase 10"</li>
-            <li>• "Run us through Monopoly Deal step by step"</li>
-          </ul>
-        </div>
-      )}
-
-      {/* Current Step Display - NOW BELOW TEXT INPUT */}
-      {hasStartedWalkthrough && latestAssistantMessage && (
-        <div className="bg-slate-800/80 border border-slate-700 rounded-xl p-5">
+      {/* Current Step Card - Replaces the tips card */}
+      {hasStartedWalkthrough && latestAssistantMessage ? (
+        <div className="bg-slate-800/80 border border-amber-500/30 rounded-xl p-5 space-y-4">
+          {/* Current Step Content */}
           <div className="prose prose-invert prose-sm max-w-none">
             <div className="whitespace-pre-wrap text-sm leading-relaxed">
               {latestAssistantMessage.content}
             </div>
           </div>
+          
+          {/* Next Step Button - Inside the card */}
+          <Button
+            onClick={() => onSend("Next", isAudioEnabled)}
+            disabled={isLoading}
+            className="w-full h-12 text-base font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0"
+          >
+            {isLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <>
+                Next Step
+                <ChevronRight className="h-5 w-5 ml-2" />
+              </>
+            )}
+          </Button>
+        </div>
+      ) : (
+        /* Placeholder card when walkthrough hasn't started */
+        <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
+          <p className="text-sm text-muted-foreground text-center">
+            Your step-by-step instructions will appear here once you select a game.
+          </p>
         </div>
       )}
 
-      {/* Next Button - Prominent when in active walkthrough */}
+      {/* What just happened - Previous conversation */}
+      {historyMessages.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground font-medium">Previous steps:</p>
+          <ScrollArea className="h-[100px] border border-border rounded-lg" ref={scrollRef}>
+            <div className="space-y-2 p-3">
+              {historyMessages.map((msg, idx) => (
+                <div key={`msg-${idx}`} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                  <div
+                    className={`max-w-[85%] rounded-lg px-3 py-2 ${
+                      msg.role === "user" 
+                        ? "bg-primary text-primary-foreground" 
+                        : "bg-secondary/50 text-secondary-foreground"
+                    }`}
+                  >
+                    <p className="text-xs whitespace-pre-wrap">{msg.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
+      )}
+
+      {/* Switch to Normal Game Mode Button */}
       {hasStartedWalkthrough && (
         <Button
-          onClick={() => onSend("Next", isAudioEnabled)}
-          disabled={isLoading}
-          className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0"
+          variant="outline"
+          onClick={() => onModeChange('hub')}
+          className="w-full border-slate-600 hover:bg-slate-700/50"
         >
-          {isLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            <>
-              Next Step
-              <ChevronRight className="h-5 w-5 ml-2" />
-            </>
-          )}
+          <Home className="h-4 w-4 mr-2" />
+          Switch to Normal Game Mode
         </Button>
-      )}
-
-      {/* Conversation History - Scrollable */}
-      {allMessages.length > 1 && (
-        <ScrollArea className="h-[150px] border border-border rounded-lg" ref={scrollRef}>
-          <div className="space-y-3 p-3">
-            {allMessages.slice(0, -1).map((msg, idx) => (
-              <div key={`msg-${idx}`} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div
-                  className={`max-w-[85%] rounded-lg px-3 py-2 ${
-                    msg.role === "user" 
-                      ? "bg-primary text-primary-foreground" 
-                      : "bg-secondary/50 text-secondary-foreground"
-                  }`}
-                >
-                  <p className="text-xs whitespace-pre-wrap">{msg.content}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
-      )}
-
-      {/* Mode Exit Hint */}
-      {hasStartedWalkthrough && (
-        <p className="text-xs text-muted-foreground text-center">
-          Say "I get it" or "We'll take it from here" to exit guided mode
-        </p>
       )}
     </div>
   );
