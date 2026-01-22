@@ -1,14 +1,15 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Mic, MicOff, Send, Loader2, Volume2, ChevronRight, Home } from "lucide-react";
+import { Mic, MicOff, Send, Loader2, Volume2, ChevronRight, Home, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { useNativeSpeechRecognition } from "@/hooks/useNativeSpeechRecognition";
 import { CompanionMode } from "@/components/ai-adjudicator/ModeSelector";
+import { GuidedStep } from "@/hooks/useGuidedWalkthrough";
 
 interface GuidedModeLayoutProps {
-  messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+  messages: Array<{ role: 'user' | 'assistant'; content: string; id?: string }>;
   realtimeMessages: Array<{ role: 'user' | 'assistant'; content: string }>;
   input: string;
   setInput: (value: string) => void;
@@ -24,31 +25,13 @@ interface GuidedModeLayoutProps {
   gameName?: string;
   houseRulesText: string[];
   onModeChange: (mode: CompanionMode) => void;
-}
-
-// Helper to extract step title and summary from AI response for the compact card
-function extractStepInfo(content: string): { title: string; summary: string } {
-  // Try to find "DO THIS NOW:" pattern first
-  const doThisMatch = content.match(/\*\*DO THIS NOW:\*\*\s*([^\n]+)/i);
-  if (doThisMatch) {
-    const summary = doThisMatch[1].trim();
-    // Try to find step title like "**Setup – Shuffle & Deal**"
-    const titleMatch = content.match(/\*\*([^*]+(?:–|-)[^*]+)\*\*/);
-    const title = titleMatch?.[1]?.trim() || "Current Step";
-    return { title, summary: summary.length > 100 ? summary.substring(0, 97) + "..." : summary };
-  }
-  
-  // Fallback: Try to extract a step title pattern
-  const stepMatch = content.match(/(?:\*\*)?(?:STEP\s*\d+[:\s-]*)?([^.!?\n]{5,50})/i);
-  const title = stepMatch?.[1]?.trim() || "Current Step";
-  
-  // Get first sentence as summary
-  const firstSentence = content.split(/[.!?]/)[0]?.trim() || "";
-  const summary = firstSentence.length > 100 
-    ? firstSentence.substring(0, 97) + "..." 
-    : firstSentence || "Follow the instructions";
-  
-  return { title, summary };
+  // Guided state
+  currentStep: GuidedStep | null;
+  stepIndex: number;
+  totalSteps: number;
+  isComplete: boolean;
+  onNextStep: () => void;
+  onReset: () => void;
 }
 
 export function GuidedModeLayout({
@@ -68,6 +51,12 @@ export function GuidedModeLayout({
   gameName,
   houseRulesText,
   onModeChange,
+  currentStep,
+  stepIndex,
+  totalSteps,
+  isComplete,
+  onNextStep,
+  onReset,
 }: GuidedModeLayoutProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -93,11 +82,12 @@ export function GuidedModeLayout({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, realtimeMessages]);
 
-  // Turn off audio AND disconnect realtime when AI finishes speaking
+  // Turn off mic AND disconnect realtime when AI finishes speaking
   // This prevents the microphone from picking up player conversations
   useEffect(() => {
     if (wasSpeaking && !isSpeaking) {
       // AI just finished speaking, turn off audio mode and disconnect
+      console.log("[GuidedMode] AI finished speaking, turning off mic");
       setIsAudioEnabled(false);
       if (isRealtimeConnected) {
         onEndRealtime();
@@ -109,7 +99,7 @@ export function GuidedModeLayout({
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      onSend();
+      handleTextSend();
     }
   };
 
@@ -122,30 +112,40 @@ export function GuidedModeLayout({
     }
   };
 
-  const handleNextStep = () => {
-    // Enable audio so the next instruction is read aloud
-    setIsAudioEnabled(true);
-    onSend("Next", true);
-  };
-
-  const handleVoiceButtonClick = async () => {
+  // Next button: advances step, forces mic OFF, requests next step from AI
+  const handleNextStep = useCallback(() => {
+    console.log("[GuidedMode] Next button pressed");
+    // Force mic OFF when delivering next instruction
+    setIsAudioEnabled(false);
     if (isRealtimeConnected) {
       onEndRealtime();
+    }
+    // Call parent's next step handler
+    onNextStep();
+  }, [setIsAudioEnabled, isRealtimeConnected, onEndRealtime, onNextStep]);
+
+  // Voice button: user explicitly turns on mic to ask a question
+  const handleVoiceButtonClick = async () => {
+    if (isRealtimeConnected) {
+      console.log("[GuidedMode] Voice button: disconnecting");
+      onEndRealtime();
     } else {
+      console.log("[GuidedMode] Voice button: connecting for question");
       setIsAudioEnabled(true);
       await onStartRealtime();
     }
   };
 
+  // Text send: for asking questions
+  const handleTextSend = () => {
+    if (!input.trim()) return;
+    // Audio off when sending text questions
+    setIsAudioEnabled(false);
+    onSend(undefined, false);
+  };
+
   const allMessages = [...messages, ...realtimeMessages];
   const hasStartedWalkthrough = allMessages.some(m => m.role === 'assistant');
-  const latestAssistantMessage = [...allMessages].reverse().find(m => m.role === 'assistant');
-  const stepInfo = latestAssistantMessage ? extractStepInfo(latestAssistantMessage.content) : null;
-  
-  // Check if game is finished
-  const isGameFinished = latestAssistantMessage?.content.toLowerCase().includes("game is now finished") ||
-                         latestAssistantMessage?.content.toLowerCase().includes("game has ended") ||
-                         latestAssistantMessage?.content.toLowerCase().includes("congratulations");
 
   return (
     <div className="space-y-4">
@@ -155,7 +155,7 @@ export function GuidedModeLayout({
       <div className="flex flex-col items-center py-4">
         <button
           onClick={handleVoiceButtonClick}
-          disabled={isLoading || isNativeListening}
+          disabled={isLoading || isNativeListening || isSpeaking}
           className={`w-32 h-32 rounded-full border-2 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed ${
             isRealtimeConnected
               ? "bg-primary border-primary animate-pulse-glow"
@@ -176,7 +176,11 @@ export function GuidedModeLayout({
           </div>
         </button>
         <p className="mt-3 text-sm text-muted-foreground text-center">
-          {isRealtimeConnected ? "Listening..." : "Press to speak with House Rules AI"}
+          {isRealtimeConnected 
+            ? "Listening for your question..." 
+            : isSpeaking 
+              ? "Speaking..." 
+              : "Press to ask a question"}
         </p>
       </div>
 
@@ -206,7 +210,7 @@ export function GuidedModeLayout({
           <div className="p-4 space-y-3 hide-scrollbar">
             {allMessages.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4 italic">
-                Tell me which game you'd like me to run you through.
+                Tell me which game you'd like me to guide you through.
               </p>
             ) : (
               allMessages.map((msg, idx) => (
@@ -247,14 +251,14 @@ export function GuidedModeLayout({
               placeholder="Type your question..."
               className="resize-none pr-20 text-sm min-h-[44px] max-h-[80px]"
               rows={1}
-              disabled={isLoading || isRealtimeConnected}
+              disabled={isLoading || isRealtimeConnected || isSpeaking}
             />
             <div className="absolute bottom-2 right-2 flex items-center gap-1">
               <Button
                 size="icon"
                 variant={isNativeListening ? "default" : "ghost"}
                 onClick={handleDictateToggle}
-                disabled={isLoading || isRealtimeConnected || !isSpeechSupported}
+                disabled={isLoading || isRealtimeConnected || !isSpeechSupported || isSpeaking}
                 className="rounded-full h-8 w-8"
               >
                 {isNativeListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
@@ -262,8 +266,8 @@ export function GuidedModeLayout({
               <Button
                 size="icon"
                 variant="ghost"
-                onClick={() => onSend()}
-                disabled={isLoading || !input.trim() || isRealtimeConnected}
+                onClick={handleTextSend}
+                disabled={isLoading || !input.trim() || isRealtimeConnected || isSpeaking}
                 className="rounded-full h-8 w-8"
               >
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -273,26 +277,55 @@ export function GuidedModeLayout({
         </div>
       </div>
 
-      {/* Step Summary Card - Compact with title, summary, and Next button */}
+      {/* Step Summary Card - Shows current step from state */}
       <div className="bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 rounded-xl p-4 shadow-md">
-        {hasStartedWalkthrough && stepInfo ? (
+        {isComplete ? (
+          <div className="text-center space-y-3">
+            <h4 className="font-semibold text-foreground">🎉 Walkthrough Complete!</h4>
+            <p className="text-sm text-muted-foreground">Would you like to play again or try a different game?</p>
+            <div className="flex gap-2 justify-center">
+              <Button
+                onClick={onReset}
+                variant="outline"
+                className="border-primary/50"
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Start Over
+              </Button>
+              <Button
+                onClick={() => onModeChange('hub')}
+                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-primary-foreground border-0"
+              >
+                Finish
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        ) : currentStep ? (
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <h4 className="font-semibold text-foreground truncate">{stepInfo.title}</h4>
-              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{stepInfo.summary}</p>
+              <div className="flex items-center gap-2 mb-1">
+                {totalSteps > 0 && (
+                  <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">
+                    Step {stepIndex + 1}
+                  </span>
+                )}
+                <h4 className="font-semibold text-foreground truncate">{currentStep.title}</h4>
+              </div>
+              <p className="text-sm text-muted-foreground line-clamp-2">{currentStep.instruction}</p>
+              {currentStep.upNext && (
+                <p className="text-xs text-muted-foreground/70 mt-1 italic">
+                  Up next: {currentStep.upNext}
+                </p>
+              )}
             </div>
             <Button
-              onClick={isGameFinished ? () => onModeChange('hub') : handleNextStep}
+              onClick={handleNextStep}
               disabled={isLoading || isSpeaking}
-              className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 font-semibold shrink-0"
+              className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-primary-foreground border-0 font-semibold shrink-0"
             >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
-              ) : isGameFinished ? (
-                <>
-                  Finish
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </>
               ) : (
                 <>
                   Next
@@ -301,9 +334,14 @@ export function GuidedModeLayout({
               )}
             </Button>
           </div>
+        ) : hasStartedWalkthrough ? (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">Preparing your next step...</p>
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          </div>
         ) : (
           <p className="text-sm text-muted-foreground text-center py-2">
-            Your step summary will appear here once you start.
+            Your step-by-step guide will appear here.
           </p>
         )}
       </div>

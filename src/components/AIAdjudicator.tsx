@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -22,6 +22,7 @@ import { useNativeSpeechRecognition } from "@/hooks/useNativeSpeechRecognition";
 import { ModeSelector, CompanionMode } from "@/components/ai-adjudicator/ModeSelector";
 import { GuidedModeLayout } from "@/components/ai-adjudicator/GuidedModeLayout";
 import { AddPlayerModal } from "@/components/tournaments/AddPlayerModal";
+import { useGuidedWalkthrough, parseStepFromResponse } from "@/hooks/useGuidedWalkthrough";
 interface AIAdjudicatorProps {
   title?: string;
   subtitle?: string;
@@ -166,9 +167,15 @@ const AIAdjudicator = ({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const realtimeChatRef = useRef<RealtimeChat | null>(null);
   
+  // Guided walkthrough state machine - single source of truth
+  const guidedWalkthrough = useGuidedWalkthrough();
+  
   // Track previous rule set to detect changes
   const previousRuleSetRef = useRef<{ id: string | null; name: string | null }>({ id: null, name: null });
   const [ruleChangeContext, setRuleChangeContext] = useState<string | null>(null);
+  
+  // Track spoken message IDs to prevent double TTS
+  const spokenMessageIdsRef = useRef<Set<string>>(new Set());
 
   // Detect rule set changes
   useEffect(() => {
@@ -225,11 +232,11 @@ const AIAdjudicator = ({
     }
   }, [messages, realtimeMessages]);
 
-  const handleSend = async (messageOverride?: string, shouldSpeak?: boolean) => {
+  const handleSend = useCallback(async (messageOverride?: string, shouldSpeak?: boolean) => {
     const messageToSend = messageOverride || input;
     const willSpeak = shouldSpeak !== undefined ? shouldSpeak : isAudioEnabled;
 
-    console.log("[AIAdjudicator] handleSend called:", { messageToSend, willSpeak });
+    console.log("[AIAdjudicator] handleSend called:", { messageToSend, willSpeak, activeMode });
 
     if (!messageToSend.trim()) {
       console.log("[AIAdjudicator] Empty message, skipping");
@@ -246,9 +253,27 @@ const AIAdjudicator = ({
     try {
       await sendMessage(messageText, async (aiResponse, hasAction) => {
         console.log("[AIAdjudicator] sendMessage completed:", { hasAction, responseLength: aiResponse?.length });
-        if (willSpeak) {
-          await speakResponse(aiResponse);
+        
+        // In guided mode, parse the response into a step
+        if (activeMode === 'guided' && aiResponse) {
+          const parsedStep = parseStepFromResponse(aiResponse);
+          if (parsedStep) {
+            guidedWalkthrough.addStep(parsedStep);
+          }
         }
+        
+        // Generate a unique ID for this message to prevent double TTS
+        const messageId = `msg-${Date.now()}-${aiResponse?.substring(0, 20)}`;
+        
+        // Only speak if we haven't spoken this message already
+        if (willSpeak && !spokenMessageIdsRef.current.has(messageId)) {
+          console.log("[AIAdjudicator] TTS: Speaking message", messageId);
+          spokenMessageIdsRef.current.add(messageId);
+          await speakResponse(aiResponse);
+        } else if (willSpeak) {
+          console.log("[AIAdjudicator] TTS: Skipping duplicate message", messageId);
+        }
+        
         // Clear rule change context after first message acknowledges it
         if (ruleChangeContext) {
           setRuleChangeContext(null);
@@ -258,11 +283,18 @@ const AIAdjudicator = ({
       console.error("[AIAdjudicator] Error in sendMessage:", error);
       toast.error("Failed to send message");
     }
-  };
+  }, [input, isAudioEnabled, activeMode, sendMessage, ruleChangeContext, guidedWalkthrough]);
 
-  const speakResponse = async (text: string) => {
+  const speakResponse = useCallback(async (text: string) => {
+    // Prevent concurrent TTS calls
+    if (isSpeaking) {
+      console.log("[AIAdjudicator] TTS: Already speaking, skipping");
+      return;
+    }
+    
     try {
       setIsSpeaking(true);
+      console.log("[AIAdjudicator] TTS: Starting speech");
 
       const { data, error } = await supabase.functions.invoke("text-to-speech", {
         body: { text, voice },
@@ -283,14 +315,15 @@ const AIAdjudicator = ({
       if (audioRef.current) {
         audioRef.current.src = audioUrl;
         await audioRef.current.play();
+        console.log("[AIAdjudicator] TTS: Audio playing");
       }
     } catch (error) {
       console.error("[AIAdjudicator] TTS error:", error);
       toast.error(`Failed to speak response: ${error instanceof Error ? error.message : "Unknown error"}`);
-    } finally {
       setIsSpeaking(false);
     }
-  };
+    // Note: setIsSpeaking(false) is handled by the audio onEnded event
+  }, [isSpeaking, voice]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -464,6 +497,18 @@ Keep responses under 3 sentences unless more detail is requested.`;
             gameName={gameName}
             houseRulesText={houseRulesText}
             onModeChange={setActiveMode}
+            currentStep={guidedWalkthrough.currentStep}
+            stepIndex={guidedWalkthrough.stepIndex}
+            totalSteps={guidedWalkthrough.steps.length}
+            isComplete={guidedWalkthrough.status === 'complete'}
+            onNextStep={() => {
+              // Request next step from AI
+              handleSend("Next", true);
+            }}
+            onReset={() => {
+              guidedWalkthrough.reset();
+              clearMessages();
+            }}
           />
         ) : (
           <>
