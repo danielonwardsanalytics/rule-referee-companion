@@ -15,10 +15,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { RealtimeChat } from "@/utils/RealtimeAudio";
 import { ContextSelectorBox } from "@/components/ai-adjudicator/ContextSelectorBox";
 import { TournamentRulesSelector } from "@/components/ai-adjudicator/TournamentRulesSelector";
+import { TournamentMiniScoreboard } from "@/components/ai-adjudicator/TournamentMiniScoreboard";
 import { LearnHowToUse } from "@/components/ai-adjudicator/LearnHowToUse";
 import { ActionConfirmation } from "@/components/ai-adjudicator/ActionConfirmation";
 import { useNativeSpeechRecognition } from "@/hooks/useNativeSpeechRecognition";
 import { ModeSelector, CompanionMode } from "@/components/ai-adjudicator/ModeSelector";
+import { AddPlayerModal } from "@/components/tournaments/AddPlayerModal";
 interface AIAdjudicatorProps {
   title?: string;
   subtitle?: string;
@@ -90,6 +92,9 @@ const AIAdjudicator = ({
 
   // Tournament mode: track whether house rules are being used
   const [isUsingTournamentHouseRules, setIsUsingTournamentHouseRules] = useState(!!lockedRuleSetId);
+  
+  // State for add player modal in tournament mode mini scoreboard
+  const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
 
   // Use pre-selected IDs if provided, otherwise use context
   // In tournament mode with locked rules, use the locked rule set ID when toggled on
@@ -589,6 +594,15 @@ Keep responses under 3 sentences unless more detail is requested.`;
                       onClear={clearActiveTournament}
                     />
                   </div>
+                  
+                  {/* Mini Tournament Scoreboard */}
+                  <TournamentMiniScoreboard
+                    tournament={activeTournament}
+                    players={tournamentPlayers}
+                    isLoading={false}
+                    onAddPlayer={() => setShowAddPlayerModal(true)}
+                  />
+                  
                   <p className="text-xs text-muted-foreground text-center">
                     When a rule set is active, the AI Adjudicator will abide by these rules.
                   </p>
@@ -630,6 +644,15 @@ Keep responses under 3 sentences unless more detail is requested.`;
 
           {/* Learn How To Use Section */}
           <LearnHowToUse />
+          
+          {/* Add Player Modal for Mini Scoreboard (homepage tournament mode) */}
+          {activeTournament && !tournamentMode && (
+            <AddPlayerModal
+              isOpen={showAddPlayerModal}
+              onClose={() => setShowAddPlayerModal(false)}
+              tournamentId={activeTournament.id}
+            />
+          )}
         </div>
       </div>
   );
