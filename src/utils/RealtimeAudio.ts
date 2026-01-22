@@ -74,7 +74,8 @@ export class RealtimeChat {
     private voice?: string,
     private gameName?: string,
     private houseRules?: string[],
-    private onUserTranscript?: (transcript: string) => void
+    private onUserTranscript?: (transcript: string) => void,
+    private activeMode?: 'hub' | 'quickStart' | 'tournament' | 'guided'
   ) {
     this.audioEl = document.createElement("audio");
     this.audioEl.autoplay = true;
@@ -90,7 +91,8 @@ export class RealtimeChat {
           instructions: this.instructions,
           voice: this.voice,
           gameName: this.gameName,
-          houseRules: this.houseRules
+          houseRules: this.houseRules,
+          activeMode: this.activeMode
         }
       });
 

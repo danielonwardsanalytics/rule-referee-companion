@@ -140,7 +140,7 @@ const AIAdjudicator = ({
     handleVoiceConfirmation,
     isExecutingAction,
     detectActionInTranscript,
-  } = useChatWithActions(gameName, houseRulesText, effectiveRuleSetId, effectiveTournamentId, tournamentPlayersContext, tournamentNotesContext, gameResultsContext);
+  } = useChatWithActions(gameName, houseRulesText, effectiveRuleSetId, effectiveTournamentId, tournamentPlayersContext, tournamentNotesContext, gameResultsContext, activeMode);
   
   // Native speech recognition hook (works on native apps and web)
   const { 
@@ -386,7 +386,8 @@ Keep responses under 3 sentences unless more detail is requested.`;
         houseRulesText,
         // Voice chat is Q&A only - no action detection needed
         // Actions are handled by text chat, voice chat politely declines
-        undefined
+        undefined,
+        activeMode
       );
 
       await realtimeChatRef.current.init();
