@@ -463,6 +463,7 @@ Keep responses under 3 sentences unless more detail is requested.`;
             voice={voice}
             gameName={gameName}
             houseRulesText={houseRulesText}
+            onModeChange={setActiveMode}
           />
         ) : (
           <>
