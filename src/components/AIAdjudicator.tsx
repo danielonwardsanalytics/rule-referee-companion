@@ -575,27 +575,35 @@ Keep responses under 3 sentences unless more detail is requested.`;
             <div className="mt-8 space-y-4">
               {/* Context Selectors - Only visible in Tournament mode */}
               {activeMode === 'tournament' && (
+                <div className="flex gap-4">
+                  <ContextSelectorBox
+                    label="Rules Set"
+                    type="ruleSet"
+                    activeItem={activeRuleSet}
+                    availableItems={userRuleSets}
+                    onSelect={setActiveRuleSet}
+                    onClear={clearActiveRuleSet}
+                  />
+                  <ContextSelectorBox
+                    label="Tournaments"
+                    type="tournament"
+                    activeItem={activeTournament}
+                    availableItems={userTournaments}
+                    onSelect={setActiveTournament}
+                    onClear={clearActiveTournament}
+                  />
+                </div>
+              )}
+
+              {/* Mode Selector - Always visible */}
+              <ModeSelector 
+                activeMode={activeMode}
+                onModeChange={setActiveMode}
+              />
+              
+              {/* Mini Tournament Scoreboard - Below buttons so they don't move */}
+              {activeMode === 'tournament' && (
                 <>
-                  <div className="flex gap-4">
-                    <ContextSelectorBox
-                      label="Rules Set"
-                      type="ruleSet"
-                      activeItem={activeRuleSet}
-                      availableItems={userRuleSets}
-                      onSelect={setActiveRuleSet}
-                      onClear={clearActiveRuleSet}
-                    />
-                    <ContextSelectorBox
-                      label="Tournaments"
-                      type="tournament"
-                      activeItem={activeTournament}
-                      availableItems={userTournaments}
-                      onSelect={setActiveTournament}
-                      onClear={clearActiveTournament}
-                    />
-                  </div>
-                  
-                  {/* Mini Tournament Scoreboard */}
                   <TournamentMiniScoreboard
                     tournament={activeTournament}
                     players={tournamentPlayers}
@@ -608,12 +616,6 @@ Keep responses under 3 sentences unless more detail is requested.`;
                   </p>
                 </>
               )}
-
-              {/* Mode Selector - Always visible */}
-              <ModeSelector 
-                activeMode={activeMode}
-                onModeChange={setActiveMode}
-              />
             </div>
           )}
 
