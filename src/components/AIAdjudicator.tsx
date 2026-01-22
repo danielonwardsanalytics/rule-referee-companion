@@ -603,7 +603,7 @@ Keep responses under 3 sentences unless more detail is requested.`;
               
               {/* Mini Tournament Scoreboard - Below buttons so they don't move */}
               {activeMode === 'tournament' && (
-                <div className="mt-12">
+                <div className="pt-8">
                   <TournamentMiniScoreboard
                     tournament={activeTournament}
                     players={tournamentPlayers}
