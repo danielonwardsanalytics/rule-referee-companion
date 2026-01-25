@@ -5,7 +5,16 @@ export type CompanionMode = 'hub' | 'quickStart' | 'tournament' | 'guided';
 interface ModeSelectorProps {
   activeMode: CompanionMode;
   onModeChange: (mode: CompanionMode) => void;
+  /** When provided, called instead of onModeChange to allow for confirmation */
+  onModeChangeRequest?: (mode: CompanionMode) => void;
 }
+
+export const modeLabels: Record<CompanionMode, string> = {
+  hub: 'Hub',
+  quickStart: 'Quick Start',
+  tournament: 'Tournament',
+  guided: 'Guided',
+};
 
 const modes: { id: CompanionMode; label: string }[] = [
   { id: 'hub', label: 'Hub' },
@@ -14,7 +23,17 @@ const modes: { id: CompanionMode; label: string }[] = [
   { id: 'guided', label: 'Guided' },
 ];
 
-export function ModeSelector({ activeMode, onModeChange }: ModeSelectorProps) {
+export function ModeSelector({ activeMode, onModeChange, onModeChangeRequest }: ModeSelectorProps) {
+  const handleClick = (mode: CompanionMode) => {
+    if (mode === activeMode) return; // Already on this mode
+    
+    if (onModeChangeRequest) {
+      onModeChangeRequest(mode);
+    } else {
+      onModeChange(mode);
+    }
+  };
+
   return (
     <div className="grid grid-cols-2 gap-3">
       {modes.map((mode) => {
@@ -22,7 +41,7 @@ export function ModeSelector({ activeMode, onModeChange }: ModeSelectorProps) {
         return (
           <button
             key={mode.id}
-            onClick={() => onModeChange(mode.id)}
+            onClick={() => handleClick(mode.id)}
             className={cn(
               "min-h-[56px] px-5 py-4 rounded-2xl text-base font-medium transition-all text-center",
               "focus:outline-none focus:ring-2 focus:ring-primary/50",

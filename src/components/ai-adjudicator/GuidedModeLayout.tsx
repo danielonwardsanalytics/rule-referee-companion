@@ -7,16 +7,6 @@ import { toast } from "sonner";
 import { useNativeSpeechRecognition } from "@/hooks/useNativeSpeechRecognition";
 import { CompanionMode } from "@/components/ai-adjudicator/ModeSelector";
 import { GuidedStep, TranscriptMessage } from "@/hooks/useGuidedWalkthrough";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 interface GuidedModeLayoutProps {
   messages: Array<{ role: 'user' | 'assistant'; content: string; id?: string }>;
@@ -78,10 +68,6 @@ export function GuidedModeLayout({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [wasSpeaking, setWasSpeaking] = useState(false);
   
-  // Exit confirmation state (Task 3)
-  const [showExitConfirmation, setShowExitConfirmation] = useState(false);
-  const [pendingMode, setPendingMode] = useState<CompanionMode | null>(null);
-  
   const { 
     isListening: isNativeListening, 
     transcript: nativeTranscript, 
@@ -130,26 +116,6 @@ export function GuidedModeLayout({
     }
   };
 
-  // Mode change with confirmation (Task 3)
-  const handleModeChangeRequest = useCallback((mode: CompanionMode) => {
-    const hasStartedWalkthrough = transcript.length > 0 || currentStep !== null;
-    if (hasStartedWalkthrough) {
-      setPendingMode(mode);
-      setShowExitConfirmation(true);
-    } else {
-      onModeChange(mode);
-    }
-  }, [transcript.length, currentStep, onModeChange]);
-
-  const handleConfirmExit = useCallback(() => {
-    onReset();
-    if (pendingMode) {
-      onModeChange(pendingMode);
-    }
-    setShowExitConfirmation(false);
-    setPendingMode(null);
-  }, [onReset, pendingMode, onModeChange]);
-
   // Next button: advances step, forces mic OFF (Task 5)
   const handleNextStep = useCallback(() => {
     console.log("[GuidedMode] Next button pressed");
@@ -193,24 +159,6 @@ export function GuidedModeLayout({
   return (
     <div className="space-y-4">
       <audio ref={audioRef} />
-
-      {/* Exit Confirmation Dialog (Task 3) */}
-      <AlertDialog open={showExitConfirmation} onOpenChange={setShowExitConfirmation}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>End Guided Session?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Your walkthrough progress will be lost. Are you sure you want to exit?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPendingMode(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmExit}>
-              Yes, End Session
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Voice Chat Button - Same size as other modes (w-32 h-32 = 128px) */}
       <div className="flex flex-col items-center py-4">
@@ -366,7 +314,7 @@ export function GuidedModeLayout({
                 Start New Game
               </Button>
               <Button
-                onClick={() => handleModeChangeRequest('hub')}
+                onClick={() => onModeChange('hub')}
                 className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-primary-foreground border-0"
               >
                 Exit Guided Mode
@@ -436,7 +384,7 @@ export function GuidedModeLayout({
       {/* End Guided Mode Button (Task 4) */}
       <Button
         variant="outline"
-        onClick={() => handleModeChangeRequest('hub')}
+        onClick={() => onModeChange('hub')}
         className="w-full border-destructive/50 text-destructive hover:bg-destructive/10"
       >
         <X className="h-4 w-4 mr-2" />
