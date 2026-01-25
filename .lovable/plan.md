@@ -1,420 +1,251 @@
 
 
-# Guided Mode Alignment Plan
+# Guided Mode Feedback Fix - Diagnosis & Implementation Plan
 
-## Summary
+## Problem Summary
 
-This plan aligns the existing Guided Mode implementation with your detailed specification. The core architecture is sound, but several key behaviors need refinement around state management, UI hierarchy, confirmation flows, and audio orchestration.
-
----
-
-## Current State Analysis
-
-### What's Already In Place
-- `useGuidedWalkthrough` hook with state machine (`idle`, `planning`, `in_step`, `answering_question`, `complete`)
-- `GuidedStep` interface with `title`, `summary`, `detail`, `speakText`, `upNext`
-- Transcript management with `addToTranscript`, `clearTranscript`
-- TTS double-speak prevention via `spokenMessageIdsRef`
-- Backend prompts with scope filter and step structure (`DO THIS NOW`, `UP NEXT`)
-
-### What Needs Fixing
-
-| Issue | Current Behavior | Required Behavior |
-|-------|-----------------|-------------------|
-| Transcript wiping | `realtimeMessages` cleared on disconnect | Persist transcript across mic toggles |
-| Next Step card content | Uses parsed AI response | Derive ONLY from `currentStep.summary` |
-| Questions change steps | Can reset state | Questions append to transcript only, never change stepIndex |
-| No confirmation on exit | Mode switches instantly | Show confirmation popup |
-| Mic behavior | Sometimes stays on | Auto OFF after instruction delivery |
-| Missing End Guided Mode button | Not present | Required with confirmation |
-| No Stop Feedback button always visible | Only shows when speaking | Should appear during any audio |
+The Guided Mode walkthrough fails to show the **Next Step card** after the initial game response because Step 1 is never parsed and added to state.
 
 ---
 
-## Implementation Tasks
+## Root Cause Analysis
 
-### Task 1: Fix Transcript Persistence
+### The Core Bug
 
-**File:** `src/components/AIAdjudicator.tsx`
-
-Problem: The transcript uses two separate arrays (`messages` from text chat, `realtimeMessages` from voice) which are merged for display but managed independently. When `endRealtimeChat` is called, messages can be lost.
-
-**Changes:**
-1. Use `guidedWalkthrough.transcript` as the single source of truth in Guided Mode
-2. When messages arrive (text or voice), append to `guidedWalkthrough.addToTranscript()`
-3. Pass `guidedWalkthrough.transcript` to `GuidedModeLayout` instead of the merged arrays
-4. Remove any code that clears messages on mic toggle
+In `AIAdjudicator.tsx` lines 282-290:
 
 ```typescript
-// In handleSend callback, after AI responds:
-if (activeMode === 'guided') {
-  guidedWalkthrough.addToTranscript('user', messageToSend);
-  guidedWalkthrough.addToTranscript('assistant', aiResponse);
-}
+// TASK 6: Detect if this is a "Next" command vs a question
+const isNextCommand = messageToSend.toLowerCase().trim() === 'next';
 
-// In realtime message handler:
-if (activeMode === 'guided') {
-  guidedWalkthrough.addToTranscript('user', transcript);
-  // For assistant messages, add on response.audio_transcript.done
+if (isNextCommand) {
+  // This is a step advancement - parse and add step
+  const parsedStep = parseStepFromResponse(aiResponse);
+  if (parsedStep) {
+    guidedWalkthrough.addStep(parsedStep);
+  }
 }
 ```
 
+**The issue:** The FIRST response (when user says "Guide me through UNO") is NOT a "next" command, so `parseStepFromResponse()` is never called. Step 1 exists in the AI response but is never extracted and added to `guidedWalkthrough.steps[]`.
+
+Result: `currentStep` stays `null`, and the Next Step card shows the placeholder forever.
+
+### What Should Happen
+
+When the user says "Guide me through UNO":
+
+1. LLM returns: Orientation + Step 1 (with `**DO THIS NOW:**`)
+2. App parses the response and extracts Step 1
+3. App calls `guidedWalkthrough.addStep(step1)`
+4. Next Step card displays `step1.summary`
+
+### What Currently Happens
+
+1. LLM returns: Orientation + Step 1 (with `**DO THIS NOW:**`)
+2. App adds response to transcript ✓
+3. App checks if message was "next" → NO, so skips step parsing ✗
+4. No step added, `currentStep` = null
+5. Next Step card shows "Preparing your next step..." forever
+
 ---
 
-### Task 2: Fix Next Step Card to Use State Only
+## Implementation Plan
 
-**File:** `src/components/ai-adjudicator/GuidedModeLayout.tsx`
+### Task 1: Parse Step 1 from Initial Response
 
-Problem: The Next Step card is currently populated by parsing the last AI message. It should derive exclusively from `currentStep.summary`.
+**File:** `src/components/AIAdjudicator.tsx`
 
-**Changes:**
-1. The card already uses `currentStep.summary` and `currentStep.title` (lines 318-330)
-2. Ensure the `parseStepFromResponse` correctly extracts short summaries (80 char max)
-3. Add validation that `summary` is never the full instruction
+**Change:** Detect game-start requests AND "next" commands as step-producing messages.
+
+```typescript
+// In handleSend callback (around line 281):
+if (activeMode === 'guided' && aiResponse) {
+  // Add AI response to transcript
+  const messageId = guidedWalkthrough.addToTranscript('assistant', aiResponse);
+  
+  // Detect if this message should produce a step:
+  // 1. "Next" command - advance to next step
+  // 2. Game-start request - initial response contains Step 1
+  // 3. Skip/navigation commands that produce new steps
+  const lowerMessage = messageToSend.toLowerCase().trim();
+  const isNextCommand = lowerMessage === 'next';
+  const isGameStartRequest = lowerMessage.includes('guide') || 
+                             lowerMessage.includes('walk') ||
+                             lowerMessage.includes('teach') ||
+                             lowerMessage.includes('show me');
+  const isNavigationCommand = ['skip', 'go back', 'restart', 'previous'].some(
+    cmd => lowerMessage.includes(cmd)
+  );
+  
+  // Check if the AI response contains a step (has "DO THIS NOW:")
+  const hasStepMarker = aiResponse.includes('DO THIS NOW:') || 
+                        aiResponse.includes('**DO THIS NOW:**');
+  
+  if ((isNextCommand || isGameStartRequest || isNavigationCommand) && hasStepMarker) {
+    const parsedStep = parseStepFromResponse(aiResponse);
+    if (parsedStep) {
+      console.log('[GuidedMode] Adding step:', parsedStep.title);
+      guidedWalkthrough.addStep(parsedStep);
+    }
+  }
+  // For questions without step markers, step is NOT changed
+  
+  // Speak if needed...
+}
+```
+
+### Task 2: Improve Step Detection Logic
 
 **File:** `src/hooks/useGuidedWalkthrough.ts`
 
-**Changes:**
-1. Improve `extractSummary()` to be more aggressive about shortening
-2. When parsing step, if summary > 80 chars, truncate more aggressively
+**Change:** Make `parseStepFromResponse()` more robust and add a helper to check if a response contains a step.
 
 ```typescript
-function extractSummary(instruction: string): string {
-  // Take just the core action, not the full explanation
-  const firstSentence = instruction.split(/[.!?]/)[0].trim();
-  const cleaned = firstSentence.replace(/^\*+|\*+$/g, '').trim();
-  
-  if (cleaned.length <= 60) return cleaned;
-  
-  // Find a natural break point
-  const words = cleaned.split(' ');
-  let summary = '';
-  for (const word of words) {
-    if ((summary + ' ' + word).length > 60) break;
-    summary += (summary ? ' ' : '') + word;
+/**
+ * Checks if an AI response contains a step (DO THIS NOW pattern)
+ */
+export function responseContainsStep(content: string): boolean {
+  return /\*\*DO THIS NOW:\*\*/i.test(content);
+}
+
+/**
+ * Parses AI response into structured step format.
+ * Only returns a step if the response contains the DO THIS NOW marker.
+ */
+export function parseStepFromResponse(content: string): GuidedStep | null {
+  // Only proceed if this looks like a step response
+  if (!responseContainsStep(content)) {
+    return null;
   }
-  return summary + '...';
+  
+  // Existing parsing logic...
 }
 ```
 
----
+### Task 3: Handle Orientation vs Step Separation
 
-### Task 3: Add Confirmation Popup for Exit
+**File:** `src/hooks/useGuidedWalkthrough.ts`
 
-**File:** `src/components/ai-adjudicator/GuidedModeLayout.tsx`
-
-Problem: No confirmation when user tries to exit Guided Mode.
-
-**Changes:**
-1. Add state for showing exit confirmation: `showExitConfirmation`
-2. Replace direct `onModeChange` calls with confirmation trigger
-3. Add AlertDialog for confirmation
-
-```tsx
-// New state
-const [showExitConfirmation, setShowExitConfirmation] = useState(false);
-const [pendingMode, setPendingMode] = useState<CompanionMode | null>(null);
-
-// Modified mode change handler
-const handleModeChangeRequest = (mode: CompanionMode) => {
-  if (hasStartedWalkthrough) {
-    setPendingMode(mode);
-    setShowExitConfirmation(true);
-  } else {
-    onModeChange(mode);
-  }
-};
-
-// Confirmation dialog
-<AlertDialog open={showExitConfirmation} onOpenChange={setShowExitConfirmation}>
-  <AlertDialogContent>
-    <AlertDialogHeader>
-      <AlertDialogTitle>End Guided Session?</AlertDialogTitle>
-      <AlertDialogDescription>
-        Your walkthrough progress will be lost. Are you sure?
-      </AlertDialogDescription>
-    </AlertDialogHeader>
-    <AlertDialogFooter>
-      <AlertDialogCancel>Cancel</AlertDialogCancel>
-      <AlertDialogAction onClick={() => {
-        onReset();
-        if (pendingMode) onModeChange(pendingMode);
-      }}>
-        Yes, End Session
-      </AlertDialogAction>
-    </AlertDialogFooter>
-  </AlertDialogContent>
-</AlertDialog>
-```
-
----
-
-### Task 4: Add Dedicated "End Guided Mode" Button
-
-**File:** `src/components/ai-adjudicator/GuidedModeLayout.tsx`
-
-**Changes:**
-1. Replace the "Switch to Normal Game Mode" button with a proper "End Guided Mode" button
-2. This button should trigger the confirmation popup
-3. Place it at the bottom of the layout, styled distinctly
-
-```tsx
-{/* End Guided Mode Button - Always visible */}
-<Button
-  variant="outline"
-  onClick={() => handleModeChangeRequest('hub')}
-  className="w-full border-destructive/50 text-destructive hover:bg-destructive/10"
->
-  <X className="h-4 w-4 mr-2" />
-  End Guided Mode
-</Button>
-```
-
----
-
-### Task 5: Fix Mic Auto-OFF After Instructions
-
-**File:** `src/components/ai-adjudicator/GuidedModeLayout.tsx`
-
-Problem: The mic behavior needs to be: OFF by default, OFF after instruction delivery, only ON when user explicitly presses it.
-
-**Changes:**
-1. In the `useEffect` watching `isSpeaking`, when AI finishes speaking via TTS, ensure mic/realtime is disconnected
-2. When "Next" is pressed, force mic OFF before requesting next step
-3. Add clear documentation in code about mic lifecycle
+**Change:** Add ability to detect and separate orientation content from step content for better transcript display.
 
 ```typescript
-// Force mic OFF after AI finishes speaking an instruction
-useEffect(() => {
-  if (wasSpeaking && !isSpeaking) {
-    // AI finished speaking via TTS
-    console.log("[GuidedMode] Instruction delivered, ensuring mic is OFF");
-    if (isRealtimeConnected) {
-      onEndRealtime();
-    }
+/**
+ * Extracts orientation content (everything before the first step)
+ */
+export function extractOrientation(content: string): string | null {
+  const stepStart = content.search(/\*\*[^*]*(?:Setup|Step|First)/i);
+  if (stepStart > 100) { // Only if there's substantial content before the step
+    return content.substring(0, stepStart).trim();
   }
-  setWasSpeaking(isSpeaking);
-}, [isSpeaking, wasSpeaking, isRealtimeConnected, onEndRealtime]);
-
-// Next button handler already forces mic OFF - keep this
-const handleNextStep = useCallback(() => {
-  setIsAudioEnabled(false);
-  if (isRealtimeConnected) {
-    onEndRealtime();
-  }
-  onNextStep();
-}, [setIsAudioEnabled, isRealtimeConnected, onEndRealtime, onNextStep]);
-```
-
----
-
-### Task 6: Make Questions NOT Change Steps
-
-**File:** `src/components/AIAdjudicator.tsx`
-
-Problem: Currently, when a user asks a question, the response gets parsed and may create/change steps.
-
-**Changes:**
-1. In `handleSend`, detect if this is a "Next" command vs a question
-2. Only call `guidedWalkthrough.addStep()` when advancing
-3. For questions, just add to transcript without changing steps
-
-```typescript
-// In handleSend callback:
-if (activeMode === 'guided' && aiResponse) {
-  const isNextCommand = messageToSend.toLowerCase().trim() === 'next';
-  
-  if (isNextCommand) {
-    // This is a step advancement - parse and add step
-    const parsedStep = parseStepFromResponse(aiResponse);
-    if (parsedStep) {
-      guidedWalkthrough.addStep(parsedStep);
-    }
-  } else {
-    // This is a question - just add to transcript, don't change steps
-    // After answering, the prompt tells AI to restate current step
-  }
+  return null;
 }
 ```
 
----
-
-### Task 7: Update Backend Prompt for Question Handling
+### Task 4: Update Backend Prompt Clarity
 
 **File:** `supabase/functions/chat-with-actions/index.ts`
 
-Problem: The prompt needs to explicitly instruct the AI to restate the current step after answering questions.
+**Change:** Make the prompt more explicit about ALWAYS producing Step 1 after orientation.
 
-**Changes:**
-1. Add instruction to restate current step after Q&A
-2. Add instruction to end answers with "Press Next when ready"
-
-Update the `buildGuidedPrompt` function:
+Update around line 403-411:
 
 ```text
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-HANDLING QUESTIONS (CRITICAL)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3️⃣ **THE FIRST STEP** (MANDATORY - NEVER SKIP!)
 
-When users ask questions (anything other than "Next"):
-1. Answer the question clearly and concisely
-2. Do NOT use "DO THIS NOW:" format - this is NOT a new step
-3. Do NOT change or advance the walkthrough
-4. After answering, briefly remind them of the current step:
-   "When you're ready, continue with: [brief current action]."
-5. End with: "Press Next to continue."
+You MUST include this section in your FIRST response:
 
-Example Q&A response:
-"Good question! In Go Fish, if you run out of cards during your turn, you draw 5 cards from the pond and continue playing.
+**Setup – [Specific Title]**
 
-When you're ready, continue with: asking another player for a card.
+**DO THIS NOW:** [One specific physical action - this is REQUIRED]
 
-Press Next to continue."
+**UP NEXT:** [Preview of next action]
+
+*Press Next when you're ready to continue.*
+
+⚠️ If you do NOT include "**DO THIS NOW:**" in your first response, 
+   the walkthrough will not start. This is a hard requirement.
+```
+
+### Task 5: Add Step State Logging for Debugging
+
+**File:** `src/components/ai-adjudicator/GuidedModeLayout.tsx`
+
+**Change:** Add console logging to help debug state issues.
+
+```typescript
+// Add near the top of the component
+useEffect(() => {
+  console.log('[GuidedModeLayout] Step state:', {
+    currentStep: currentStep?.title || 'null',
+    stepIndex,
+    totalSteps,
+    transcriptLength: transcript.length,
+    isComplete
+  });
+}, [currentStep, stepIndex, totalSteps, transcript.length, isComplete]);
 ```
 
 ---
 
-### Task 8: Improve Initial State UI
-
-**File:** `src/components/ai-adjudicator/GuidedModeLayout.tsx`
-
-Problem: The initial state should show a friendly prompt in the Next Step card.
-
-**Changes:**
-1. When no walkthrough started, show placeholder in Next Step card:
-   "Tell me which game you want me to guide you through"
-2. Transcript area should be smaller initially, expand when content arrives
-
-The current implementation already does this (lines 366-369), but verify it matches your spec:
-
-```tsx
-{/* Default placeholder in Next Step card */}
-{!hasStartedWalkthrough && !currentStep && (
-  <p className="text-sm text-muted-foreground text-center py-2">
-    Tell me which game you want me to guide you through.
-  </p>
-)}
-```
-
----
-
-### Task 9: Add Game Complete State with "Start New Game" Button
-
-**File:** `src/components/ai-adjudicator/GuidedModeLayout.tsx`
-
-Problem: When walkthrough completes, need "Start New Game" button instead of Next/Prev.
-
-The current implementation already handles this (lines 294-314), but verify the button text matches:
-
-```tsx
-{isComplete ? (
-  <div className="text-center space-y-3">
-    <h4 className="font-semibold text-foreground">🎉 Game Complete!</h4>
-    <p className="text-sm text-muted-foreground">
-      Would you like to play again or try a different game?
-    </p>
-    <div className="flex gap-2 justify-center">
-      <Button onClick={onReset} variant="outline">
-        <RotateCcw className="h-4 w-4 mr-2" />
-        Start New Game
-      </Button>
-      <Button onClick={() => handleModeChangeRequest('hub')}>
-        Exit Guided Mode
-      </Button>
-    </div>
-  </div>
-) : ...}
-```
-
----
-
-### Task 10: Ensure Stop Feedback Button is Prominent
-
-**File:** `src/components/ai-adjudicator/GuidedModeLayout.tsx`
-
-The Stop button exists (lines 188-205), but ensure it:
-1. Appears whenever TTS is active
-2. Stops both TTS audio and any streaming
-3. Is styled prominently (current implementation looks good)
-
----
-
-## Technical Details: State Machine Flow
+## Implementation Order
 
 ```text
-┌──────────────────────────────────────────────────────────────┐
-│                    GUIDED MODE STATE MACHINE                  │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  [User presses "Guided" mode button]                         │
-│         │                                                    │
-│         ▼                                                    │
-│  ┌──────────────┐                                            │
-│  │    IDLE      │ ← "Tell me which game..."                  │
-│  └──────┬───────┘                                            │
-│         │ User says "Guide me through Go Fish"               │
-│         ▼                                                    │
-│  ┌──────────────┐                                            │
-│  │   PLANNING   │ ← AI gives orientation + Step 1            │
-│  └──────┬───────┘                                            │
-│         │ First step parsed and added                        │
-│         ▼                                                    │
-│  ┌──────────────┐                                            │
-│  │   IN_STEP    │◄─────────────────────────┐                 │
-│  └──────┬───────┘                          │                 │
-│         │                                  │                 │
-│    ┌────┴────────────────┐                 │                 │
-│    │                     │                 │                 │
-│    ▼                     ▼                 │                 │
-│ [User asks    [User presses Next]          │                 │
-│  question]          │                      │                 │
-│    │                ▼                      │                 │
-│    ▼         stepIndex++                   │                 │
-│ ┌──────────┐  Request next step            │                 │
-│ │ANSWERING │  from AI                      │                 │
-│ │QUESTION  │        │                      │                 │
-│ └────┬─────┘        ▼                      │                 │
-│      │       Parse step, add to steps[]    │                 │
-│      │              │                      │                 │
-│      └──────────────┴──────────────────────┘                 │
-│                                                              │
-│    [Last step reached + Next pressed]                        │
-│         │                                                    │
-│         ▼                                                    │
-│  ┌──────────────┐                                            │
-│  │   COMPLETE   │ ← "Start New Game" shown                   │
-│  └──────────────┘                                            │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
+Task 1: Fix step parsing for initial response (AIAdjudicator.tsx)
+   └── This is the critical fix - enables Step 1 to be captured
+
+Task 2: Add responseContainsStep helper (useGuidedWalkthrough.ts)
+   └── Makes detection logic reusable and clear
+
+Task 3: Add orientation extraction (useGuidedWalkthrough.ts)
+   └── Future enhancement for cleaner transcript
+
+Task 4: Strengthen backend prompt (chat-with-actions/index.ts)
+   └── Reduces chance of LLM not producing Step 1
+
+Task 5: Add debug logging (GuidedModeLayout.tsx)
+   └── Helps verify the fix and catch future issues
 ```
 
 ---
 
 ## Files to Modify
 
-| File | Changes |
-|------|---------|
-| `src/hooks/useGuidedWalkthrough.ts` | Improve `extractSummary()` to enforce 60-char max |
-| `src/components/AIAdjudicator.tsx` | Fix transcript to use unified store; detect Next vs question |
-| `src/components/ai-adjudicator/GuidedModeLayout.tsx` | Add exit confirmation dialog; add "End Guided Mode" button; improve initial placeholder |
-| `supabase/functions/chat-with-actions/index.ts` | Update `buildGuidedPrompt` to handle questions better |
-| `supabase/functions/realtime-session/index.ts` | Update `buildGuidedVoiceInstructions` similarly |
+| File | Change |
+|------|--------|
+| `src/components/AIAdjudicator.tsx` | Detect game-start requests as step-producing messages |
+| `src/hooks/useGuidedWalkthrough.ts` | Add `responseContainsStep()` helper; improve `parseStepFromResponse()` |
+| `supabase/functions/chat-with-actions/index.ts` | Strengthen prompt to enforce Step 1 |
+| `src/components/ai-adjudicator/GuidedModeLayout.tsx` | Add debug logging |
 
 ---
 
 ## Testing Checklist
 
 After implementation:
-- [ ] Enter Guided Mode → see placeholder in Next Step card
-- [ ] Ask "Guide me through Go Fish" → get orientation + Step 1 immediately
-- [ ] Next Step card shows short summary only (not full text)
-- [ ] Transcript shows full detailed instructions
-- [ ] Ask a question mid-step → answer appears, step doesn't change
-- [ ] Toggle mic on/off → transcript preserved
-- [ ] Press Next → advance to next step, mic stays OFF
-- [ ] Press "End Guided Mode" → confirmation popup appears
-- [ ] Confirm exit → returns to Hub mode
-- [ ] Cancel exit → stays in Guided mode
-- [ ] Complete walkthrough → see "Start New Game" button
-- [ ] No double audio during any flow
+- [ ] Say "Guide me through UNO" → Orientation appears in transcript AND Step 1 appears in Next Step card
+- [ ] Say "Guide me through Go Fish" → Same behavior
+- [ ] Press Next → Step 2 appears
+- [ ] Ask a question → Answer in transcript, step doesn't change
+- [ ] Toggle mic → Transcript preserved, step preserved
+- [ ] Next Step card shows SHORT summary (max 60 chars), not full instruction
+
+---
+
+## Technical Details
+
+### Why the Current Logic is Wrong
+
+The original Task 6 implementation said "only parse steps on 'Next' command" to prevent questions from accidentally advancing steps. This is correct for questions BUT incorrect for the initial game start.
+
+The fix: Also detect game-start patterns (`guide`, `walk`, `teach`) as step-producing.
+
+### Why Check for `hasStepMarker`
+
+Not all responses produce steps:
+- Questions: "How many cards do I deal?" → No step marker
+- Next command: "Next" → Has `**DO THIS NOW:**`
+- Game start: "Guide me through UNO" → Has `**DO THIS NOW:**`
+
+By requiring the step marker, we ensure questions don't accidentally create steps.
 
