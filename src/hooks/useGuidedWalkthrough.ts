@@ -65,19 +65,28 @@ const initialState: GuidedState = {
 };
 
 /**
- * Extracts a short summary (max 80 chars) from a longer instruction.
+ * Extracts a short summary (max 60 chars) from a longer instruction.
+ * This is for the Next Step card only - must be very concise.
  */
 function extractSummary(instruction: string): string {
-  // Take first sentence or line
-  const firstSentence = instruction.split(/[.!?]\s/)[0];
-  const cleaned = firstSentence.replace(/^\*+|\*+$/g, '').trim();
+  // Take just the core action - first sentence only
+  const firstSentence = instruction.split(/[.!?]/)[0].trim();
+  const cleaned = firstSentence.replace(/^\*+|\*+$/g, '').replace(/^#+\s*/, '').trim();
   
-  if (cleaned.length <= 80) {
+  // If already short enough, return as-is
+  if (cleaned.length <= 60) {
     return cleaned;
   }
   
-  // Truncate and add ellipsis
-  return cleaned.substring(0, 77) + "...";
+  // Find a natural break point within 60 chars
+  const words = cleaned.split(' ');
+  let summary = '';
+  for (const word of words) {
+    if ((summary + ' ' + word).trim().length > 57) break;
+    summary += (summary ? ' ' : '') + word;
+  }
+  
+  return summary.trim() + '...';
 }
 
 /**

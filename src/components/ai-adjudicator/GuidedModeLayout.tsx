@@ -2,15 +2,26 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Mic, MicOff, Send, Loader2, Volume2, ChevronRight, ChevronLeft, Home, RotateCcw, Square } from "lucide-react";
+import { Mic, MicOff, Send, Loader2, Volume2, ChevronRight, ChevronLeft, RotateCcw, Square, X } from "lucide-react";
 import { toast } from "sonner";
 import { useNativeSpeechRecognition } from "@/hooks/useNativeSpeechRecognition";
 import { CompanionMode } from "@/components/ai-adjudicator/ModeSelector";
-import { GuidedStep } from "@/hooks/useGuidedWalkthrough";
+import { GuidedStep, TranscriptMessage } from "@/hooks/useGuidedWalkthrough";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface GuidedModeLayoutProps {
   messages: Array<{ role: 'user' | 'assistant'; content: string; id?: string }>;
   realtimeMessages: Array<{ role: 'user' | 'assistant'; content: string }>;
+  transcript: TranscriptMessage[];
   input: string;
   setInput: (value: string) => void;
   isLoading: boolean;
@@ -39,6 +50,7 @@ interface GuidedModeLayoutProps {
 export function GuidedModeLayout({
   messages,
   realtimeMessages,
+  transcript,
   input,
   setInput,
   isLoading,
@@ -66,6 +78,10 @@ export function GuidedModeLayout({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [wasSpeaking, setWasSpeaking] = useState(false);
   
+  // Exit confirmation state (Task 3)
+  const [showExitConfirmation, setShowExitConfirmation] = useState(false);
+  const [pendingMode, setPendingMode] = useState<CompanionMode | null>(null);
+  
   const { 
     isListening: isNativeListening, 
     transcript: nativeTranscript, 
@@ -81,21 +97,22 @@ export function GuidedModeLayout({
     }
   }, [nativeTranscript, setInput]);
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when transcript changes
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, realtimeMessages]);
+  }, [transcript, messages, realtimeMessages]);
 
-  // Turn off mic when AI finishes speaking (via TTS)
-  // Note: We no longer auto-disconnect realtime here - let user control it
+  // Turn off mic when AI finishes speaking (Task 5)
   useEffect(() => {
     if (wasSpeaking && !isSpeaking) {
-      // AI just finished speaking via TTS
-      console.log("[GuidedMode] AI finished speaking via TTS");
-      // Don't wipe anything - just note it
+      // AI finished speaking via TTS - ensure mic is OFF
+      console.log("[GuidedMode] Instruction delivered, ensuring mic is OFF");
+      if (isRealtimeConnected) {
+        onEndRealtime();
+      }
     }
     setWasSpeaking(isSpeaking);
-  }, [isSpeaking, wasSpeaking]);
+  }, [isSpeaking, wasSpeaking, isRealtimeConnected, onEndRealtime]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -113,7 +130,27 @@ export function GuidedModeLayout({
     }
   };
 
-  // Next button: advances step, forces mic OFF, requests next step from AI
+  // Mode change with confirmation (Task 3)
+  const handleModeChangeRequest = useCallback((mode: CompanionMode) => {
+    const hasStartedWalkthrough = transcript.length > 0 || currentStep !== null;
+    if (hasStartedWalkthrough) {
+      setPendingMode(mode);
+      setShowExitConfirmation(true);
+    } else {
+      onModeChange(mode);
+    }
+  }, [transcript.length, currentStep, onModeChange]);
+
+  const handleConfirmExit = useCallback(() => {
+    onReset();
+    if (pendingMode) {
+      onModeChange(pendingMode);
+    }
+    setShowExitConfirmation(false);
+    setPendingMode(null);
+  }, [onReset, pendingMode, onModeChange]);
+
+  // Next button: advances step, forces mic OFF (Task 5)
   const handleNextStep = useCallback(() => {
     console.log("[GuidedMode] Next button pressed");
     // Force mic OFF when delivering next instruction
@@ -145,12 +182,35 @@ export function GuidedModeLayout({
     onSend(undefined, false);
   };
 
-  const allMessages = [...messages, ...realtimeMessages];
-  const hasStartedWalkthrough = allMessages.some(m => m.role === 'assistant');
+  // Use unified transcript for display (Task 1)
+  // Combine transcript with any realtime messages that haven't been added yet
+  const displayMessages = transcript.length > 0 
+    ? transcript.map(t => ({ role: t.role as 'user' | 'assistant', content: t.content }))
+    : [...messages, ...realtimeMessages];
+  
+  const hasStartedWalkthrough = displayMessages.some(m => m.role === 'assistant') || currentStep !== null;
 
   return (
     <div className="space-y-4">
       <audio ref={audioRef} />
+
+      {/* Exit Confirmation Dialog (Task 3) */}
+      <AlertDialog open={showExitConfirmation} onOpenChange={setShowExitConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>End Guided Session?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your walkthrough progress will be lost. Are you sure you want to exit?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingMode(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmExit}>
+              Yes, End Session
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Voice Chat Button - Same size as other modes (w-32 h-32 = 128px) */}
       <div className="flex flex-col items-center py-4">
@@ -185,7 +245,7 @@ export function GuidedModeLayout({
         </p>
       </div>
 
-      {/* Speaking Indicator with Stop Button */}
+      {/* Speaking Indicator with Stop Button (Task 10) */}
       {isSpeaking && (
         <div className="flex items-center justify-center gap-3">
           <Volume2 className="h-5 w-5 text-primary animate-pulse" />
@@ -204,7 +264,7 @@ export function GuidedModeLayout({
         </div>
       )}
 
-      {/* Chat Message Area - Scrollable with thumb, no visible scrollbar */}
+      {/* Transcript Window - Scrollable session log (Task 1) */}
       <div className="border border-border rounded-xl bg-background overflow-hidden">
         <div 
           className="overflow-y-auto overscroll-contain touch-pan-y"
@@ -220,12 +280,12 @@ export function GuidedModeLayout({
             }
           `}</style>
           <div className="p-4 space-y-3 hide-scrollbar">
-            {allMessages.length === 0 ? (
+            {displayMessages.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4 italic">
                 Tell me which game you'd like me to guide you through.
               </p>
             ) : (
-              allMessages.map((msg, idx) => (
+              displayMessages.map((msg, idx) => (
                 <div key={`msg-${idx}`} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                   <div
                     className={`max-w-[85%] rounded-lg px-4 py-3 ${
@@ -289,11 +349,12 @@ export function GuidedModeLayout({
         </div>
       </div>
 
-      {/* Step Summary Card - Shows current step from state */}
+      {/* Next Step Card - Shows ONLY currentStep.summary (Task 2) */}
       <div className="bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 rounded-xl p-4 shadow-md">
         {isComplete ? (
+          // Task 9: Game complete state
           <div className="text-center space-y-3">
-            <h4 className="font-semibold text-foreground">🎉 Walkthrough Complete!</h4>
+            <h4 className="font-semibold text-foreground">🎉 Game Complete!</h4>
             <p className="text-sm text-muted-foreground">Would you like to play again or try a different game?</p>
             <div className="flex gap-2 justify-center">
               <Button
@@ -302,18 +363,18 @@ export function GuidedModeLayout({
                 className="border-primary/50"
               >
                 <RotateCcw className="h-4 w-4 mr-2" />
-                Start Over
+                Start New Game
               </Button>
               <Button
-                onClick={() => onModeChange('hub')}
+                onClick={() => handleModeChangeRequest('hub')}
                 className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-primary-foreground border-0"
               >
-                Finish
-                <ChevronRight className="h-4 w-4 ml-1" />
+                Exit Guided Mode
               </Button>
             </div>
           </div>
         ) : currentStep ? (
+          // Active step - show summary only (Task 2)
           <div className="space-y-3">
             <div className="flex items-center gap-2 mb-1">
               {totalSteps > 0 && (
@@ -323,6 +384,7 @@ export function GuidedModeLayout({
               )}
               <h4 className="font-semibold text-foreground truncate">{currentStep.title}</h4>
             </div>
+            {/* Summary only - max 60 chars (Task 2) */}
             <p className="text-sm text-muted-foreground">{currentStep.summary}</p>
             {currentStep.upNext && (
               <p className="text-xs text-muted-foreground/70 italic">
@@ -364,23 +426,22 @@ export function GuidedModeLayout({
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
           </div>
         ) : (
+          // Task 8: Initial state placeholder
           <p className="text-sm text-muted-foreground text-center py-2">
-            Your step-by-step guide will appear here.
+            Tell me which game you want me to guide you through.
           </p>
         )}
       </div>
 
-      {/* Switch to Normal Game Mode Button */}
-      {hasStartedWalkthrough && (
-        <Button
-          variant="outline"
-          onClick={() => onModeChange('hub')}
-          className="w-full border-border hover:bg-muted/50"
-        >
-          <Home className="h-4 w-4 mr-2" />
-          Switch to Normal Game Mode
-        </Button>
-      )}
+      {/* End Guided Mode Button (Task 4) */}
+      <Button
+        variant="outline"
+        onClick={() => handleModeChangeRequest('hub')}
+        className="w-full border-destructive/50 text-destructive hover:bg-destructive/10"
+      >
+        <X className="h-4 w-4 mr-2" />
+        End Guided Mode
+      </Button>
     </div>
   );
 }
