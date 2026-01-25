@@ -8,7 +8,7 @@ import { TrialBanner } from "@/components/premium/TrialBanner";
 import { usePremium } from "@/hooks/usePremium";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Button } from "@/components/ui/button";
-import { PushDebugPanel } from "@/components/debug/PushDebugPanel";
+
 
 const Home = () => {
   const { hasPremiumAccess, isFree, isTrial } = usePremium();
@@ -105,8 +105,6 @@ const Home = () => {
         </main>
       </div>
       
-      {/* Push Debug Panel - Fixed at bottom, only visible with ?debug=1 or for admins */}
-      <PushDebugPanel />
     </>
   );
 };
