@@ -249,29 +249,50 @@ const AIAdjudicator = ({
 
     const messageText = buildContextPrompt() + messageToSend;
     console.log("[AIAdjudicator] Sending message with context:", messageText);
+    
+    // In guided mode, add user message to transcript
+    if (activeMode === 'guided') {
+      guidedWalkthrough.addToTranscript('user', messageToSend);
+    }
 
     try {
       await sendMessage(messageText, async (aiResponse, hasAction) => {
         console.log("[AIAdjudicator] sendMessage completed:", { hasAction, responseLength: aiResponse?.length });
         
-        // In guided mode, parse the response into a step
+        // In guided mode, handle transcript and step parsing
         if (activeMode === 'guided' && aiResponse) {
-          const parsedStep = parseStepFromResponse(aiResponse);
-          if (parsedStep) {
-            guidedWalkthrough.addStep(parsedStep);
+          // Add AI response to transcript
+          const messageId = guidedWalkthrough.addToTranscript('assistant', aiResponse);
+          
+          // TASK 6: Detect if this is a "Next" command vs a question
+          const isNextCommand = messageToSend.toLowerCase().trim() === 'next';
+          
+          if (isNextCommand) {
+            // This is a step advancement - parse and add step
+            const parsedStep = parseStepFromResponse(aiResponse);
+            if (parsedStep) {
+              guidedWalkthrough.addStep(parsedStep);
+            }
           }
-        }
-        
-        // Generate a unique ID for this message to prevent double TTS
-        const messageId = `msg-${Date.now()}-${aiResponse?.substring(0, 20)}`;
-        
-        // Only speak if we haven't spoken this message already
-        if (willSpeak && !spokenMessageIdsRef.current.has(messageId)) {
-          console.log("[AIAdjudicator] TTS: Speaking message", messageId);
-          spokenMessageIdsRef.current.add(messageId);
-          await speakResponse(aiResponse);
-        } else if (willSpeak) {
-          console.log("[AIAdjudicator] TTS: Skipping duplicate message", messageId);
+          // For questions, step is NOT changed - just added to transcript
+          
+          // Speak if needed (using transcript message ID for dedup)
+          if (willSpeak && !guidedWalkthrough.hasBeenSpoken(messageId)) {
+            console.log("[AIAdjudicator] TTS: Speaking message", messageId);
+            guidedWalkthrough.markAsSpoken(messageId);
+            await speakResponse(aiResponse);
+          }
+        } else {
+          // Non-guided mode: original behavior
+          const messageId = `msg-${Date.now()}-${aiResponse?.substring(0, 20)}`;
+          
+          if (willSpeak && !spokenMessageIdsRef.current.has(messageId)) {
+            console.log("[AIAdjudicator] TTS: Speaking message", messageId);
+            spokenMessageIdsRef.current.add(messageId);
+            await speakResponse(aiResponse);
+          } else if (willSpeak) {
+            console.log("[AIAdjudicator] TTS: Skipping duplicate message", messageId);
+          }
         }
         
         // Clear rule change context after first message acknowledges it
@@ -496,6 +517,7 @@ Keep responses under 3 sentences unless more detail is requested.`;
           <GuidedModeLayout
             messages={messages}
             realtimeMessages={realtimeMessages}
+            transcript={guidedWalkthrough.transcript}
             input={input}
             setInput={setInput}
             isLoading={isLoading}
