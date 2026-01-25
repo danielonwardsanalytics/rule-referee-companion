@@ -76,6 +76,18 @@ export function GuidedModeLayout({
     isSupported: isSpeechSupported 
   } = useNativeSpeechRecognition();
 
+  // Debug logging for step state
+  useEffect(() => {
+    console.log('[GuidedModeLayout] Step state:', {
+      currentStep: currentStep?.title || 'null',
+      currentStepSummary: currentStep?.summary || 'null',
+      stepIndex,
+      totalSteps,
+      transcriptLength: transcript.length,
+      isComplete
+    });
+  }, [currentStep, stepIndex, totalSteps, transcript.length, isComplete]);
+
   // Update input when native transcript changes
   useEffect(() => {
     if (nativeTranscript) {

@@ -90,11 +90,37 @@ function extractSummary(instruction: string): string {
 }
 
 /**
+ * Checks if an AI response contains a step (DO THIS NOW pattern)
+ */
+export function responseContainsStep(content: string): boolean {
+  return /\*\*DO THIS NOW:\*\*/i.test(content) || /DO THIS NOW:/i.test(content);
+}
+
+/**
+ * Extracts orientation content (everything before the first step)
+ * Returns null if no substantial orientation exists
+ */
+export function extractOrientation(content: string): string | null {
+  const stepStart = content.search(/\*\*[^*]*(?:Setup|Step|First|DO THIS NOW)/i);
+  if (stepStart > 100) { // Only if there's substantial content before the step
+    return content.substring(0, stepStart).trim();
+  }
+  return null;
+}
+
+/**
  * Parses AI response into structured step format.
  * Looks for "DO THIS NOW:" and "UP NEXT:" patterns.
  * Returns step with separate summary and detail.
+ * Only returns a step if the response contains the DO THIS NOW marker.
  */
 export function parseStepFromResponse(content: string): GuidedStep | null {
+  // Only proceed if this looks like a step response
+  if (!responseContainsStep(content)) {
+    console.log('[parseStepFromResponse] No step marker found');
+    return null;
+  }
+  
   // Try to find "DO THIS NOW:" pattern
   const doThisMatch = content.match(/\*\*DO THIS NOW:\*\*\s*([^\n]+(?:\n(?!\*\*UP NEXT|\*\*\[)[^\n]*)*)/i);
   const upNextMatch = content.match(/\*\*UP NEXT:\*\*\s*([^\n]+)/i);

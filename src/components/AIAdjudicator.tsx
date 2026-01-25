@@ -278,17 +278,35 @@ const AIAdjudicator = ({
           // Add AI response to transcript
           const messageId = guidedWalkthrough.addToTranscript('assistant', aiResponse);
           
-          // TASK 6: Detect if this is a "Next" command vs a question
-          const isNextCommand = messageToSend.toLowerCase().trim() === 'next';
+          // Detect if this message should produce a step:
+          // 1. "Next" command - advance to next step
+          // 2. Game-start request - initial response contains Step 1
+          // 3. Skip/navigation commands that produce new steps
+          const lowerMessage = messageToSend.toLowerCase().trim();
+          const isNextCommand = lowerMessage === 'next';
+          const isGameStartRequest = lowerMessage.includes('guide') || 
+                                     lowerMessage.includes('walk') ||
+                                     lowerMessage.includes('teach') ||
+                                     lowerMessage.includes('show me') ||
+                                     lowerMessage.includes('help me play') ||
+                                     lowerMessage.includes('let\'s play');
+          const isNavigationCommand = ['skip', 'go back', 'restart', 'previous'].some(
+            cmd => lowerMessage.includes(cmd)
+          );
           
-          if (isNextCommand) {
-            // This is a step advancement - parse and add step
+          // Check if the AI response contains a step (has "DO THIS NOW:")
+          const hasStepMarker = aiResponse.includes('DO THIS NOW:') || 
+                                aiResponse.includes('**DO THIS NOW:**');
+          
+          // Parse and add step if this is a step-producing message
+          if ((isNextCommand || isGameStartRequest || isNavigationCommand) && hasStepMarker) {
             const parsedStep = parseStepFromResponse(aiResponse);
             if (parsedStep) {
+              console.log('[GuidedMode] Adding step:', parsedStep.title, '- summary:', parsedStep.summary);
               guidedWalkthrough.addStep(parsedStep);
             }
           }
-          // For questions, step is NOT changed - just added to transcript
+          // For questions without step markers, step is NOT changed - just added to transcript
           
           // Speak if needed (using transcript message ID for dedup)
           if (willSpeak && !guidedWalkthrough.hasBeenSpoken(messageId)) {

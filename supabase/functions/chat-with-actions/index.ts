@@ -400,11 +400,15 @@ What kind of game this is and the goal.
 • Handling game events
 • Ending the game"
 
-3️⃣ **THE FIRST STEP** (MANDATORY - DO NOT SKIP!)
+3️⃣ **THE FIRST STEP** (MANDATORY - NEVER SKIP THIS!)
+
+⚠️ CRITICAL: You MUST include this section in your FIRST response.
+If you do NOT include "**DO THIS NOW:**" in your first response, 
+the walkthrough will NOT start. This is a HARD REQUIREMENT.
 
 **Setup – [Specific Title]**
 
-**DO THIS NOW:** [One specific physical action]
+**DO THIS NOW:** [One specific physical action - THIS LINE IS REQUIRED]
 
 **UP NEXT:** [Preview of next action]
 
