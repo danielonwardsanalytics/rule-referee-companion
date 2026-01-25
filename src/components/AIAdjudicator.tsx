@@ -19,10 +19,20 @@ import { TournamentMiniScoreboard } from "@/components/ai-adjudicator/Tournament
 import { LearnHowToUse } from "@/components/ai-adjudicator/LearnHowToUse";
 import { ActionConfirmation } from "@/components/ai-adjudicator/ActionConfirmation";
 import { useNativeSpeechRecognition } from "@/hooks/useNativeSpeechRecognition";
-import { ModeSelector, CompanionMode } from "@/components/ai-adjudicator/ModeSelector";
+import { ModeSelector, CompanionMode, modeLabels } from "@/components/ai-adjudicator/ModeSelector";
 import { GuidedModeLayout } from "@/components/ai-adjudicator/GuidedModeLayout";
 import { AddPlayerModal } from "@/components/tournaments/AddPlayerModal";
 import { useGuidedWalkthrough, parseStepFromResponse } from "@/hooks/useGuidedWalkthrough";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 interface AIAdjudicatorProps {
   title?: string;
   subtitle?: string;
@@ -166,6 +176,10 @@ const AIAdjudicator = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const realtimeChatRef = useRef<RealtimeChat | null>(null);
+  
+  // Mode switch confirmation state
+  const [showModeChangeConfirmation, setShowModeChangeConfirmation] = useState(false);
+  const [pendingModeChange, setPendingModeChange] = useState<CompanionMode | null>(null);
   
   // Guided walkthrough state machine - single source of truth
   const guidedWalkthrough = useGuidedWalkthrough();
@@ -480,6 +494,48 @@ Keep responses under 3 sentences unless more detail is requested.`;
     console.log("[AIAdjudicator] Voice chat disconnected, preserving transcript");
   }, []);
 
+  // Check if there's an active session that should trigger confirmation
+  const hasActiveSession = useCallback(() => {
+    // Check if there are any messages in the current session
+    const hasMessages = messages.length > 0 || realtimeMessages.length > 0;
+    // Check if guided mode has started
+    const hasGuidedSession = activeMode === 'guided' && (guidedWalkthrough.transcript.length > 0 || guidedWalkthrough.currentStep !== null);
+    return hasMessages || hasGuidedSession;
+  }, [messages.length, realtimeMessages.length, activeMode, guidedWalkthrough.transcript.length, guidedWalkthrough.currentStep]);
+
+  // Handle mode change request with confirmation
+  const handleModeChangeRequest = useCallback((newMode: CompanionMode) => {
+    if (hasActiveSession()) {
+      setPendingModeChange(newMode);
+      setShowModeChangeConfirmation(true);
+    } else {
+      setActiveMode(newMode);
+    }
+  }, [hasActiveSession]);
+
+  // Confirm mode change - wipe session and switch
+  const handleConfirmModeChange = useCallback(() => {
+    // Clear all session data
+    clearMessages();
+    setRealtimeMessages([]);
+    guidedWalkthrough.reset();
+    
+    // Switch to the new mode
+    if (pendingModeChange) {
+      setActiveMode(pendingModeChange);
+    }
+    
+    // Close dialog
+    setShowModeChangeConfirmation(false);
+    setPendingModeChange(null);
+  }, [clearMessages, guidedWalkthrough, pendingModeChange]);
+
+  // Cancel mode change
+  const handleCancelModeChange = useCallback(() => {
+    setShowModeChangeConfirmation(false);
+    setPendingModeChange(null);
+  }, []);
+
   useEffect(() => {
     return () => {
       realtimeChatRef.current?.disconnect();
@@ -531,7 +587,7 @@ Keep responses under 3 sentences unless more detail is requested.`;
             voice={voice}
             gameName={gameName}
             houseRulesText={houseRulesText}
-            onModeChange={setActiveMode}
+            onModeChange={handleModeChangeRequest}
             currentStep={guidedWalkthrough.currentStep}
             stepIndex={guidedWalkthrough.stepIndex}
             totalSteps={guidedWalkthrough.steps.length}
@@ -717,6 +773,7 @@ Keep responses under 3 sentences unless more detail is requested.`;
               <ModeSelector 
                 activeMode={activeMode}
                 onModeChange={setActiveMode}
+                onModeChangeRequest={handleModeChangeRequest}
               />
               
               {/* Mini Tournament Scoreboard - Below buttons so they don't move */}
@@ -773,15 +830,41 @@ Keep responses under 3 sentences unless more detail is requested.`;
       </div>
   );
 
+  // Mode change confirmation dialog
+  const modeChangeDialog = (
+    <AlertDialog open={showModeChangeConfirmation} onOpenChange={setShowModeChangeConfirmation}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>End {modeLabels[activeMode]} Session?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Your session transcript will be cleared and a new session will start. Are you sure you want to exit?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={handleCancelModeChange}>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirmModeChange}>
+            Yes, End Session
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
   // When embedded, return just the card without the outer section wrapper
   if (embedded) {
-    return cardContent;
+    return (
+      <>
+        {cardContent}
+        {modeChangeDialog}
+      </>
+    );
   }
 
   // When standalone (homepage), wrap in section with max-width and padding
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 animate-slide-up" style={{ animationDelay: "0.2s" }} aria-label="AI Adjudicator">
       {cardContent}
+      {modeChangeDialog}
     </section>
   );
 };
