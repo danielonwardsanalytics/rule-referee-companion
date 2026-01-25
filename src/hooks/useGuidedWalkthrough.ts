@@ -4,8 +4,17 @@ export type GuidedStatus = 'idle' | 'planning' | 'in_step' | 'answering_question
 
 export interface GuidedStep {
   title: string;
-  instruction: string;
+  summary: string;      // Short text for Next Step card (max 80 chars)
+  detail: string;       // Full instruction for transcript
+  speakText?: string;   // Optional TTS text
   upNext?: string;
+}
+
+export interface TranscriptMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: number;
 }
 
 interface GuidedState {
@@ -13,6 +22,7 @@ interface GuidedState {
   game: string | null;
   steps: GuidedStep[];
   stepIndex: number;
+  transcript: TranscriptMessage[];
 }
 
 interface UseGuidedWalkthroughReturn {
@@ -22,11 +32,15 @@ interface UseGuidedWalkthroughReturn {
   steps: GuidedStep[];
   stepIndex: number;
   currentStep: GuidedStep | null;
+  transcript: TranscriptMessage[];
   
   // Tracking spoken messages to prevent double TTS
-  spokenMessageIds: Set<string>;
   markAsSpoken: (messageId: string) => void;
   hasBeenSpoken: (messageId: string) => boolean;
+  
+  // Transcript management
+  addToTranscript: (role: 'user' | 'assistant' | 'system', content: string) => string;
+  clearTranscript: () => void;
   
   // Actions
   startWalkthrough: (gameName: string) => void;
@@ -35,6 +49,7 @@ interface UseGuidedWalkthroughReturn {
   addStep: (step: GuidedStep) => void;
   setSteps: (steps: GuidedStep[]) => void;
   nextStep: () => boolean; // returns false if already at end
+  prevStep: () => boolean; // returns false if already at start
   setAnsweringQuestion: () => void;
   returnToStep: () => void;
   complete: () => void;
@@ -46,11 +61,29 @@ const initialState: GuidedState = {
   game: null,
   steps: [],
   stepIndex: 0,
+  transcript: [],
 };
+
+/**
+ * Extracts a short summary (max 80 chars) from a longer instruction.
+ */
+function extractSummary(instruction: string): string {
+  // Take first sentence or line
+  const firstSentence = instruction.split(/[.!?]\s/)[0];
+  const cleaned = firstSentence.replace(/^\*+|\*+$/g, '').trim();
+  
+  if (cleaned.length <= 80) {
+    return cleaned;
+  }
+  
+  // Truncate and add ellipsis
+  return cleaned.substring(0, 77) + "...";
+}
 
 /**
  * Parses AI response into structured step format.
  * Looks for "DO THIS NOW:" and "UP NEXT:" patterns.
+ * Returns step with separate summary and detail.
  */
 export function parseStepFromResponse(content: string): GuidedStep | null {
   // Try to find "DO THIS NOW:" pattern
@@ -62,13 +95,15 @@ export function parseStepFromResponse(content: string): GuidedStep | null {
   const simpleTitleMatch = content.match(/\*\*([A-Z][^*]{3,40})\*\*/);
   
   if (doThisMatch) {
-    const instruction = doThisMatch[1].trim();
+    const fullInstruction = doThisMatch[1].trim();
     const title = titleMatch?.[1]?.trim() || simpleTitleMatch?.[1]?.trim() || "Current Step";
     const upNext = upNextMatch?.[1]?.trim();
     
     return {
       title,
-      instruction: instruction.length > 150 ? instruction.substring(0, 147) + "..." : instruction,
+      summary: extractSummary(fullInstruction),
+      detail: fullInstruction,
+      speakText: fullInstruction,
       upNext,
     };
   }
@@ -77,15 +112,17 @@ export function parseStepFromResponse(content: string): GuidedStep | null {
   const lines = content.split('\n').filter(l => l.trim());
   if (lines.length > 0) {
     // Get first meaningful line as title
-    const firstLine = lines[0].replace(/^\*+|\*+$/g, '').trim();
+    const firstLine = lines[0].replace(/^\*+|\*+$/g, '').replace(/^#+\s*/, '').trim();
     const title = firstLine.length > 50 ? firstLine.substring(0, 47) + "..." : firstLine;
     
-    // Get a summary as instruction
-    const summary = lines.slice(0, 2).join(' ').substring(0, 150);
+    // Get a fuller summary from multiple lines
+    const fullDetail = lines.slice(0, 5).join(' ').replace(/\*+/g, '').trim();
     
     return {
       title: title || "Follow Instructions",
-      instruction: summary || "See the instructions above",
+      summary: extractSummary(fullDetail),
+      detail: fullDetail || "See the instructions above",
+      speakText: fullDetail,
       upNext: undefined,
     };
   }
@@ -95,7 +132,7 @@ export function parseStepFromResponse(content: string): GuidedStep | null {
 
 /**
  * Hook to manage guided walkthrough state.
- * Single source of truth for step progression.
+ * Single source of truth for step progression and transcript.
  */
 export function useGuidedWalkthrough(): UseGuidedWalkthroughReturn {
   const [state, setState] = useState<GuidedState>(initialState);
@@ -107,6 +144,7 @@ export function useGuidedWalkthrough(): UseGuidedWalkthroughReturn {
       game: gameName,
       steps: [],
       stepIndex: 0,
+      transcript: [],
     });
     spokenIdsRef.current.clear();
   }, []);
@@ -150,6 +188,18 @@ export function useGuidedWalkthrough(): UseGuidedWalkthroughReturn {
     return advanced;
   }, []);
   
+  const prevStep = useCallback((): boolean => {
+    let movedBack = false;
+    setState(prev => {
+      if (prev.stepIndex > 0) {
+        movedBack = true;
+        return { ...prev, stepIndex: prev.stepIndex - 1, status: 'in_step' };
+      }
+      return prev;
+    });
+    return movedBack;
+  }, []);
+  
   const setAnsweringQuestion = useCallback(() => {
     setState(prev => ({ ...prev, status: 'answering_question' }));
   }, []);
@@ -176,6 +226,20 @@ export function useGuidedWalkthrough(): UseGuidedWalkthroughReturn {
     return spokenIdsRef.current.has(messageId);
   }, []);
   
+  // Transcript management
+  const addToTranscript = useCallback((role: 'user' | 'assistant' | 'system', content: string): string => {
+    const id = `transcript-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    setState(prev => ({
+      ...prev,
+      transcript: [...prev.transcript, { id, role, content, timestamp: Date.now() }],
+    }));
+    return id;
+  }, []);
+  
+  const clearTranscript = useCallback(() => {
+    setState(prev => ({ ...prev, transcript: [] }));
+  }, []);
+  
   const currentStep = state.steps[state.stepIndex] || null;
   
   return {
@@ -184,15 +248,18 @@ export function useGuidedWalkthrough(): UseGuidedWalkthroughReturn {
     steps: state.steps,
     stepIndex: state.stepIndex,
     currentStep,
-    spokenMessageIds: spokenIdsRef.current,
+    transcript: state.transcript,
     markAsSpoken,
     hasBeenSpoken,
+    addToTranscript,
+    clearTranscript,
     startWalkthrough,
     setPlanning,
     setInStep,
     addStep,
     setSteps,
     nextStep,
+    prevStep,
     setAnsweringQuestion,
     returnToStep,
     complete,

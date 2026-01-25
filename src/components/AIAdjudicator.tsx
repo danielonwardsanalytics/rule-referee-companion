@@ -286,6 +286,12 @@ const AIAdjudicator = ({
   }, [input, isAudioEnabled, activeMode, sendMessage, ruleChangeContext, guidedWalkthrough]);
 
   const speakResponse = useCallback(async (text: string) => {
+    // PHASE 3 FIX: Skip TTS when Realtime WebRTC is active (it has its own audio)
+    if (isRealtimeConnected) {
+      console.log("[AIAdjudicator] TTS: Skipping - Realtime audio active");
+      return;
+    }
+    
     // Prevent concurrent TTS calls
     if (isSpeaking) {
       console.log("[AIAdjudicator] TTS: Already speaking, skipping");
@@ -293,6 +299,12 @@ const AIAdjudicator = ({
     }
     
     try {
+      // PHASE 3 FIX: Cancel any previous audio before starting new
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      
       setIsSpeaking(true);
       console.log("[AIAdjudicator] TTS: Starting speech");
 
@@ -323,7 +335,7 @@ const AIAdjudicator = ({
       setIsSpeaking(false);
     }
     // Note: setIsSpeaking(false) is handled by the audio onEnded event
-  }, [isSpeaking, voice]);
+  }, [isSpeaking, voice, isRealtimeConnected]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -438,13 +450,14 @@ Keep responses under 3 sentences unless more detail is requested.`;
     }
   };
 
-  const endRealtimeChat = () => {
+  const endRealtimeChat = useCallback(() => {
     realtimeChatRef.current?.disconnect();
     realtimeChatRef.current = null;
     setIsRealtimeConnected(false);
-    setRealtimeMessages([]);
-    toast.success("Voice chat disconnected");
-  };
+    // PHASE 2 FIX: Do NOT clear realtimeMessages on disconnect
+    // Messages persist in transcript - only clear on explicit reset
+    console.log("[AIAdjudicator] Voice chat disconnected, preserving transcript");
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -505,9 +518,20 @@ Keep responses under 3 sentences unless more detail is requested.`;
               // Request next step from AI
               handleSend("Next", true);
             }}
+            onPrevStep={() => {
+              guidedWalkthrough.prevStep();
+            }}
+            onStopSpeaking={() => {
+              if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+              }
+              setIsSpeaking(false);
+            }}
             onReset={() => {
               guidedWalkthrough.reset();
               clearMessages();
+              setRealtimeMessages([]);
             }}
           />
         ) : (
