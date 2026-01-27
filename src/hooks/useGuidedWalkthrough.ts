@@ -242,11 +242,17 @@ export function useGuidedWalkthrough(): UseGuidedWalkthroughReturn {
   }, []);
   
   const addStep = useCallback((step: GuidedStep) => {
-    setState(prev => ({
-      ...prev,
-      steps: [...prev.steps, step],
-      status: 'in_step',
-    }));
+    setState(prev => {
+      const newSteps = [...prev.steps, step];
+      return {
+        ...prev,
+        steps: newSteps,
+        // CRITICAL: Automatically advance stepIndex to the newly added step
+        // This ensures the UI shows the latest step, not stuck on step 0
+        stepIndex: newSteps.length - 1,
+        status: 'in_step',
+      };
+    });
   }, []);
   
   const setSteps = useCallback((steps: GuidedStep[]) => {
