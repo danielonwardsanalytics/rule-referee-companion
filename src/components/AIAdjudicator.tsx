@@ -193,8 +193,52 @@ const AIAdjudicator = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   const realtimeChatRef = useRef<RealtimeChat | null>(null);
   
+  // SPEC: Audio Source Locking - Only ONE audio source may be active at any time
+  // Prevents double audio and race conditions between WebRTC TTS and live voice chat
+  type AudioSource = 'none' | 'webrtc-tts' | 'realtime-chat';
+  const audioSourceRef = useRef<AudioSource>('none');
+  
   // WebRTC speech for unified audio across the app
   const { speakText: speakResponse, stopSpeaking, isSpeaking } = useWebRTCSpeech(voice);
+  
+  // Acquire exclusive audio lock - cleans up other source before granting
+  const acquireAudioLock = useCallback(async (source: AudioSource): Promise<boolean> => {
+    const current = audioSourceRef.current;
+    console.log(`[AudioLock] Acquiring ${source}, current: ${current}`);
+    
+    if (current === source && source !== 'none') {
+      console.log(`[AudioLock] Already holding ${source} lock`);
+      return true;
+    }
+    
+    // Cleanup current source before switching
+    if (current === 'webrtc-tts') {
+      console.log('[AudioLock] Stopping WebRTC TTS');
+      stopSpeaking();
+    } else if (current === 'realtime-chat') {
+      console.log('[AudioLock] Disconnecting realtime chat');
+      if (realtimeChatRef.current) {
+        realtimeChatRef.current.disconnect();
+        realtimeChatRef.current = null;
+      }
+      setIsRealtimeConnected(false);
+    }
+    
+    // Small delay to ensure cleanup completes
+    if (current !== 'none') {
+      await new Promise(r => setTimeout(r, 50));
+    }
+    
+    audioSourceRef.current = source;
+    console.log(`[AudioLock] Acquired ${source}`);
+    return true;
+  }, [stopSpeaking]);
+  
+  // Release audio lock
+  const releaseAudioLock = useCallback(() => {
+    console.log(`[AudioLock] Releasing, was: ${audioSourceRef.current}`);
+    audioSourceRef.current = 'none';
+  }, []);
   
   // Mode switch confirmation state
   const [showModeChangeConfirmation, setShowModeChangeConfirmation] = useState(false);
@@ -272,32 +316,28 @@ const AIAdjudicator = ({
   const handleSend = useCallback(async (messageOverride?: string, shouldSpeak?: boolean) => {
     const messageToSend = messageOverride || input;
 
-    // Treat a non-null realtimeChatRef as "connected" for audio-safety.
-    // This prevents TTS from firing while WebRTC is still active but state is mid-transition.
-    const hasActiveRealtime = isRealtimeConnected || !!realtimeChatRef.current;
-    
-    // CRITICAL FIX: If shouldSpeak is EXPLICITLY passed as true (e.g., from Next button),
-    // honor it regardless of realtime state. The caller is responsible for ensuring
-    // the realtime session is already disconnected before calling with shouldSpeak=true.
-    // This fixes the race condition where React state hasn't updated yet.
+    // SPEC: Determine if TTS should play based on explicit param or audio toggle
+    // If shouldSpeak is explicitly true (e.g., Next button), acquire TTS lock first
     const willSpeak = shouldSpeak === true 
       ? true 
-      : (hasActiveRealtime 
-          ? false 
-          : (shouldSpeak !== undefined ? shouldSpeak : isAudioEnabled));
+      : (shouldSpeak !== undefined ? shouldSpeak : isAudioEnabled);
 
     console.log("[AIAdjudicator] handleSend called:", { 
-      messageToSend, 
+      messageToSend: messageToSend.substring(0, 50), 
       willSpeak, 
-      activeMode, 
-      isRealtimeConnected,
-      hasActiveRealtime,
+      activeMode,
+      audioSource: audioSourceRef.current,
       originalShouldSpeak: shouldSpeak 
     });
 
     if (!messageToSend.trim()) {
       console.log("[AIAdjudicator] Empty message, skipping");
       return;
+    }
+
+    // SPEC: If we need to speak, acquire the TTS lock FIRST (stops any active realtime)
+    if (willSpeak) {
+      await acquireAudioLock('webrtc-tts');
     }
 
     if (!messageOverride) {
@@ -445,7 +485,7 @@ const AIAdjudicator = ({
       console.error("[AIAdjudicator] Error in sendMessage:", error);
       toast.error("Failed to send message");
     }
-   }, [input, isAudioEnabled, activeMode, sendMessage, ruleChangeContext, guidedWalkthrough, isRealtimeConnected, isGuidedMode]);
+   }, [input, isAudioEnabled, activeMode, sendMessage, ruleChangeContext, guidedWalkthrough, isGuidedMode, acquireAudioLock, releaseAudioLock]);
 
   // Note: speakResponse is now provided by useWebRTCSpeech hook (line ~197)
   // The hook handles all WebRTC audio, replacing the old TTS approach
@@ -482,8 +522,8 @@ const AIAdjudicator = ({
 
   const startRealtimeChat = async () => {
     try {
-      // CRITICAL: Stop any WebRTC speech before starting live voice chat
-      stopSpeaking();
+      // SPEC: Acquire realtime-chat audio lock first (stops any active TTS)
+      await acquireAudioLock('realtime-chat');
       
       setIsAudioEnabled(true);
 
@@ -651,9 +691,6 @@ Keep responses under 3 sentences unless more detail is requested.`;
   const endRealtimeChat = useCallback(() => {
     console.log("[AIAdjudicator] endRealtimeChat called - disconnecting voice chat");
     
-    // CRITICAL: Stop any WebRTC speech audio as well when ending realtime
-    stopSpeaking();
-    
     // Disconnect the WebRTC connection and release mic
     if (realtimeChatRef.current) {
       realtimeChatRef.current.disconnect();
@@ -664,10 +701,11 @@ Keep responses under 3 sentences unless more detail is requested.`;
     setIsRealtimeConnected(false);
     setIsAudioEnabled(false);
     
-    // PHASE 2 FIX: Do NOT clear realtimeMessages on disconnect
-    // Messages persist in transcript - only clear on explicit reset
-    console.log("[AIAdjudicator] Voice chat disconnected, mic released, preserving transcript");
-  }, [stopSpeaking]);
+    // SPEC: Release the audio lock
+    releaseAudioLock();
+    
+    console.log("[AIAdjudicator] Voice chat disconnected, mic released, audio lock released");
+  }, [releaseAudioLock]);
 
   // Check if there's an active session that should trigger confirmation
   const hasActiveSession = useCallback(() => {
@@ -771,36 +809,27 @@ Keep responses under 3 sentences unless more detail is requested.`;
             stepIndex={guidedWalkthrough.stepIndex}
             totalSteps={guidedWalkthrough.steps.length}
             isComplete={guidedWalkthrough.status === 'complete'}
-            onNextStep={() => {
+            onNextStep={async () => {
               console.log('[AIAdjudicator] Next button pressed - preparing step context');
               
               // Build context for the next step request
               const stepNumber = guidedWalkthrough.stepIndex + 1;
-              const gameName = guidedWalkthrough.game || 'the game';
+              const currentGameName = guidedWalkthrough.game || 'the game';
               const stepContext = guidedWalkthrough.currentStep 
-                ? `[GUIDED MODE: Playing ${gameName}. Just completed Step ${stepNumber}: "${guidedWalkthrough.currentStep.summary}"] Provide the NEXT step (Step ${stepNumber + 1}).`
-                : `[GUIDED MODE: Playing ${gameName}] Provide the next step.`;
+                ? `[GUIDED MODE: Playing ${currentGameName}. Just completed Step ${stepNumber}: "${guidedWalkthrough.currentStep.summary}"] Provide the NEXT step (Step ${stepNumber + 1}).`
+                : `[GUIDED MODE: Playing ${currentGameName}] Provide the next step.`;
               
               console.log('[AIAdjudicator] Next button context:', stepContext);
               
-              // CRITICAL FIX: Force disconnect AND stop speech BEFORE sending next step
-              // This ensures clean audio state before requesting new instruction
-              if (realtimeChatRef.current) {
-                console.log('[AIAdjudicator] Next: Disconnecting lingering voice session');
-                realtimeChatRef.current.disconnect();
-                realtimeChatRef.current = null;
-                setIsRealtimeConnected(false);
-              }
-              stopSpeaking();
-              
+              // SPEC: The audio lock acquisition in handleSend will clean up any active audio
               // Request next step with TTS enabled (shouldSpeak = true)
-              handleSend(stepContext, true);
+              await handleSend(stepContext, true);
             }}
             onPrevStep={() => {
               guidedWalkthrough.prevStep();
             }}
-            onStopSpeaking={() => {
-              stopSpeaking();
+            onStopSpeaking={async () => {
+              await acquireAudioLock('none');
             }}
             onReset={() => {
               endRealtimeChat();

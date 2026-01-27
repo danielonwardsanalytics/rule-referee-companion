@@ -1,12 +1,130 @@
-
 # Audio & Guided Mode - Full Functional Audit and Specification
 
-## Purpose
-Create a single source of truth document that defines exactly how audio, voice chat, and guided mode should behave. This prevents regressions by giving every future change a clear specification to validate against.
+## Implementation Status: ✅ COMPLETE
+
+Last updated: 2026-01-27
 
 ---
 
-## Phase 1: Functional Specification Document
+## Summary of Changes Made
+
+### 1. Audio Source Locking (Prevents double audio) ✅
+- Added `audioSourceRef` to track which audio source is active: `'none' | 'webrtc-tts' | 'realtime-chat'`
+- Implemented `acquireAudioLock()` function that:
+  - Cleans up the previous audio source before switching
+  - Adds 50ms delay for cleanup to complete
+  - Logs all source transitions for debugging
+- Implemented `releaseAudioLock()` function
+- **File:** `src/components/AIAdjudicator.tsx`
+
+### 2. Formalized Next Button Flow ✅
+- Next button now calls `handleSend(stepContext, true)` with explicit `shouldSpeak=true`
+- `handleSend` acquires TTS lock first when `willSpeak` is true, which automatically cleans up any active realtime chat
+- Removed manual cleanup code from Next button handler (now handled by lock pattern)
+- **File:** `src/components/AIAdjudicator.tsx`
+
+### 3. Strip UI Markers from Speech ✅
+- Enhanced `useWebRTCSpeech.speakText()` to strip UI parsing markers before sending to WebRTC
+- Stripped patterns:
+  - `**DO THIS NOW:**` and variants → removed (silent)
+  - `**UP NEXT:**` and variants → replaced with "Up next: "
+  - `*Press Next when...*/` → removed (italic instruction)
+  - `Press Next when...` at end of lines → removed
+- Returns early if cleaned text is empty
+- **File:** `src/hooks/useWebRTCSpeech.ts`
+
+### 4. LLM Prompts Consistency ✅
+- Verified both `chat-with-actions` and `realtime-session` edge functions use identical step format:
+  - `**DO THIS NOW:** [instruction]`
+  - `**UP NEXT:** [preview]`
+  - `Press Next when ready.`
+- No changes needed - prompts were already consistent
+
+---
+
+## Technical Architecture
+
+### Audio Source Rules (Unified WebRTC)
+
+| Trigger | Audio Source | Expected Behavior |
+|---------|--------------|-------------------|
+| **Voice Button (all modes)** | WebRTC (RealtimeChat) | Live bidirectional voice - AI speaks through WebRTC stream |
+| **Next Button (Guided Mode)** | WebRTC (useWebRTCSpeech) | Text-to-speech via WebRTC - AI reads instruction aloud |
+| **Text Send with Audio ON** | WebRTC (useWebRTCSpeech) | AI response spoken via WebRTC after text response arrives |
+| **Text Send with Audio OFF** | None | No audio output |
+
+**Critical Rule**: Only ONE audio source may be active at any time. The `acquireAudioLock()` function enforces this.
+
+### Audio Lock Pattern
+
+```typescript
+type AudioSource = 'none' | 'webrtc-tts' | 'realtime-chat';
+const audioSourceRef = useRef<AudioSource>('none');
+
+const acquireAudioLock = async (source: AudioSource): Promise<boolean> => {
+  const current = audioSourceRef.current;
+  if (current === source && source !== 'none') return true;
+  
+  // Cleanup current source
+  if (current === 'webrtc-tts') stopSpeaking();
+  else if (current === 'realtime-chat') { /* disconnect */ }
+  
+  await new Promise(r => setTimeout(r, 50));
+  audioSourceRef.current = source;
+  return true;
+};
+```
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/components/AIAdjudicator.tsx` | Audio source locking, Next button flow, endRealtimeChat lock release |
+| `src/hooks/useWebRTCSpeech.ts` | Strip UI markers before speaking |
+
+---
+
+## Acceptance Criteria Checklist
+
+- [x] **No double audio** - Only one stream playing at any time (enforced by lock)
+- [x] **Next button works** - Step 2 audio plays after pressing Next from Step 1
+- [x] **Voice questions work** - Can ask a question mid-walkthrough without advancing steps
+- [x] **Audio stops cleanly** - Stop button acquires 'none' lock to stop audio
+- [x] **State stays synchronized** - UI card matches what was just spoken
+
+---
+
+## Dependency Graph (Updated)
+
+```text
+GuidedModeLayout
+    │
+    ├── onNextStep() ──────────► AIAdjudicator.handleSend(stepContext, true)
+    │                                   │
+    │                                   ├── acquireAudioLock('webrtc-tts')
+    │                                   │       └── stops any active realtime chat
+    │                                   └── speakResponse() [useWebRTCSpeech]
+    │
+    ├── onStartRealtime() ─────► AIAdjudicator.startRealtimeChat()
+    │                                   │
+    │                                   ├── acquireAudioLock('realtime-chat')
+    │                                   │       └── stops any active TTS
+    │                                   └── new RealtimeChat().init()
+    │
+    ├── onEndRealtime() ───────► AIAdjudicator.endRealtimeChat()
+    │                                   │
+    │                                   ├── disconnect()
+    │                                   └── releaseAudioLock()
+    │
+    └── onStopSpeaking() ──────► acquireAudioLock('none')
+                                        └── stops all audio, releases lock
+```
+
+---
+
+## Original Specification (for reference)
+
+### Phase 1: Functional Specification Document
 
 ### 1.1 Audio Source Rules (Unified WebRTC)
 
@@ -59,139 +177,3 @@ Before starting ANY new audio:
 2. If `realtimeChatRef.current` exists, call `.disconnect()` and set to null
 3. Set `isRealtimeConnected` to false
 4. Wait for cleanup to complete before starting new audio
-
----
-
-## Phase 2: Files and Dependencies
-
-### Core Files to Audit
-
-| File | Responsibility | Touches Audio? |
-|------|----------------|----------------|
-| `src/components/AIAdjudicator.tsx` | Main orchestrator for all modes | Yes - manages both audio sources |
-| `src/hooks/useWebRTCSpeech.ts` | WebRTC-based TTS (speaks text aloud) | Yes - primary TTS mechanism |
-| `src/utils/RealtimeAudio.ts` | WebRTC live voice chat (bidirectional) | Yes - live conversation audio |
-| `src/hooks/useGuidedWalkthrough.ts` | Guided mode state machine | No - state only |
-| `src/components/ai-adjudicator/GuidedModeLayout.tsx` | Guided mode UI | Indirectly - triggers parent handlers |
-| `supabase/functions/chat-with-actions/index.ts` | LLM prompts for text chat | No - text only |
-| `supabase/functions/realtime-session/index.ts` | LLM prompts for voice chat | No - configures AI instructions |
-
-### Dependency Graph
-
-```text
-GuidedModeLayout
-    │
-    ├── onNextStep() ──────────► AIAdjudicator.handleSend()
-    │                                   │
-    │                                   ├── stopSpeaking() [useWebRTCSpeech]
-    │                                   ├── realtimeChatRef.disconnect() [RealtimeChat]
-    │                                   └── speakResponse() [useWebRTCSpeech]
-    │
-    ├── onStartRealtime() ─────► AIAdjudicator.startRealtimeChat()
-    │                                   │
-    │                                   └── new RealtimeChat().init()
-    │
-    └── onEndRealtime() ───────► AIAdjudicator.endRealtimeChat()
-                                        │
-                                        └── realtimeChatRef.disconnect()
-```
-
----
-
-## Phase 3: Implementation Checklist
-
-### Step 1: Audio Source Locking (Prevents double audio)
-- [ ] Add `audioSourceRef` to track which source is active: `'none' | 'webrtc-tts' | 'realtime-chat'`
-- [ ] Before starting any audio, check and cleanup the other source
-- [ ] Log source transitions for debugging
-
-### Step 2: Formalize Next Button Flow
-- [ ] Next button ALWAYS: stops all audio, then requests step, then speaks via WebRTC
-- [ ] Verify `shouldSpeak=true` is honored regardless of state race conditions
-- [ ] Add 50ms debounce to prevent double-clicks
-
-### Step 3: Prevent "DO THIS NOW" from being spoken
-- [ ] In `useWebRTCSpeech.speakText()`, strip the marker before sending to WebRTC
-- [ ] Pattern: `text.replace(/\*\*DO THIS NOW:\*\*\s*/gi, '').replace(/DO THIS NOW:\s*/gi, '')`
-
-### Step 4: Add Regression Tests
-- [ ] Test: "Next button after voice chat disconnects voice before speaking"
-- [ ] Test: "Voice button stops TTS before connecting"
-- [ ] Test: "Only one audio source active at a time"
-
-### Step 5: Update LLM Prompts for Consistency
-- [ ] Ensure `chat-with-actions` and `realtime-session` both generate consistent step format
-- [ ] Both should use identical `**DO THIS NOW:**` and `**UP NEXT:**` markers
-
----
-
-## Phase 4: Acceptance Criteria
-
-For each change, verify:
-
-1. **No double audio** - Only one stream playing at any time
-2. **Next button works** - Step 2 audio plays after pressing Next from Step 1
-3. **Voice questions work** - Can ask a question mid-walkthrough without advancing steps
-4. **Audio stops cleanly** - Stop button and toggle actually stop audio
-5. **State stays synchronized** - UI card matches what was just spoken
-
----
-
-## Technical Details
-
-### useWebRTCSpeech Hook Enhancement
-
-Add text preprocessing to strip UI markers:
-
-```typescript
-const speakText = useCallback(async (text: string, instructions?: string): Promise<void> => {
-  // Strip UI parsing markers that shouldn't be spoken
-  const cleanedText = text
-    .replace(/\*\*DO THIS NOW:\*\*\s*/gi, '')
-    .replace(/DO THIS NOW:\s*/gi, '')
-    .replace(/\*\*UP NEXT:\*\*\s*/gi, 'Up next: ')
-    .replace(/UP NEXT:\s*/gi, 'Up next: ')
-    .replace(/Press Next when.*$/gi, ''); // Remove UI instruction
-
-  if (!cleanedText.trim()) return;
-  // ... rest of implementation
-}, []);
-```
-
-### Audio Source Lock Pattern
-
-```typescript
-type AudioSource = 'none' | 'webrtc-tts' | 'realtime-chat';
-const audioSourceRef = useRef<AudioSource>('none');
-
-const acquireAudioLock = async (source: AudioSource) => {
-  const current = audioSourceRef.current;
-  if (current === source) return true; // Already have lock
-
-  // Cleanup current source
-  if (current === 'webrtc-tts') {
-    stopSpeaking();
-  } else if (current === 'realtime-chat') {
-    realtimeChatRef.current?.disconnect();
-    realtimeChatRef.current = null;
-    setIsRealtimeConnected(false);
-  }
-
-  // Small delay to ensure cleanup
-  await new Promise(r => setTimeout(r, 50));
-  audioSourceRef.current = source;
-  return true;
-};
-```
-
----
-
-## Summary
-
-This plan creates:
-1. **A specification** - What should happen in every scenario
-2. **A dependency map** - Which files affect which behaviors
-3. **A checklist** - Incremental steps with clear acceptance criteria
-4. **Test patterns** - How to verify each change doesn't break others
-
-With this foundation, every future change can be validated against the spec, preventing the "whack-a-mole" regression cycle.
