@@ -12,7 +12,7 @@ import { useTournamentPlayers } from "@/hooks/useTournamentPlayers";
 import { useTournamentNotes } from "@/hooks/useTournamentNotes";
 import { useGameResults } from "@/hooks/useGameResults";
 import { supabase } from "@/integrations/supabase/client";
-import { RealtimeChat } from "@/utils/RealtimeAudio";
+import { RealtimeChat, GuidedVoiceContext } from "@/utils/RealtimeAudio";
 import { ContextSelectorBox } from "@/components/ai-adjudicator/ContextSelectorBox";
 import { TournamentRulesSelector } from "@/components/ai-adjudicator/TournamentRulesSelector";
 import { TournamentMiniScoreboard } from "@/components/ai-adjudicator/TournamentMiniScoreboard";
@@ -678,12 +678,20 @@ Keep responses under 3 sentences unless more detail is requested.`;
         },
         contextInstructions,
         voice,
-        gameName,
+        // In guided mode, use the walkthrough's game name (more up-to-date) or fall back to context
+        isGuidedMode ? (guidedWalkthrough.game || undefined) : gameName,
         isGuidedMode ? undefined : houseRulesText,
         // Voice chat is Q&A only - no action detection needed
         // Actions are handled by text chat, voice chat politely declines
         undefined,
-        activeMode
+        activeMode,
+        // CRITICAL: Pass guided context for session continuity when re-engaging voice chat
+        isGuidedMode && guidedWalkthrough.game && guidedWalkthrough.currentStep ? {
+          game: guidedWalkthrough.game,
+          currentStep: guidedWalkthrough.currentStep.title,
+          stepIndex: guidedWalkthrough.stepIndex,
+          totalSteps: guidedWalkthrough.steps.length
+        } as GuidedVoiceContext : undefined
       );
 
       await realtimeChatRef.current.init();

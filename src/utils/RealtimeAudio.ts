@@ -61,6 +61,14 @@ export class AudioRecorder {
   }
 }
 
+// Context for Guided Mode to preserve state between voice sessions
+export interface GuidedVoiceContext {
+  game: string;
+  currentStep: string;
+  stepIndex: number;
+  totalSteps: number;
+}
+
 export class RealtimeChat {
   private pc: RTCPeerConnection | null = null;
   private dc: RTCDataChannel | null = null;
@@ -75,7 +83,8 @@ export class RealtimeChat {
     private gameName?: string,
     private houseRules?: string[],
     private onUserTranscript?: (transcript: string) => void,
-    private activeMode?: 'hub' | 'quickStart' | 'tournament' | 'guided'
+    private activeMode?: 'hub' | 'quickStart' | 'tournament' | 'guided',
+    private guidedContext?: GuidedVoiceContext
   ) {
     this.audioEl = document.createElement("audio");
     this.audioEl.autoplay = true;
@@ -92,7 +101,8 @@ export class RealtimeChat {
           voice: this.voice,
           gameName: this.gameName,
           houseRules: this.houseRules,
-          activeMode: this.activeMode
+          activeMode: this.activeMode,
+          guidedContext: this.guidedContext
         }
       });
 

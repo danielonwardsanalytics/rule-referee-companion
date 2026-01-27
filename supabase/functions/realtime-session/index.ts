@@ -45,7 +45,7 @@ serve(async (req) => {
       throw new Error('OPENAI_API_KEY is not set');
     }
 
-    const { instructions, voice = "alloy", gameName, houseRules, activeMode } = await req.json();
+    const { instructions, voice = "alloy", gameName, houseRules, activeMode, guidedContext } = await req.json();
 
     // Request an ephemeral token from OpenAI Realtime API
     const response = await fetch("https://api.openai.com/v1/realtime/sessions", {
@@ -57,7 +57,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "gpt-4o-realtime-preview-2024-12-17",
         voice: voice,
-        instructions: instructions || buildInstructions(gameName, houseRules, activeMode),
+        instructions: instructions || buildInstructions(gameName, houseRules, activeMode, guidedContext),
         // VAD settings for natural conversation pauses
         turn_detection: {
           type: "server_vad",
@@ -92,11 +92,51 @@ serve(async (req) => {
   }
 });
 
-function buildGuidedVoiceInstructions(gameName?: string): string {
+// Guided context from frontend for session continuity
+interface GuidedVoiceContext {
+  game: string;
+  currentStep: string;
+  stepIndex: number;
+  totalSteps: number;
+}
+
+function buildGuidedVoiceInstructions(gameName?: string, guidedContext?: GuidedVoiceContext): string {
+  // Determine the effective game name - prefer guidedContext.game as it's the most up-to-date
+  const effectiveGame = guidedContext?.game || gameName;
+  
+  // Build context-aware intro for returning users
+  let contextSection = '';
+  if (guidedContext && guidedContext.game) {
+    contextSection = `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CURRENT SESSION CONTEXT (CRITICAL - YOU ARE RESUMING)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+You are ALREADY guiding players through ${guidedContext.game}.
+Current step: ${guidedContext.stepIndex + 1} of ${guidedContext.totalSteps}
+Last instruction given: "${guidedContext.currentStep}"
+
+The user just pressed the voice button to ASK A QUESTION - NOT to start over.
+DO NOT ask which game they're playing - you already know it's ${guidedContext.game}.
+DO NOT provide a new step unless they explicitly ask for it.
+
+If they ask a question:
+- Answer it briefly and clearly
+- Say "Press Next when you're ready to continue."
+- Do NOT include **DO THIS NOW:** markers for questions
+
+If they want to change the current step:
+- Confirm: "Would you like me to change the next step to [your suggestion]? Let me know and I'll update it."
+- Only provide a new step with **DO THIS NOW:** if they explicitly confirm
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+  }
+
   return `You are House Rules – Guided Walkthrough Mode, a voice assistant that walks players through games step by step.
 
 Your job: Guide players through the ENTIRE game, one step at a time. You are like a facilitator at the table.
-
+${contextSection}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 SCOPE FILTER (CRITICAL - APPLY ALWAYS)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -158,7 +198,7 @@ VOICE STYLE:
 - Keep each response under 30 seconds
 - Be friendly but focused on the task
 
-${gameName ? `You're guiding players through ${gameName}.` : 'Waiting for the user to tell you which game to walk through.'}
+${effectiveGame ? `You're guiding players through ${effectiveGame}.` : 'Waiting for the user to tell you which game to walk through.'}
 
 VOICE CHAT LIMITATION: You can ONLY guide and answer questions - you cannot create rule sets, tournaments, or make changes. If asked, politely redirect to the text chat or UI.`;
 }
@@ -198,10 +238,10 @@ Keep it snappy! Players should be playing within 30 seconds of your response.
 VOICE CHAT LIMITATION: You can ONLY answer questions - you cannot create rule sets, tournaments, or make changes. If asked, politely redirect to the text chat or UI.`;
 }
 
-function buildInstructions(gameName?: string, houseRules?: string[], activeMode?: string): string {
-  // If Guided mode, use specialized voice instructions
+function buildInstructions(gameName?: string, houseRules?: string[], activeMode?: string, guidedContext?: GuidedVoiceContext): string {
+  // If Guided mode, use specialized voice instructions with context
   if (activeMode === 'guided') {
-    return buildGuidedVoiceInstructions(gameName);
+    return buildGuidedVoiceInstructions(gameName, guidedContext);
   }
   
   // If QuickStart mode, use specialized voice instructions
