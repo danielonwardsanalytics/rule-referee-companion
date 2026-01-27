@@ -471,6 +471,13 @@ const AIAdjudicator = ({
 
   const startRealtimeChat = async () => {
     try {
+      // CRITICAL: Stop any TTS before starting voice chat to prevent double audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      setIsSpeaking(false);
+      
       setIsAudioEnabled(true);
 
       toast.info("Connecting to voice chat...");
@@ -553,12 +560,28 @@ Keep responses under 3 sentences unless more detail is requested.`;
   };
 
   const endRealtimeChat = useCallback(() => {
-    realtimeChatRef.current?.disconnect();
-    realtimeChatRef.current = null;
+    console.log("[AIAdjudicator] endRealtimeChat called - disconnecting voice chat");
+    
+    // CRITICAL: Stop TTS audio as well when ending realtime
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setIsSpeaking(false);
+    
+    // Disconnect the WebRTC connection and release mic
+    if (realtimeChatRef.current) {
+      realtimeChatRef.current.disconnect();
+      realtimeChatRef.current = null;
+    }
+    
+    // Update state AFTER disconnecting to ensure cleanup happens
     setIsRealtimeConnected(false);
+    setIsAudioEnabled(false);
+    
     // PHASE 2 FIX: Do NOT clear realtimeMessages on disconnect
     // Messages persist in transcript - only clear on explicit reset
-    console.log("[AIAdjudicator] Voice chat disconnected, preserving transcript");
+    console.log("[AIAdjudicator] Voice chat disconnected, mic released, preserving transcript");
   }, []);
 
   // Check if there's an active session that should trigger confirmation
