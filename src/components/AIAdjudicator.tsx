@@ -647,6 +647,13 @@ Keep responses under 3 sentences unless more detail is requested.`;
                     gameName: guidedWalkthrough.game
                   });
                   guidedWalkthrough.addStep(parsedStep);
+                  
+                  // CRITICAL FIX: Disconnect voice chat after first instruction is delivered
+                  // This prevents mic from staying on and allows "Next" button to be the trigger
+                  console.log('[AIAdjudicator] Voice: Step delivered, disconnecting voice chat');
+                  setTimeout(() => {
+                    endRealtimeChat();
+                  }, 500); // Small delay to ensure audio finishes
                 } else {
                   console.warn('[AIAdjudicator] Voice: Step marker found but parsing failed');
                 }
@@ -813,10 +820,15 @@ Keep responses under 3 sentences unless more detail is requested.`;
                 setIsRealtimeConnected(false);
               }
               
-              // Include current step context so AI knows where we are
+              // Include current step context AND step number so AI knows exactly where we are
+              // This is crucial for proper progression - AI needs to know which step just completed
+              const stepNumber = guidedWalkthrough.stepIndex + 1;
+              const gameName = guidedWalkthrough.game || 'the game';
               const stepContext = guidedWalkthrough.currentStep 
-                ? `[Current step: "${guidedWalkthrough.currentStep.summary}"] Next`
-                : 'Next';
+                ? `[GUIDED MODE: Playing ${gameName}. Just completed Step ${stepNumber}: "${guidedWalkthrough.currentStep.summary}"] Provide the NEXT step (Step ${stepNumber + 1}).`
+                : `[GUIDED MODE: Playing ${gameName}] Provide the next step.`;
+              
+              console.log('[AIAdjudicator] Next button context:', stepContext);
               
               // Use TTS for the response (shouldSpeak = true)
               handleSend(stepContext, true);

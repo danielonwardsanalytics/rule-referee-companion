@@ -358,7 +358,7 @@ export function GuidedModeLayout({
             <div className="flex items-center gap-2 mb-1">
               {totalSteps > 0 && (
                 <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">
-                  Step {stepIndex + 1}
+                  Step {stepIndex + 1} of {totalSteps}
                 </span>
               )}
               <h4 className="font-semibold text-foreground truncate">{currentStep.title}</h4>
