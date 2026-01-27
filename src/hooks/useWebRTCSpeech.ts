@@ -74,7 +74,25 @@ export const useWebRTCSpeech = (voice: string = 'alloy') => {
   const speakText = useCallback(async (text: string, instructions?: string): Promise<void> => {
     if (!text.trim()) return;
 
-    console.log('[WebRTCSpeech] Speaking text:', text.substring(0, 50) + '...');
+    // SPEC: Strip UI parsing markers that shouldn't be spoken aloud
+    // These markers are for the frontend to parse step data, not for audio
+    const cleanedText = text
+      .replace(/\*\*DO THIS NOW:\*\*\s*/gi, '')
+      .replace(/\*\*DO THIS NOW\*\*:\s*/gi, '')
+      .replace(/DO THIS NOW:\s*/gi, '')
+      .replace(/\*\*UP NEXT:\*\*\s*/gi, 'Up next: ')
+      .replace(/\*\*UP NEXT\*\*:\s*/gi, 'Up next: ')
+      .replace(/UP NEXT:\s*/gi, 'Up next: ')
+      .replace(/\*Press Next when.*?\*/gi, '')  // Remove italic press next instructions
+      .replace(/Press Next when.*$/gim, '')     // Remove press next at end of lines
+      .trim();
+
+    if (!cleanedText) {
+      console.log('[WebRTCSpeech] Text empty after stripping markers, skipping');
+      return;
+    }
+
+    console.log('[WebRTCSpeech] Speaking text:', cleanedText.substring(0, 50) + '...');
     
     // Clean up any existing connection first
     cleanup();
@@ -140,7 +158,7 @@ export const useWebRTCSpeech = (voice: string = 'alloy') => {
               content: [
                 {
                   type: 'input_text',
-                  text: `Please read this text aloud exactly as written: "${text}"`,
+                  text: `Please read this text aloud exactly as written: "${cleanedText}"`,
                 },
               ],
             },
