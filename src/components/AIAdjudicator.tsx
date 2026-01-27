@@ -248,9 +248,19 @@ const AIAdjudicator = ({
 
   const handleSend = useCallback(async (messageOverride?: string, shouldSpeak?: boolean) => {
     const messageToSend = messageOverride || input;
-    const willSpeak = shouldSpeak !== undefined ? shouldSpeak : isAudioEnabled;
+    // CRITICAL FIX: Never speak TTS when Realtime WebRTC is active - it has its own audio stream
+    // This prevents double audio (WebRTC audio + TTS audio playing simultaneously)
+    const willSpeak = isRealtimeConnected 
+      ? false 
+      : (shouldSpeak !== undefined ? shouldSpeak : isAudioEnabled);
 
-    console.log("[AIAdjudicator] handleSend called:", { messageToSend, willSpeak, activeMode });
+    console.log("[AIAdjudicator] handleSend called:", { 
+      messageToSend, 
+      willSpeak, 
+      activeMode, 
+      isRealtimeConnected,
+      originalShouldSpeak: shouldSpeak 
+    });
 
     if (!messageToSend.trim()) {
       console.log("[AIAdjudicator] Empty message, skipping");
@@ -336,26 +346,35 @@ const AIAdjudicator = ({
       console.error("[AIAdjudicator] Error in sendMessage:", error);
       toast.error("Failed to send message");
     }
-  }, [input, isAudioEnabled, activeMode, sendMessage, ruleChangeContext, guidedWalkthrough]);
+  }, [input, isAudioEnabled, activeMode, sendMessage, ruleChangeContext, guidedWalkthrough, isRealtimeConnected]);
 
   const speakResponse = useCallback(async (text: string) => {
-    // PHASE 3 FIX: Skip TTS when Realtime WebRTC is active (it has its own audio)
+    // CRITICAL FIX: Double-check Realtime is not active before TTS
+    // This catches cases where the state might have changed during async operations
     if (isRealtimeConnected) {
-      console.log("[AIAdjudicator] TTS: Skipping - Realtime audio active");
+      console.log("[AIAdjudicator] TTS: Skipping - Realtime WebRTC audio is active (has its own audio stream)");
       return;
     }
     
     // Prevent concurrent TTS calls
     if (isSpeaking) {
-      console.log("[AIAdjudicator] TTS: Already speaking, skipping");
+      console.log("[AIAdjudicator] TTS: Already speaking, skipping concurrent call");
       return;
     }
     
+    console.log("[AIAdjudicator] TTS: Proceeding with text-to-speech for:", text.substring(0, 50) + "...");
+    
     try {
-      // PHASE 3 FIX: Cancel any previous audio before starting new
+      // Cancel any previous audio before starting new
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
+      }
+      
+      // Final realtime check before making the network call
+      if (isRealtimeConnected) {
+        console.log("[AIAdjudicator] TTS: Aborting - Realtime became active during setup");
+        return;
       }
       
       setIsSpeaking(true);
