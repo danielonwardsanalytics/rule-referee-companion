@@ -271,7 +271,20 @@ export function GuidedModeLayout({
             </span>
             <Switch
               checked={isAudioEnabled}
-              onCheckedChange={setIsAudioEnabled}
+              onCheckedChange={(next) => {
+                setIsAudioEnabled(next);
+
+                // Users interpret this as "turn off chat/audio".
+                // If voice chat is currently connected, fully disconnect to release the mic.
+                if (!next && isRealtimeConnected) {
+                  onEndRealtime();
+                }
+
+                // If TTS is speaking, stop immediately.
+                if (!next && isSpeaking && onStopSpeaking) {
+                  onStopSpeaking();
+                }
+              }}
               className="h-4 w-8"
             />
           </div>

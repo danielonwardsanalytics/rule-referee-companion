@@ -89,6 +89,7 @@ const AIAdjudicator = ({
 }: AIAdjudicatorProps) => {
   // Mode state for Game Companion hub
   const [activeMode, setActiveMode] = useState<CompanionMode>('hub');
+  const isGuidedMode = activeMode === 'guided';
   const {
     activeRuleSet,
     activeTournament,
@@ -116,11 +117,15 @@ const AIAdjudicator = ({
   const effectiveTournamentId = preSelectedTournamentId || activeTournamentId;
 
   // Get house rules for the active rule set
-  const { rules: activeRules } = useHouseRules(effectiveRuleSetId || undefined);
-  const houseRulesText = activeRules?.map((r) => r.rule_text) || [];
+  const { rules: activeRules } = useHouseRules(
+    isGuidedMode ? undefined : (effectiveRuleSetId || undefined)
+  );
+  const houseRulesText = isGuidedMode ? [] : (activeRules?.map((r) => r.rule_text) || []);
 
   // Get tournament players for context
-  const { players: tournamentPlayers } = useTournamentPlayers(effectiveTournamentId || undefined);
+  const { players: tournamentPlayers } = useTournamentPlayers(
+    isGuidedMode ? undefined : (effectiveTournamentId || undefined)
+  );
   const tournamentPlayersContext = tournamentPlayers?.map(p => ({
     id: p.id,
     display_name: p.display_name,
@@ -128,7 +133,9 @@ const AIAdjudicator = ({
   })) || [];
 
   // Get tournament notes for context
-  const { notes: tournamentNotes } = useTournamentNotes(effectiveTournamentId || undefined);
+  const { notes: tournamentNotes } = useTournamentNotes(
+    isGuidedMode ? undefined : (effectiveTournamentId || undefined)
+  );
   const tournamentNotesContext = tournamentNotes?.map(n => ({
     title: n.title,
     content: n.content,
@@ -136,7 +143,9 @@ const AIAdjudicator = ({
   })) || [];
 
   // Get game results for context
-  const { results: gameResults } = useGameResults(effectiveTournamentId || undefined);
+  const { results: gameResults } = useGameResults(
+    isGuidedMode ? undefined : (effectiveTournamentId || undefined)
+  );
   const gameResultsContext = gameResults?.map(r => ({
     winner_name: r.tournament_players?.display_name || 'Unknown',
     created_at: r.created_at || '',
@@ -144,7 +153,7 @@ const AIAdjudicator = ({
   })) || [];
 
   // Determine game name from context
-  const gameName = activeRuleSet?.gameName || activeTournament?.gameName || undefined;
+  const gameName = isGuidedMode ? undefined : (activeRuleSet?.gameName || activeTournament?.gameName || undefined);
 
   const { 
     messages, 
@@ -157,7 +166,16 @@ const AIAdjudicator = ({
     handleVoiceConfirmation,
     isExecutingAction,
     detectActionInTranscript,
-  } = useChatWithActions(gameName, houseRulesText, effectiveRuleSetId, effectiveTournamentId, tournamentPlayersContext, tournamentNotesContext, gameResultsContext, activeMode);
+  } = useChatWithActions(
+    gameName,
+    houseRulesText,
+    isGuidedMode ? null : effectiveRuleSetId,
+    isGuidedMode ? null : effectiveTournamentId,
+    tournamentPlayersContext,
+    tournamentNotesContext,
+    gameResultsContext,
+    activeMode
+  );
   
   // Native speech recognition hook (works on native apps and web)
   const { 
@@ -218,6 +236,10 @@ const AIAdjudicator = ({
 
   // Build context prompt
   const buildContextPrompt = () => {
+    // Guided Mode must be STANDARD RULES ONLY (no tournament, no house rules)
+    // and must not inject extra context that could override the guided system prompt.
+    if (isGuidedMode) return "";
+
     let prompt = "";
     
     // Include rule change context if present
@@ -248,9 +270,13 @@ const AIAdjudicator = ({
 
   const handleSend = useCallback(async (messageOverride?: string, shouldSpeak?: boolean) => {
     const messageToSend = messageOverride || input;
+
+    // Treat a non-null realtimeChatRef as "connected" for audio-safety.
+    // This prevents TTS from firing while WebRTC is still active but state is mid-transition.
+    const hasActiveRealtime = isRealtimeConnected || !!realtimeChatRef.current;
     // CRITICAL FIX: Never speak TTS when Realtime WebRTC is active - it has its own audio stream
     // This prevents double audio (WebRTC audio + TTS audio playing simultaneously)
-    const willSpeak = isRealtimeConnected 
+    const willSpeak = hasActiveRealtime 
       ? false 
       : (shouldSpeak !== undefined ? shouldSpeak : isAudioEnabled);
 
@@ -271,7 +297,9 @@ const AIAdjudicator = ({
       setInput("");
     }
 
-    const messageText = buildContextPrompt() + messageToSend;
+    const messageText = isGuidedMode
+      ? messageToSend
+      : (buildContextPrompt() + messageToSend);
     console.log("[AIAdjudicator] Sending message with context:", messageText);
     
     // In guided mode, add user message to transcript
@@ -376,12 +404,12 @@ const AIAdjudicator = ({
       console.error("[AIAdjudicator] Error in sendMessage:", error);
       toast.error("Failed to send message");
     }
-  }, [input, isAudioEnabled, activeMode, sendMessage, ruleChangeContext, guidedWalkthrough, isRealtimeConnected]);
+   }, [input, isAudioEnabled, activeMode, sendMessage, ruleChangeContext, guidedWalkthrough, isRealtimeConnected, isGuidedMode]);
 
   const speakResponse = useCallback(async (text: string) => {
     // CRITICAL FIX: Double-check Realtime is not active before TTS
     // This catches cases where the state might have changed during async operations
-    if (isRealtimeConnected) {
+    if (isRealtimeConnected || realtimeChatRef.current) {
       console.log("[AIAdjudicator] TTS: Skipping - Realtime WebRTC audio is active (has its own audio stream)");
       return;
     }
@@ -402,7 +430,7 @@ const AIAdjudicator = ({
       }
       
       // Final realtime check before making the network call
-      if (isRealtimeConnected) {
+      if (isRealtimeConnected || realtimeChatRef.current) {
         console.log("[AIAdjudicator] TTS: Aborting - Realtime became active during setup");
         return;
       }
@@ -482,30 +510,33 @@ const AIAdjudicator = ({
 
       toast.info("Connecting to voice chat...");
 
+      // Guided Mode voice chat should use the backend's guided voice instructions,
+      // and MUST NOT include house rules/tournament context.
+      // We achieve this by passing `instructions: undefined` and `houseRules: undefined`
+      // so realtime-session can build the correct instructions based on activeMode.
       const rulesContext = houseRulesText.map((r, i) => `Rule ${i + 1}: ${r}`).join("\n");
 
-      let contextInstructions = `You are a helpful card game rules expert`;
-      if (gameName) {
-        contextInstructions += ` for ${gameName}`;
-      }
-      contextInstructions += ".\n\n";
+      let contextInstructions: string | undefined;
+      if (!isGuidedMode) {
+        contextInstructions = `You are a helpful card game rules expert`;
+        if (gameName) {
+          contextInstructions += ` for ${gameName}`;
+        }
+        contextInstructions += ".\n\n";
 
-      if (activeRuleSet) {
-        contextInstructions += `The player is using the "${activeRuleSet.name}" house rules set.\n\n`;
-        contextInstructions += `House Rules:\n${rulesContext || "No custom rules - using official rules only."}\n\n`;
-      }
+        if (activeRuleSet) {
+          contextInstructions += `The player is using the "${activeRuleSet.name}" house rules set.\n\n`;
+          contextInstructions += `House Rules:\n${rulesContext || "No custom rules - using official rules only."}\n\n`;
+        }
 
-      if (activeTournament) {
-        contextInstructions += `The player is in the "${activeTournament.name}" tournament.\n\n`;
-      }
+        if (activeTournament) {
+          contextInstructions += `The player is in the "${activeTournament.name}" tournament.\n\n`;
+        }
 
-      contextInstructions += `You can help users create house rule sets, add rules to existing sets, and create tournaments.
-When a user asks you to create something (like "create a house rule set called X" or "add a rule that Y"), 
-respond with a clear confirmation of what you'll create and ask them to confirm.
-
-Answer questions clearly and concisely about game rules, strategies, and disputes. 
+        contextInstructions += `Answer questions clearly and concisely about game rules, strategies, and disputes. 
 When house rules apply, explain how they modify the standard rules.
 Keep responses under 3 sentences unless more detail is requested.`;
+      }
 
       let currentAssistantMessage = "";
 
@@ -543,7 +574,7 @@ Keep responses under 3 sentences unless more detail is requested.`;
         contextInstructions,
         voice,
         gameName,
-        houseRulesText,
+        isGuidedMode ? undefined : houseRulesText,
         // Voice chat is Q&A only - no action detection needed
         // Actions are handled by text chat, voice chat politely declines
         undefined,
@@ -599,12 +630,16 @@ Keep responses under 3 sentences unless more detail is requested.`;
       setPendingModeChange(newMode);
       setShowModeChangeConfirmation(true);
     } else {
+      // Always stop voice chat when switching modes.
+      endRealtimeChat();
       setActiveMode(newMode);
     }
-  }, [hasActiveSession]);
+  }, [hasActiveSession, endRealtimeChat]);
 
   // Confirm mode change - wipe session and switch
   const handleConfirmModeChange = useCallback(() => {
+    // Always stop voice chat when wiping a session.
+    endRealtimeChat();
     // Clear all session data
     clearMessages();
     setRealtimeMessages([]);
@@ -618,7 +653,7 @@ Keep responses under 3 sentences unless more detail is requested.`;
     // Close dialog
     setShowModeChangeConfirmation(false);
     setPendingModeChange(null);
-  }, [clearMessages, guidedWalkthrough, pendingModeChange]);
+  }, [clearMessages, guidedWalkthrough, pendingModeChange, endRealtimeChat]);
 
   // Cancel mode change
   const handleCancelModeChange = useCallback(() => {
@@ -697,6 +732,7 @@ Keep responses under 3 sentences unless more detail is requested.`;
               setIsSpeaking(false);
             }}
             onReset={() => {
+              endRealtimeChat();
               guidedWalkthrough.reset();
               clearMessages();
               setRealtimeMessages([]);
