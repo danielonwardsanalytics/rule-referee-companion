@@ -44,6 +44,7 @@ interface UseGuidedWalkthroughReturn {
   
   // Actions
   startWalkthrough: (gameName: string) => void;
+  setGameName: (gameName: string) => void; // Set game without clearing state
   setPlanning: () => void;
   setInStep: () => void;
   addStep: (step: GuidedStep) => void;
@@ -227,6 +228,11 @@ export function useGuidedWalkthrough(): UseGuidedWalkthroughReturn {
     spokenIdsRef.current.clear();
   }, []);
   
+  // Set game name without clearing transcript/steps (for when game is detected mid-session)
+  const setGameName = useCallback((gameName: string) => {
+    setState(prev => ({ ...prev, game: gameName }));
+  }, []);
+  
   const setPlanning = useCallback(() => {
     setState(prev => ({ ...prev, status: 'planning' }));
   }, []);
@@ -332,6 +338,7 @@ export function useGuidedWalkthrough(): UseGuidedWalkthroughReturn {
     addToTranscript,
     clearTranscript,
     startWalkthrough,
+    setGameName,
     setPlanning,
     setInStep,
     addStep,

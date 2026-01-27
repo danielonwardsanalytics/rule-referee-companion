@@ -297,14 +297,31 @@ const AIAdjudicator = ({
       setInput("");
     }
 
-    const messageText = isGuidedMode
-      ? messageToSend
-      : (buildContextPrompt() + messageToSend);
+    // In guided mode, we need to provide game context for the AI
+    // especially when "Next" is pressed after a voice session established the game
+    let messageText: string;
+    if (isGuidedMode) {
+      // Check if this is a "Next" command that needs game context
+      const lowerMsg = messageToSend.toLowerCase().trim();
+      const isNextCommand = lowerMsg.includes('next') || lowerMsg === 'continue' || lowerMsg === 'go on' || lowerMsg === 'ready';
+      
+      if (isNextCommand && guidedWalkthrough.game && guidedWalkthrough.currentStep) {
+        // Include full context: game name, current step info, and that we want the NEXT step
+        messageText = `[GUIDED MODE CONTEXT: Game is ${guidedWalkthrough.game}. Current step completed: "${guidedWalkthrough.currentStep.summary}". Step ${guidedWalkthrough.stepIndex + 1} of walkthrough.] The player pressed Next. Provide the next step.`;
+      } else if (isNextCommand && guidedWalkthrough.currentStep) {
+        // We have a step but no game name recorded - try to extract from transcript
+        messageText = `[GUIDED MODE: Current step was "${guidedWalkthrough.currentStep.summary}"] Next step please.`;
+      } else {
+        messageText = messageToSend;
+      }
+    } else {
+      messageText = buildContextPrompt() + messageToSend;
+    }
     console.log("[AIAdjudicator] Sending message with context:", messageText);
     
-    // In guided mode, add user message to transcript
+    // In guided mode, add user message to transcript (show the original, not the context-enhanced version)
     if (activeMode === 'guided') {
-      guidedWalkthrough.addToTranscript('user', messageToSend);
+      guidedWalkthrough.addToTranscript('user', messageToSend.includes('[') ? 'Next' : messageToSend);
     }
 
     try {
@@ -351,6 +368,23 @@ const AIAdjudicator = ({
             hasStepMarker,
             currentStepCount: guidedWalkthrough.steps.length
           });
+          
+          // If this is a game start and we don't have a game name yet, try to extract it
+          if (isGameStartRequest && !guidedWalkthrough.game) {
+            const gamePatterns = [
+              /(?:guide.*through|walk.*through|playing|teach.*)\s+([A-Z][a-zA-Z0-9\s\-]+?)(?:\.|,|!|\s+is|\s+where)/i,
+              /^([A-Z][a-zA-Z0-9\-]+)\s+is\s+(?:a|an)/i,
+            ];
+            for (const pattern of gamePatterns) {
+              const match = aiResponse.match(pattern);
+              if (match && match[1]) {
+                const extractedGame = match[1].trim();
+                console.log('[AIAdjudicator] Text: Extracted game name:', extractedGame);
+                guidedWalkthrough.setGameName(extractedGame);
+                break;
+              }
+            }
+          }
           
           // Parse and add step if this is a step-producing message
           if ((isNextCommand || isGameStartRequest || isNavigationCommand) && hasStepMarker) {
@@ -580,6 +614,24 @@ Keep responses under 3 sentences unless more detail is requested.`;
               // Add to transcript
               guidedWalkthrough.addToTranscript('assistant', currentAssistantMessage);
               
+              // Try to extract game name if not already set (from phrases like "UNO is a..." or "Let's play Monopoly")
+              if (!guidedWalkthrough.game) {
+                const gamePatterns = [
+                  /(?:playing|guide.*through|walk.*through|teaching|let's play)\s+([A-Z][a-zA-Z0-9\s\-]+?)(?:\.|,|!|\s+is|\s+where)/i,
+                  /^([A-Z][a-zA-Z0-9\-]+)\s+is\s+(?:a|an)/i,
+                  /(?:game\s+of|playing)\s+([A-Z][a-zA-Z0-9\s\-]+)/i,
+                ];
+                for (const pattern of gamePatterns) {
+                  const match = currentAssistantMessage.match(pattern);
+                  if (match && match[1]) {
+                    const extractedGame = match[1].trim();
+                    console.log('[AIAdjudicator] Voice: Extracted game name:', extractedGame);
+                    guidedWalkthrough.setGameName(extractedGame);
+                    break;
+                  }
+                }
+              }
+              
               // Check for step marker and parse
               const hasStepMarker = currentAssistantMessage.includes('DO THIS NOW:') || 
                                     currentAssistantMessage.includes('**DO THIS NOW:**') ||
@@ -591,7 +643,8 @@ Keep responses under 3 sentences unless more detail is requested.`;
                   console.log('[AIAdjudicator] Voice: Parsed step:', {
                     title: parsedStep.title,
                     summary: parsedStep.summary,
-                    stepNumber: guidedWalkthrough.steps.length + 1
+                    stepNumber: guidedWalkthrough.steps.length + 1,
+                    gameName: guidedWalkthrough.game
                   });
                   guidedWalkthrough.addStep(parsedStep);
                 } else {
@@ -752,8 +805,21 @@ Keep responses under 3 sentences unless more detail is requested.`;
             totalSteps={guidedWalkthrough.steps.length}
             isComplete={guidedWalkthrough.status === 'complete'}
             onNextStep={() => {
-              // Request next step from AI
-              handleSend("Next", true);
+              // CRITICAL: Disconnect any lingering voice session FIRST to prevent double audio
+              // Then send "Next" through text chat with step context
+              if (realtimeChatRef.current) {
+                realtimeChatRef.current.disconnect();
+                realtimeChatRef.current = null;
+                setIsRealtimeConnected(false);
+              }
+              
+              // Include current step context so AI knows where we are
+              const stepContext = guidedWalkthrough.currentStep 
+                ? `[Current step: "${guidedWalkthrough.currentStep.summary}"] Next`
+                : 'Next';
+              
+              // Use TTS for the response (shouldSpeak = true)
+              handleSend(stepContext, true);
             }}
             onPrevStep={() => {
               guidedWalkthrough.prevStep();
