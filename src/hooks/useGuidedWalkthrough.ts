@@ -69,17 +69,23 @@ const initialState: GuidedState = {
  * This is for the Next Step card only - must be very concise.
  */
 function extractSummary(instruction: string): string {
-  // Take just the core action - first sentence only
-  const firstSentence = instruction.split(/[.!?]/)[0].trim();
-  const cleaned = firstSentence.replace(/^\*+|\*+$/g, '').replace(/^#+\s*/, '').trim();
+  // Clean up markdown formatting first
+  let cleaned = instruction
+    .replace(/\*\*/g, '') // Remove bold markers
+    .replace(/^#+\s*/gm, '') // Remove heading markers
+    .replace(/^\s*[-•]\s*/gm, '') // Remove bullet points
+    .trim();
+  
+  // Take first sentence only
+  const firstSentence = cleaned.split(/[.!?]/)[0].trim();
   
   // If already short enough, return as-is
-  if (cleaned.length <= 60) {
-    return cleaned;
+  if (firstSentence.length <= 60) {
+    return firstSentence;
   }
   
   // Find a natural break point within 60 chars
-  const words = cleaned.split(' ');
+  const words = firstSentence.split(' ');
   let summary = '';
   for (const word of words) {
     if ((summary + ' ' + word).trim().length > 57) break;
@@ -93,7 +99,10 @@ function extractSummary(instruction: string): string {
  * Checks if an AI response contains a step (DO THIS NOW pattern)
  */
 export function responseContainsStep(content: string): boolean {
-  return /\*\*DO THIS NOW:\*\*/i.test(content) || /DO THIS NOW:/i.test(content);
+  // Look for the DO THIS NOW marker in various formats
+  return /\*\*DO THIS NOW:\*\*/i.test(content) || 
+         /DO THIS NOW:/i.test(content) ||
+         /\*\*DO THIS NOW\*\*:/i.test(content);
 }
 
 /**
@@ -117,51 +126,85 @@ export function extractOrientation(content: string): string | null {
 export function parseStepFromResponse(content: string): GuidedStep | null {
   // Only proceed if this looks like a step response
   if (!responseContainsStep(content)) {
-    console.log('[parseStepFromResponse] No step marker found');
+    console.log('[parseStepFromResponse] No step marker found in response');
     return null;
   }
   
-  // Try to find "DO THIS NOW:" pattern
-  const doThisMatch = content.match(/\*\*DO THIS NOW:\*\*\s*([^\n]+(?:\n(?!\*\*UP NEXT|\*\*\[)[^\n]*)*)/i);
-  const upNextMatch = content.match(/\*\*UP NEXT:\*\*\s*([^\n]+)/i);
+  console.log('[parseStepFromResponse] Found step marker, parsing...');
   
-  // Try to find step title like "**Setup – Shuffle & Deal**" or "**First Turn**"
+  // Try to find "DO THIS NOW:" pattern - handle multiple markdown formats
+  // Matches: **DO THIS NOW:** text, DO THIS NOW: text, **DO THIS NOW**: text
+  const doThisMatch = content.match(/\*\*DO THIS NOW:?\*\*:?\s*([^\n]+(?:\n(?!\*\*UP NEXT|\*\*\[|Press Next)[^\n]*)*)/i) ||
+                      content.match(/DO THIS NOW:\s*([^\n]+(?:\n(?!\*\*UP NEXT|\*\*\[|Press Next)[^\n]*)*)/i);
+  
+  const upNextMatch = content.match(/\*\*UP NEXT:?\*\*:?\s*([^\n]+)/i) ||
+                      content.match(/UP NEXT:\s*([^\n]+)/i);
+  
+  // Try to find step title like "**Setup – Shuffle & Deal**" or "**Gameplay – First Turn**"
   const titleMatch = content.match(/\*\*([^*]+(?:–|-)[^*]+)\*\*/);
-  const simpleTitleMatch = content.match(/\*\*([A-Z][^*]{3,40})\*\*/);
+  const simpleTitleMatch = content.match(/\*\*([A-Z][^*]{3,50})\*\*/);
   
   if (doThisMatch) {
     const fullInstruction = doThisMatch[1].trim();
     const title = titleMatch?.[1]?.trim() || simpleTitleMatch?.[1]?.trim() || "Current Step";
     const upNext = upNextMatch?.[1]?.trim();
     
-    return {
+    console.log('[parseStepFromResponse] Parsed step:', {
       title,
+      instructionLength: fullInstruction.length,
+      hasUpNext: !!upNext
+    });
+    
+    // Create the step with a clear, short summary for the card
+    return {
+      title: title.length > 40 ? title.substring(0, 37) + "..." : title,
       summary: extractSummary(fullInstruction),
       detail: fullInstruction,
       speakText: fullInstruction,
-      upNext,
+      upNext: upNext ? (upNext.length > 50 ? upNext.substring(0, 47) + "..." : upNext) : undefined,
     };
   }
   
-  // Fallback: Try to extract meaningful step info from any structured response
-  const lines = content.split('\n').filter(l => l.trim());
-  if (lines.length > 0) {
-    // Get first meaningful line as title
-    const firstLine = lines[0].replace(/^\*+|\*+$/g, '').replace(/^#+\s*/, '').trim();
-    const title = firstLine.length > 50 ? firstLine.substring(0, 47) + "..." : firstLine;
-    
-    // Get a fuller summary from multiple lines
-    const fullDetail = lines.slice(0, 5).join(' ').replace(/\*+/g, '').trim();
+  // Fallback: If we detected the marker but couldn't parse cleanly
+  console.log('[parseStepFromResponse] Marker found but no clean parse, using fallback');
+  
+  // Find the line with "DO THIS NOW" and grab content after it
+  const lines = content.split('\n');
+  let foundMarker = false;
+  let instruction = '';
+  
+  for (const line of lines) {
+    if (line.includes('DO THIS NOW')) {
+      foundMarker = true;
+      // Get content after the marker on the same line
+      const afterMarker = line.split(/DO THIS NOW:?\*?\*?:?\s*/i)[1];
+      if (afterMarker) {
+        instruction = afterMarker.trim();
+      }
+    } else if (foundMarker && instruction && !line.includes('UP NEXT') && !line.includes('Press Next')) {
+      // Continue building instruction until we hit UP NEXT or Press Next
+      if (line.trim()) {
+        instruction += ' ' + line.trim();
+      }
+    } else if (foundMarker && (line.includes('UP NEXT') || line.includes('Press Next'))) {
+      break;
+    }
+  }
+  
+  if (instruction) {
+    const title = titleMatch?.[1]?.trim() || simpleTitleMatch?.[1]?.trim() || "Current Step";
+    const upNext = upNextMatch?.[1]?.trim();
     
     return {
-      title: title || "Follow Instructions",
-      summary: extractSummary(fullDetail),
-      detail: fullDetail || "See the instructions above",
-      speakText: fullDetail,
-      upNext: undefined,
+      title: title.length > 40 ? title.substring(0, 37) + "..." : title,
+      summary: extractSummary(instruction),
+      detail: instruction,
+      speakText: instruction,
+      upNext: upNext ? (upNext.length > 50 ? upNext.substring(0, 47) + "..." : upNext) : undefined,
     };
   }
   
+  console.log('[parseStepFromResponse] Failed to extract step content');
   return null;
 }
 

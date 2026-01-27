@@ -288,31 +288,61 @@ const AIAdjudicator = ({
           // Add AI response to transcript
           const messageId = guidedWalkthrough.addToTranscript('assistant', aiResponse);
           
-          // Detect if this message should produce a step:
-          // 1. "Next" command - advance to next step
-          // 2. Game-start request - initial response contains Step 1
-          // 3. Skip/navigation commands that produce new steps
+          // Detect the type of message sent
           const lowerMessage = messageToSend.toLowerCase().trim();
-          const isNextCommand = lowerMessage === 'next';
+          
+          // Messages that should trigger step parsing
+          const isNextCommand = lowerMessage === 'next' || 
+                               lowerMessage === 'continue' || 
+                               lowerMessage === 'go on' ||
+                               lowerMessage === 'ready';
+                               
           const isGameStartRequest = lowerMessage.includes('guide') || 
                                      lowerMessage.includes('walk') ||
                                      lowerMessage.includes('teach') ||
                                      lowerMessage.includes('show me') ||
                                      lowerMessage.includes('help me play') ||
-                                     lowerMessage.includes('let\'s play');
-          const isNavigationCommand = ['skip', 'go back', 'restart', 'previous'].some(
+                                     lowerMessage.includes('let\'s play') ||
+                                     lowerMessage.includes('how do i play') ||
+                                     lowerMessage.includes('how to play');
+                                     
+          const isNavigationCommand = ['skip', 'go back', 'restart', 'previous', 'start over'].some(
             cmd => lowerMessage.includes(cmd)
           );
           
           // Check if the AI response contains a step (has "DO THIS NOW:")
           const hasStepMarker = aiResponse.includes('DO THIS NOW:') || 
-                                aiResponse.includes('**DO THIS NOW:**');
+                                aiResponse.includes('**DO THIS NOW:**') ||
+                                aiResponse.includes('**DO THIS NOW**:');
+          
+          console.log('[AIAdjudicator] Guided mode message analysis:', {
+            lowerMessage: lowerMessage.substring(0, 50),
+            isNextCommand,
+            isGameStartRequest,
+            isNavigationCommand,
+            hasStepMarker,
+            currentStepCount: guidedWalkthrough.steps.length
+          });
           
           // Parse and add step if this is a step-producing message
           if ((isNextCommand || isGameStartRequest || isNavigationCommand) && hasStepMarker) {
             const parsedStep = parseStepFromResponse(aiResponse);
             if (parsedStep) {
-              console.log('[GuidedMode] Adding step:', parsedStep.title, '- summary:', parsedStep.summary);
+              console.log('[AIAdjudicator] Adding step:', {
+                title: parsedStep.title,
+                summary: parsedStep.summary,
+                stepNumber: guidedWalkthrough.steps.length + 1
+              });
+              guidedWalkthrough.addStep(parsedStep);
+            } else {
+              console.warn('[AIAdjudicator] Step marker found but parsing failed');
+            }
+          } else if (hasStepMarker) {
+            // Response has step marker but wasn't triggered by expected command
+            // This might happen on first load or edge cases - still parse it
+            console.log('[AIAdjudicator] Unexpected step marker found, parsing anyway');
+            const parsedStep = parseStepFromResponse(aiResponse);
+            if (parsedStep) {
               guidedWalkthrough.addStep(parsedStep);
             }
           }
