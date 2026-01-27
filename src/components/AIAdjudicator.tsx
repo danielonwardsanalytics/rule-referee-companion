@@ -666,13 +666,13 @@ Keep responses under 3 sentences unless more detail is requested.`;
             // Check if we just delivered a step (steps array grew)
             const hasSteps = guidedWalkthrough.steps.length > 0;
             if (hasSteps) {
-              console.log('[AIAdjudicator] Voice: response.done received, waiting for audio playback to finish...');
-              // Wait 3 seconds after response.done to let the WebRTC audio stream finish playing
-              // The audio is streamed in real-time, but there's buffer delay
+              console.log('[AIAdjudicator] Voice: response.done received, step delivered - auto-disconnecting voice chat');
+              // FIX: Immediately disconnect after delivering step to eliminate 3s lag
+              // WebRTC audio is fully delivered by response.done - no extra buffer needed
               setTimeout(() => {
-                console.log('[AIAdjudicator] Voice: Audio buffer complete, disconnecting voice chat');
+                console.log('[AIAdjudicator] Voice: Disconnecting voice chat after delivery');
                 endRealtimeChat();
-              }, 3000);
+              }, 100);
             }
           }
         },
@@ -831,16 +831,9 @@ Keep responses under 3 sentences unless more detail is requested.`;
             totalSteps={guidedWalkthrough.steps.length}
             isComplete={guidedWalkthrough.status === 'complete'}
             onNextStep={() => {
-              // CRITICAL: Disconnect any lingering voice session FIRST to prevent double audio
-              // Then send "Next" through text chat with step context
-              if (realtimeChatRef.current) {
-                realtimeChatRef.current.disconnect();
-                realtimeChatRef.current = null;
-                setIsRealtimeConnected(false);
-              }
+              console.log('[AIAdjudicator] Next button pressed - preparing step context');
               
-              // Include current step context AND step number so AI knows exactly where we are
-              // This is crucial for proper progression - AI needs to know which step just completed
+              // Build context for the next step request
               const stepNumber = guidedWalkthrough.stepIndex + 1;
               const gameName = guidedWalkthrough.game || 'the game';
               const stepContext = guidedWalkthrough.currentStep 
@@ -849,7 +842,22 @@ Keep responses under 3 sentences unless more detail is requested.`;
               
               console.log('[AIAdjudicator] Next button context:', stepContext);
               
-              // Use TTS for the response (shouldSpeak = true)
+              // CRITICAL FIX: Force disconnect AND stop TTS BEFORE sending next step
+              // This ensures clean audio state before requesting new instruction
+              if (realtimeChatRef.current) {
+                console.log('[AIAdjudicator] Next: Disconnecting lingering voice session');
+                realtimeChatRef.current.disconnect();
+                realtimeChatRef.current = null;
+                setIsRealtimeConnected(false);
+              }
+              if (audioRef.current) {
+                console.log('[AIAdjudicator] Next: Stopping any TTS audio');
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+              }
+              setIsSpeaking(false);
+              
+              // Request next step with TTS enabled (shouldSpeak = true)
               handleSend(stepContext, true);
             }}
             onPrevStep={() => {
