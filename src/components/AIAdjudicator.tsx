@@ -549,6 +549,11 @@ Keep responses under 3 sentences unless more detail is requested.`;
               const wasHandled = handleVoiceConfirmation(transcript);
               if (!wasHandled) {
                 setRealtimeMessages((prev) => [...prev, { role: "user", content: transcript }]);
+                
+                // CRITICAL: In Guided Mode, add user voice message to transcript
+                if (isGuidedMode) {
+                  guidedWalkthrough.addToTranscript('user', transcript);
+                }
               }
             }
           }
@@ -568,6 +573,35 @@ Keep responses under 3 sentences unless more detail is requested.`;
           }
 
           if (event.type === "response.audio_transcript.done") {
+            // CRITICAL: In Guided Mode, parse steps from voice responses
+            if (isGuidedMode && currentAssistantMessage.trim()) {
+              console.log('[AIAdjudicator] Voice response complete in Guided Mode, parsing for steps...');
+              
+              // Add to transcript
+              guidedWalkthrough.addToTranscript('assistant', currentAssistantMessage);
+              
+              // Check for step marker and parse
+              const hasStepMarker = currentAssistantMessage.includes('DO THIS NOW:') || 
+                                    currentAssistantMessage.includes('**DO THIS NOW:**') ||
+                                    currentAssistantMessage.includes('**DO THIS NOW**:');
+              
+              if (hasStepMarker) {
+                const parsedStep = parseStepFromResponse(currentAssistantMessage);
+                if (parsedStep) {
+                  console.log('[AIAdjudicator] Voice: Parsed step:', {
+                    title: parsedStep.title,
+                    summary: parsedStep.summary,
+                    stepNumber: guidedWalkthrough.steps.length + 1
+                  });
+                  guidedWalkthrough.addStep(parsedStep);
+                } else {
+                  console.warn('[AIAdjudicator] Voice: Step marker found but parsing failed');
+                }
+              } else {
+                console.log('[AIAdjudicator] Voice: Response has no step marker, likely a Q&A answer');
+              }
+            }
+            
             currentAssistantMessage = "";
           }
         },
