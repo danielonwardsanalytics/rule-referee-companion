@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { RealtimeChat } from "@/utils/RealtimeAudio";
 import { useNativeSpeechRecognition } from "@/hooks/useNativeSpeechRecognition";
+import { useWebRTCSpeech } from "@/hooks/useWebRTCSpeech";
 import type { HouseRule } from "@/hooks/useHouseRules";
 
 interface RuleEditorModalProps {
@@ -47,15 +48,20 @@ export const RuleEditorModal = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [chatInput, setChatInput] = useState("");
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [isVoiceChatActive, setIsVoiceChatActive] = useState(false);
   const [isVoiceChatConnecting, setIsVoiceChatConnecting] = useState(false);
+  const [isVoiceChatSpeaking, setIsVoiceChatSpeaking] = useState(false); // For live voice chat audio
   const [messages, setMessages] = useState<Array<{role: 'user' | 'assistant', content: string, isSuggestion?: boolean}>>([]);
   
   const scrollRef = useRef<HTMLDivElement>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const realtimeChatRef = useRef<RealtimeChat | null>(null);
+  
+  // WebRTC speech for unified audio (text-to-speech replacement)
+  const { speakText: speakResponse, stopSpeaking, isSpeaking: isWebRTCSpeechPlaying } = useWebRTCSpeech("alloy");
+  
+  // Combined speaking indicator - true if either speech system is active
+  const isSpeaking = isWebRTCSpeechPlaying || isVoiceChatSpeaking;
 
   // Native speech recognition hook
   const { 
@@ -220,36 +226,7 @@ Keep rules clear, concise, and unambiguous. Rules should be actionable during ga
     setMessages(prev => [...prev, { role: 'assistant', content: "No problem! Tell me what changes you'd like to make." }]);
   };
 
-  const speakResponse = async (text: string) => {
-    try {
-      setIsSpeaking(true);
-      
-      const { data, error } = await supabase.functions.invoke("text-to-speech", {
-        body: { text, voice: "alloy" },
-      });
-
-      if (error) throw error;
-      if (!data?.audioContent) throw new Error("No audio data received");
-
-      const binaryString = atob(data.audioContent);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      
-      const audioBlob = new Blob([bytes], { type: "audio/mpeg" });
-      const audioUrl = URL.createObjectURL(audioBlob);
-      
-      if (audioRef.current) {
-        audioRef.current.src = audioUrl;
-        await audioRef.current.play();
-      }
-    } catch (error) {
-      console.error("[RuleEditorModal] TTS error:", error);
-    } finally {
-      setIsSpeaking(false);
-    }
-  };
+  // Note: speakResponse is now provided by useWebRTCSpeech hook (line ~60)
 
   const handleChatKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -370,9 +347,9 @@ Keep rules clear, concise, and unambiguous. Rules should be actionable during ga
         setMessages(prev => [...prev, { role: "user", content: userText }]);
       }
     } else if (event.type === "response.audio.delta") {
-      setIsSpeaking(true);
+      setIsVoiceChatSpeaking(true);
     } else if (event.type === "response.audio.done") {
-      setIsSpeaking(false);
+      setIsVoiceChatSpeaking(false);
     }
   };
 
@@ -455,7 +432,7 @@ ${ruleText ? `Current rule being edited: "${ruleText}"` : "Creating a new rule."
           </DialogTitle>
         </DialogHeader>
 
-        <audio ref={audioRef} onEnded={() => setIsSpeaking(false)} />
+        {/* Audio is now handled by useWebRTCSpeech hook */}
 
         <div className="flex-1 overflow-y-auto space-y-4 py-4">
           {/* Title Input */}

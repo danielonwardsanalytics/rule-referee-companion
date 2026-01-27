@@ -11,6 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RealtimeChat } from "@/utils/RealtimeAudio";
 import { useNativeSpeechRecognition } from "@/hooks/useNativeSpeechRecognition";
+import { useWebRTCSpeech } from "@/hooks/useWebRTCSpeech";
 
 interface VoiceRuleEditorProps {
   ruleSetId: string;
@@ -23,13 +24,14 @@ export const VoiceRuleEditor = ({ ruleSetId, ruleSetName, gameName, currentRules
   const queryClient = useQueryClient();
   const [isProcessing, setIsProcessing] = useState(false);
   const [input, setInput] = useState("");
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const [messages, setMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const realtimeChatRef = useRef<RealtimeChat | null>(null);
+  
+  // WebRTC speech for unified audio
+  const { speakText: speakResponse, stopSpeaking, isSpeaking } = useWebRTCSpeech("alloy");
 
   // Native speech recognition hook
   const { 
@@ -112,37 +114,7 @@ export const VoiceRuleEditor = ({ ruleSetId, ruleSetName, gameName, currentRules
     }
   };
 
-  const speakResponse = async (text: string) => {
-    try {
-      setIsSpeaking(true);
-      
-      const { data, error } = await supabase.functions.invoke("text-to-speech", {
-        body: { text, voice: "alloy" },
-      });
-
-      if (error) throw error;
-      if (!data?.audioContent) throw new Error("No audio data received");
-
-      const binaryString = atob(data.audioContent);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      
-      const audioBlob = new Blob([bytes], { type: "audio/mpeg" });
-      const audioUrl = URL.createObjectURL(audioBlob);
-      
-      if (audioRef.current) {
-        audioRef.current.src = audioUrl;
-        await audioRef.current.play();
-      }
-    } catch (error) {
-      console.error("[VoiceRuleEditor] TTS error:", error);
-      toast.error(`Failed to speak response: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsSpeaking(false);
-    }
-  };
+  // Note: speakResponse is now provided by useWebRTCSpeech hook (line ~34)
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -290,7 +262,7 @@ Always remember you are editing "${ruleSetName}" - if the user refers to this ru
         </div>
         
         <div className="p-6">
-          <audio ref={audioRef} onEnded={() => setIsSpeaking(false)} />
+          {/* Audio is now handled by useWebRTCSpeech hook */}
 
           {/* Big Voice Chat Button - Sound Wave Style */}
           <div className="flex flex-col items-center py-6 mb-6">

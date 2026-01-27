@@ -11,7 +11,7 @@ import { useHouseRules } from "@/hooks/useHouseRules";
 import { useTournamentPlayers } from "@/hooks/useTournamentPlayers";
 import { useTournamentNotes } from "@/hooks/useTournamentNotes";
 import { useGameResults } from "@/hooks/useGameResults";
-import { supabase } from "@/integrations/supabase/client";
+import { useWebRTCSpeech } from "@/hooks/useWebRTCSpeech";
 import { RealtimeChat, GuidedVoiceContext } from "@/utils/RealtimeAudio";
 import { ContextSelectorBox } from "@/components/ai-adjudicator/ContextSelectorBox";
 import { TournamentRulesSelector } from "@/components/ai-adjudicator/TournamentRulesSelector";
@@ -187,13 +187,14 @@ const AIAdjudicator = ({
   } = useNativeSpeechRecognition();
   
   const [input, setInput] = useState("");
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const [realtimeMessages, setRealtimeMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const realtimeChatRef = useRef<RealtimeChat | null>(null);
+  
+  // WebRTC speech for unified audio across the app
+  const { speakText: speakResponse, stopSpeaking, isSpeaking } = useWebRTCSpeech(voice);
   
   // Mode switch confirmation state
   const [showModeChangeConfirmation, setShowModeChangeConfirmation] = useState(false);
@@ -440,66 +441,8 @@ const AIAdjudicator = ({
     }
    }, [input, isAudioEnabled, activeMode, sendMessage, ruleChangeContext, guidedWalkthrough, isRealtimeConnected, isGuidedMode]);
 
-  const speakResponse = useCallback(async (text: string) => {
-    // CRITICAL FIX: Double-check Realtime is not active before TTS
-    // This catches cases where the state might have changed during async operations
-    if (isRealtimeConnected || realtimeChatRef.current) {
-      console.log("[AIAdjudicator] TTS: Skipping - Realtime WebRTC audio is active (has its own audio stream)");
-      return;
-    }
-    
-    // Prevent concurrent TTS calls
-    if (isSpeaking) {
-      console.log("[AIAdjudicator] TTS: Already speaking, skipping concurrent call");
-      return;
-    }
-    
-    console.log("[AIAdjudicator] TTS: Proceeding with text-to-speech for:", text.substring(0, 50) + "...");
-    
-    try {
-      // Cancel any previous audio before starting new
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
-      
-      // Final realtime check before making the network call
-      if (isRealtimeConnected || realtimeChatRef.current) {
-        console.log("[AIAdjudicator] TTS: Aborting - Realtime became active during setup");
-        return;
-      }
-      
-      setIsSpeaking(true);
-      console.log("[AIAdjudicator] TTS: Starting speech");
-
-      const { data, error } = await supabase.functions.invoke("text-to-speech", {
-        body: { text, voice },
-      });
-
-      if (error) throw error;
-      if (!data?.audioContent) throw new Error("No audio data received");
-
-      const binaryString = atob(data.audioContent);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-
-      const audioBlob = new Blob([bytes], { type: "audio/mpeg" });
-      const audioUrl = URL.createObjectURL(audioBlob);
-
-      if (audioRef.current) {
-        audioRef.current.src = audioUrl;
-        await audioRef.current.play();
-        console.log("[AIAdjudicator] TTS: Audio playing");
-      }
-    } catch (error) {
-      console.error("[AIAdjudicator] TTS error:", error);
-      toast.error(`Failed to speak response: ${error instanceof Error ? error.message : "Unknown error"}`);
-      setIsSpeaking(false);
-    }
-    // Note: setIsSpeaking(false) is handled by the audio onEnded event
-  }, [isSpeaking, voice, isRealtimeConnected]);
+  // Note: speakResponse is now provided by useWebRTCSpeech hook (line ~197)
+  // The hook handles all WebRTC audio, replacing the old TTS approach
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -533,12 +476,8 @@ const AIAdjudicator = ({
 
   const startRealtimeChat = async () => {
     try {
-      // CRITICAL: Stop any TTS before starting voice chat to prevent double audio
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
-      setIsSpeaking(false);
+      // CRITICAL: Stop any WebRTC speech before starting live voice chat
+      stopSpeaking();
       
       setIsAudioEnabled(true);
 
@@ -706,12 +645,8 @@ Keep responses under 3 sentences unless more detail is requested.`;
   const endRealtimeChat = useCallback(() => {
     console.log("[AIAdjudicator] endRealtimeChat called - disconnecting voice chat");
     
-    // CRITICAL: Stop TTS audio as well when ending realtime
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
-    setIsSpeaking(false);
+    // CRITICAL: Stop any WebRTC speech audio as well when ending realtime
+    stopSpeaking();
     
     // Disconnect the WebRTC connection and release mic
     if (realtimeChatRef.current) {
@@ -726,7 +661,7 @@ Keep responses under 3 sentences unless more detail is requested.`;
     // PHASE 2 FIX: Do NOT clear realtimeMessages on disconnect
     // Messages persist in transcript - only clear on explicit reset
     console.log("[AIAdjudicator] Voice chat disconnected, mic released, preserving transcript");
-  }, []);
+  }, [stopSpeaking]);
 
   // Check if there's an active session that should trigger confirmation
   const hasActiveSession = useCallback(() => {
@@ -804,7 +739,7 @@ Keep responses under 3 sentences unless more detail is requested.`;
       </div>
 
       <div className="p-6">
-        <audio ref={audioRef} onEnded={() => setIsSpeaking(false)} />
+        {/* Audio is now handled by useWebRTCSpeech hook - no need for audio element */}
 
         {/* Guided Mode - Completely different layout */}
         {activeMode === 'guided' ? (
@@ -842,7 +777,7 @@ Keep responses under 3 sentences unless more detail is requested.`;
               
               console.log('[AIAdjudicator] Next button context:', stepContext);
               
-              // CRITICAL FIX: Force disconnect AND stop TTS BEFORE sending next step
+              // CRITICAL FIX: Force disconnect AND stop speech BEFORE sending next step
               // This ensures clean audio state before requesting new instruction
               if (realtimeChatRef.current) {
                 console.log('[AIAdjudicator] Next: Disconnecting lingering voice session');
@@ -850,12 +785,7 @@ Keep responses under 3 sentences unless more detail is requested.`;
                 realtimeChatRef.current = null;
                 setIsRealtimeConnected(false);
               }
-              if (audioRef.current) {
-                console.log('[AIAdjudicator] Next: Stopping any TTS audio');
-                audioRef.current.pause();
-                audioRef.current.currentTime = 0;
-              }
-              setIsSpeaking(false);
+              stopSpeaking();
               
               // Request next step with TTS enabled (shouldSpeak = true)
               handleSend(stepContext, true);
@@ -864,11 +794,7 @@ Keep responses under 3 sentences unless more detail is requested.`;
               guidedWalkthrough.prevStep();
             }}
             onStopSpeaking={() => {
-              if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current.currentTime = 0;
-              }
-              setIsSpeaking(false);
+              stopSpeaking();
             }}
             onReset={() => {
               endRealtimeChat();
