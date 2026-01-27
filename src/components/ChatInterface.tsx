@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Mic, MicOff, Send, X, Loader2, Volume2, AudioWaveform, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { useRealtimeChat } from "@/hooks/useRealtimeChat";
-import { supabase } from "@/integrations/supabase/client";
+import { useWebRTCSpeech } from "@/hooks/useWebRTCSpeech";
 import { RealtimeChat } from "@/utils/RealtimeAudio";
 import { useActiveHouseRules } from "@/hooks/useActiveHouseRules";
 import { useNativeSpeechRecognition } from "@/hooks/useNativeSpeechRecognition";
@@ -33,14 +33,15 @@ const ChatInterface = ({
   const houseRules = houseRulesData?.rules || [];
   const { messages, sendMessage, isLoading, clearMessages } = useRealtimeChat(gameName, houseRules);
   const [input, setInput] = useState("");
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [isVoiceChatMode, setIsVoiceChatMode] = useState(false);
   const [voiceChatModeWhenRecording, setVoiceChatModeWhenRecording] = useState(false);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const [realtimeMessages, setRealtimeMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const realtimeChatRef = useRef<RealtimeChat | null>(null);
+  
+  // WebRTC speech for unified audio
+  const { speakText: speakResponse, stopSpeaking, isSpeaking } = useWebRTCSpeech(voice);
 
   // Native speech recognition hook
   const { 
@@ -109,59 +110,7 @@ const ChatInterface = ({
     }
   };
 
-  const speakResponse = async (text: string) => {
-    try {
-      console.log("[ChatInterface] Starting TTS for text:", text.substring(0, 50));
-      setIsSpeaking(true);
-      
-      const { data, error } = await supabase.functions.invoke("text-to-speech", {
-        body: { 
-          text: text,
-          voice: voice 
-        },
-      });
-
-      console.log("[ChatInterface] TTS response:", { hasData: !!data, error });
-
-      if (error) {
-        console.error("[ChatInterface] TTS error:", error);
-        throw error;
-      }
-
-      if (!data?.audioContent) {
-        throw new Error("No audio data received");
-      }
-
-      // Decode base64 audio to binary
-      const binaryString = atob(data.audioContent);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      
-      console.log("[ChatInterface] Decoded audio bytes:", bytes.length);
-
-      // Create audio blob and play
-      const audioBlob = new Blob([bytes], { type: "audio/mpeg" });
-      const audioUrl = URL.createObjectURL(audioBlob);
-      
-      console.log("[ChatInterface] Audio blob created, size:", audioBlob.size);
-      
-      if (audioRef.current) {
-        audioRef.current.src = audioUrl;
-        console.log("[ChatInterface] Playing audio...");
-        await audioRef.current.play();
-        console.log("[ChatInterface] Audio playing");
-      } else {
-        console.error("[ChatInterface] Audio ref not available");
-      }
-    } catch (error) {
-      console.error("[ChatInterface] TTS error:", error);
-      toast.error(`Failed to speak response: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsSpeaking(false);
-    }
-  };
+  // Note: speakResponse is now provided by useWebRTCSpeech hook (line ~44)
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -268,7 +217,7 @@ const ChatInterface = ({
 
   return (
     <div className="w-full flex flex-col">
-      <audio ref={audioRef} onEnded={() => setIsSpeaking(false)} />
+      {/* Audio is now handled by useWebRTCSpeech hook */}
       
       {/* House Rules Active Indicator */}
       {houseRulesData && houseRules.length > 0 && (
