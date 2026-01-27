@@ -608,8 +608,9 @@ Keep responses under 3 sentences unless more detail is requested.`;
 
           if (event.type === "response.audio_transcript.done") {
             // CRITICAL: In Guided Mode, parse steps from voice responses
+            // NOTE: We parse the step here but do NOT disconnect yet - wait for response.done
             if (isGuidedMode && currentAssistantMessage.trim()) {
-              console.log('[AIAdjudicator] Voice response complete in Guided Mode, parsing for steps...');
+              console.log('[AIAdjudicator] Voice transcript complete in Guided Mode, parsing for steps...');
               
               // Add to transcript
               guidedWalkthrough.addToTranscript('assistant', currentAssistantMessage);
@@ -647,13 +648,7 @@ Keep responses under 3 sentences unless more detail is requested.`;
                     gameName: guidedWalkthrough.game
                   });
                   guidedWalkthrough.addStep(parsedStep);
-                  
-                  // CRITICAL FIX: Disconnect voice chat after first instruction is delivered
-                  // This prevents mic from staying on and allows "Next" button to be the trigger
-                  console.log('[AIAdjudicator] Voice: Step delivered, disconnecting voice chat');
-                  setTimeout(() => {
-                    endRealtimeChat();
-                  }, 500); // Small delay to ensure audio finishes
+                  // NOTE: Do NOT disconnect here - wait for response.done + audio buffer
                 } else {
                   console.warn('[AIAdjudicator] Voice: Step marker found but parsing failed');
                 }
@@ -663,6 +658,22 @@ Keep responses under 3 sentences unless more detail is requested.`;
             }
             
             currentAssistantMessage = "";
+          }
+          
+          // CRITICAL: Wait for response.done (final event) before disconnecting
+          // This ensures all audio has been SENT. We then add buffer time for playback.
+          if (event.type === "response.done" && isGuidedMode) {
+            // Check if we just delivered a step (steps array grew)
+            const hasSteps = guidedWalkthrough.steps.length > 0;
+            if (hasSteps) {
+              console.log('[AIAdjudicator] Voice: response.done received, waiting for audio playback to finish...');
+              // Wait 3 seconds after response.done to let the WebRTC audio stream finish playing
+              // The audio is streamed in real-time, but there's buffer delay
+              setTimeout(() => {
+                console.log('[AIAdjudicator] Voice: Audio buffer complete, disconnecting voice chat');
+                endRealtimeChat();
+              }, 3000);
+            }
           }
         },
         contextInstructions,
