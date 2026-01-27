@@ -275,17 +275,23 @@ const AIAdjudicator = ({
     // Treat a non-null realtimeChatRef as "connected" for audio-safety.
     // This prevents TTS from firing while WebRTC is still active but state is mid-transition.
     const hasActiveRealtime = isRealtimeConnected || !!realtimeChatRef.current;
-    // CRITICAL FIX: Never speak TTS when Realtime WebRTC is active - it has its own audio stream
-    // This prevents double audio (WebRTC audio + TTS audio playing simultaneously)
-    const willSpeak = hasActiveRealtime 
-      ? false 
-      : (shouldSpeak !== undefined ? shouldSpeak : isAudioEnabled);
+    
+    // CRITICAL FIX: If shouldSpeak is EXPLICITLY passed as true (e.g., from Next button),
+    // honor it regardless of realtime state. The caller is responsible for ensuring
+    // the realtime session is already disconnected before calling with shouldSpeak=true.
+    // This fixes the race condition where React state hasn't updated yet.
+    const willSpeak = shouldSpeak === true 
+      ? true 
+      : (hasActiveRealtime 
+          ? false 
+          : (shouldSpeak !== undefined ? shouldSpeak : isAudioEnabled));
 
     console.log("[AIAdjudicator] handleSend called:", { 
       messageToSend, 
       willSpeak, 
       activeMode, 
       isRealtimeConnected,
+      hasActiveRealtime,
       originalShouldSpeak: shouldSpeak 
     });
 
