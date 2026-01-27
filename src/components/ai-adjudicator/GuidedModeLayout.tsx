@@ -130,14 +130,20 @@ export function GuidedModeLayout({
 
   // Next button: advances step, forces mic OFF (Task 5)
   const handleNextStep = useCallback(() => {
-    console.log("[GuidedMode] Next button pressed");
-    // Force mic OFF when delivering next instruction
+    console.log("[GuidedMode] Next button pressed - stopping any voice, requesting next step");
+    // Force mic OFF and audio OFF first to prevent double audio
     setIsAudioEnabled(false);
+    
+    // CRITICAL: End realtime BEFORE triggering next step to prevent race conditions
+    // The parent's onNextStep will also disconnect, but we do it here first for safety
     if (isRealtimeConnected) {
       onEndRealtime();
     }
-    // Call parent's next step handler
-    onNextStep();
+    
+    // Small delay to ensure voice is fully disconnected before requesting next step via text
+    setTimeout(() => {
+      onNextStep();
+    }, 100);
   }, [setIsAudioEnabled, isRealtimeConnected, onEndRealtime, onNextStep]);
 
   // Voice button: user explicitly turns on mic to ask a question
