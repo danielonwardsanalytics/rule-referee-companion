@@ -1,116 +1,197 @@
-# Guided Mode - Design & Implementation Reference
+
+# Audio & Guided Mode - Full Functional Audit and Specification
 
 ## Purpose
-
-Guided Mode is a **step-by-step game facilitator** that works for ANY game (card games, board games, strategy games). It guides players from setup through gameplay with actionable instructions and contextual tips.
-
----
-
-## User Flow
-
-1. **Mode Selection** → User selects "Guided" from the 2x2 mode grid
-2. **Game Identification** → User requests a game (e.g., "Guide me through Monopoly")
-   - If game is unclear, AI asks clarifying questions before proceeding
-   - AI must establish which game before generating steps
-3. **Orientation + Step Plan** → AI returns:
-   - Brief overview (gist, win condition, turn rhythm)
-   - Pre-computed step sequence for setup AND gameplay
-   - First actionable instruction (Step 1)
-4. **Step Execution** → User performs the instruction
-5. **Next Progression** → User presses "Next" to advance
-   - Each step includes gameplay tips/understanding in transcript
-   - Next Step card shows ONLY the simple instruction
-6. **Q&A (optional)** → User can ask questions without advancing steps
-7. **Completion** → AI confirms game is set up and ready to play
+Create a single source of truth document that defines exactly how audio, voice chat, and guided mode should behave. This prevents regressions by giving every future change a clear specification to validate against.
 
 ---
 
-## State Machine
+## Phase 1: Functional Specification Document
 
+### 1.1 Audio Source Rules (Unified WebRTC)
+
+| Trigger | Audio Source | Expected Behavior |
+|---------|--------------|-------------------|
+| **Voice Button (all modes)** | WebRTC (RealtimeChat) | Live bidirectional voice - AI speaks through WebRTC stream |
+| **Next Button (Guided Mode)** | WebRTC (useWebRTCSpeech) | Text-to-speech via WebRTC - AI reads instruction aloud |
+| **Text Send with Audio ON** | WebRTC (useWebRTCSpeech) | AI response spoken via WebRTC after text response arrives |
+| **Text Send with Audio OFF** | None | No audio output |
+
+**Critical Rule**: Only ONE audio source may be active at any time. Before starting a new audio stream, the previous one MUST be fully stopped and cleaned up.
+
+### 1.2 Guided Mode State Machine
+
+```text
+                    User says "guide me through [game]"
+                                    │
+                                    ▼
+┌───────┐         ┌──────────┐         ┌───────────┐
+│ idle  │────────►│ planning │────────►│  in_step  │◄────────────────┐
+└───────┘         └──────────┘         └─────┬─────┘                 │
+    ▲                                        │                       │
+    │                                        │ User asks question    │
+    │                                        ▼                       │
+    │                            ┌────────────────────┐              │
+    │                            │ answering_question │──────────────┘
+    │                            └────────────────────┘   "Press Next"
+    │
+    └───────────────────────────── User ends session or resets
 ```
-idle → planning → in_step ↔ answering_question → complete
+
+### 1.3 Button Behaviors
+
+| Button | Current State | Action |
+|--------|---------------|--------|
+| **Next** | in_step | 1. Stop any active audio (WebRTC speech or live chat) 2. Send step request to LLM 3. Parse response for **DO THIS NOW:** marker 4. Update currentStep 5. Speak instruction via WebRTC 6. Auto-disconnect after speaking |
+| **Voice** | idle/in_step | 1. Stop any active audio 2. Connect to RealtimeChat 3. Listen for user speech 4. AI responds via WebRTC audio stream 5. If step marker in response, update currentStep |
+| **Text Send** | in_step | 1. Send question to LLM (no step markers expected) 2. Display response in transcript 3. If Audio ON, speak response via WebRTC 4. Do NOT advance step |
+
+### 1.4 "DO THIS NOW:" Marker Behavior
+
+- **When to include**: Game start, "Next" command, navigation commands (skip/go back)
+- **When to exclude**: Q&A responses, clarifying questions, non-step content
+- **Audio behavior**: The words "DO THIS NOW" should NOT be spoken aloud - the marker is for UI parsing only
+
+### 1.5 Audio Cleanup Sequence
+
+Before starting ANY new audio:
+1. Call `stopSpeaking()` (stops useWebRTCSpeech)
+2. If `realtimeChatRef.current` exists, call `.disconnect()` and set to null
+3. Set `isRealtimeConnected` to false
+4. Wait for cleanup to complete before starting new audio
+
+---
+
+## Phase 2: Files and Dependencies
+
+### Core Files to Audit
+
+| File | Responsibility | Touches Audio? |
+|------|----------------|----------------|
+| `src/components/AIAdjudicator.tsx` | Main orchestrator for all modes | Yes - manages both audio sources |
+| `src/hooks/useWebRTCSpeech.ts` | WebRTC-based TTS (speaks text aloud) | Yes - primary TTS mechanism |
+| `src/utils/RealtimeAudio.ts` | WebRTC live voice chat (bidirectional) | Yes - live conversation audio |
+| `src/hooks/useGuidedWalkthrough.ts` | Guided mode state machine | No - state only |
+| `src/components/ai-adjudicator/GuidedModeLayout.tsx` | Guided mode UI | Indirectly - triggers parent handlers |
+| `supabase/functions/chat-with-actions/index.ts` | LLM prompts for text chat | No - text only |
+| `supabase/functions/realtime-session/index.ts` | LLM prompts for voice chat | No - configures AI instructions |
+
+### Dependency Graph
+
+```text
+GuidedModeLayout
+    │
+    ├── onNextStep() ──────────► AIAdjudicator.handleSend()
+    │                                   │
+    │                                   ├── stopSpeaking() [useWebRTCSpeech]
+    │                                   ├── realtimeChatRef.disconnect() [RealtimeChat]
+    │                                   └── speakResponse() [useWebRTCSpeech]
+    │
+    ├── onStartRealtime() ─────► AIAdjudicator.startRealtimeChat()
+    │                                   │
+    │                                   └── new RealtimeChat().init()
+    │
+    └── onEndRealtime() ───────► AIAdjudicator.endRealtimeChat()
+                                        │
+                                        └── realtimeChatRef.disconnect()
 ```
 
-- `idle`: No walkthrough active
-- `planning`: AI is generating orientation + step plan
-- `in_step`: User is on an active step
-- `answering_question`: User asked a question (step preserved)
-- `complete`: Walkthrough finished
+---
+
+## Phase 3: Implementation Checklist
+
+### Step 1: Audio Source Locking (Prevents double audio)
+- [ ] Add `audioSourceRef` to track which source is active: `'none' | 'webrtc-tts' | 'realtime-chat'`
+- [ ] Before starting any audio, check and cleanup the other source
+- [ ] Log source transitions for debugging
+
+### Step 2: Formalize Next Button Flow
+- [ ] Next button ALWAYS: stops all audio, then requests step, then speaks via WebRTC
+- [ ] Verify `shouldSpeak=true` is honored regardless of state race conditions
+- [ ] Add 50ms debounce to prevent double-clicks
+
+### Step 3: Prevent "DO THIS NOW" from being spoken
+- [ ] In `useWebRTCSpeech.speakText()`, strip the marker before sending to WebRTC
+- [ ] Pattern: `text.replace(/\*\*DO THIS NOW:\*\*\s*/gi, '').replace(/DO THIS NOW:\s*/gi, '')`
+
+### Step 4: Add Regression Tests
+- [ ] Test: "Next button after voice chat disconnects voice before speaking"
+- [ ] Test: "Voice button stops TTS before connecting"
+- [ ] Test: "Only one audio source active at a time"
+
+### Step 5: Update LLM Prompts for Consistency
+- [ ] Ensure `chat-with-actions` and `realtime-session` both generate consistent step format
+- [ ] Both should use identical `**DO THIS NOW:**` and `**UP NEXT:**` markers
 
 ---
 
-## LLM Response Contract
+## Phase 4: Acceptance Criteria
 
-### Initial Response (Game Start)
+For each change, verify:
 
-When user says "Guide me through [Game]":
-
-1. **ORIENTATION** (for transcript)
-   - Gist (1-2 lines)
-   - How you win (1 line)
-   - Turn rhythm (3-6 bullets)
-   - Phases overview
-
-2. **STEP 1** (for Next Step card + transcript)
-   - `**DO THIS NOW:**` [Simple actionable instruction]
-   - Gameplay tip/context (in transcript only)
-   - `**UP NEXT:**` [Preview of next step]
-
-3. **CONTROL**
-   - "Press Next when ready"
-
-### Subsequent Steps (On "Next")
-
-- `**DO THIS NOW:**` [Next instruction]
-- Gameplay understanding/tips
-- `**UP NEXT:**` [Preview]
-
-### Questions
-
-- Answer the question
-- Restate current step
-- "Press Next to continue"
+1. **No double audio** - Only one stream playing at any time
+2. **Next button works** - Step 2 audio plays after pressing Next from Step 1
+3. **Voice questions work** - Can ask a question mid-walkthrough without advancing steps
+4. **Audio stops cleanly** - Stop button and toggle actually stop audio
+5. **State stays synchronized** - UI card matches what was just spoken
 
 ---
 
-## UI Components
+## Technical Details
 
-| Component | Content | Max Length |
-|-----------|---------|------------|
-| Next Step Card | Simple instruction only | 60 chars |
-| Transcript | Full orientation + tips + detailed instructions | No limit |
-| Up Next Preview | Optional teaser | 40 chars |
+### useWebRTCSpeech Hook Enhancement
+
+Add text preprocessing to strip UI markers:
+
+```typescript
+const speakText = useCallback(async (text: string, instructions?: string): Promise<void> => {
+  // Strip UI parsing markers that shouldn't be spoken
+  const cleanedText = text
+    .replace(/\*\*DO THIS NOW:\*\*\s*/gi, '')
+    .replace(/DO THIS NOW:\s*/gi, '')
+    .replace(/\*\*UP NEXT:\*\*\s*/gi, 'Up next: ')
+    .replace(/UP NEXT:\s*/gi, 'Up next: ')
+    .replace(/Press Next when.*$/gi, ''); // Remove UI instruction
+
+  if (!cleanedText.trim()) return;
+  // ... rest of implementation
+}, []);
+```
+
+### Audio Source Lock Pattern
+
+```typescript
+type AudioSource = 'none' | 'webrtc-tts' | 'realtime-chat';
+const audioSourceRef = useRef<AudioSource>('none');
+
+const acquireAudioLock = async (source: AudioSource) => {
+  const current = audioSourceRef.current;
+  if (current === source) return true; // Already have lock
+
+  // Cleanup current source
+  if (current === 'webrtc-tts') {
+    stopSpeaking();
+  } else if (current === 'realtime-chat') {
+    realtimeChatRef.current?.disconnect();
+    realtimeChatRef.current = null;
+    setIsRealtimeConnected(false);
+  }
+
+  // Small delay to ensure cleanup
+  await new Promise(r => setTimeout(r, 50));
+  audioSourceRef.current = source;
+  return true;
+};
+```
 
 ---
 
-## Step Detection Logic
+## Summary
 
-The app parses steps when:
-1. User sends game-start request (`guide`, `walk`, `teach`, `show me`)
-2. User sends "next" command
-3. User sends navigation command (`skip`, `go back`, `restart`)
+This plan creates:
+1. **A specification** - What should happen in every scenario
+2. **A dependency map** - Which files affect which behaviors
+3. **A checklist** - Incremental steps with clear acceptance criteria
+4. **Test patterns** - How to verify each change doesn't break others
 
-AND the AI response contains `**DO THIS NOW:**` marker.
-
-Questions (no step marker) do NOT advance steps.
-
----
-
-## Audio Behavior
-
-- Steps are auto-read via TTS
-- Mic turns OFF after step is spoken (allows group discussion)
-- "Next" button re-enables audio for next step
-- "Stop Feedback" button halts speech immediately
-
----
-
-## Files
-
-| File | Purpose |
-|------|---------|
-| `src/components/AIAdjudicator.tsx` | Main component, handles send/receive |
-| `src/hooks/useGuidedWalkthrough.ts` | State machine + step parsing |
-| `src/components/ai-adjudicator/GuidedModeLayout.tsx` | UI layout |
-| `supabase/functions/chat-with-actions/index.ts` | Backend prompt |
-
+With this foundation, every future change can be validated against the spec, preventing the "whack-a-mole" regression cycle.
