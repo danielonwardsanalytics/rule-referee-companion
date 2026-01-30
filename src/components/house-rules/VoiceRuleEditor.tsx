@@ -1,16 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Switch } from "@/components/ui/switch";
-import { Mic, MicOff, Send, Loader2, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 import { PremiumGate } from "@/components/premium/PremiumGate";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RealtimeChat } from "@/utils/RealtimeAudio";
-import { useNativeSpeechRecognition } from "@/hooks/useNativeSpeechRecognition";
+import { VoiceChatCore } from "@/components/ai-adjudicator/VoiceChatCore";
 import { useWebRTCSpeech } from "@/hooks/useWebRTCSpeech";
 
 interface VoiceRuleEditorProps {
@@ -27,31 +22,16 @@ export const VoiceRuleEditor = ({ ruleSetId, ruleSetName, gameName, currentRules
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const [messages, setMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [realtimeMessages, setRealtimeMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
   const realtimeChatRef = useRef<RealtimeChat | null>(null);
   
   // WebRTC speech for unified audio
-  const { speakText: speakResponse, stopSpeaking, isSpeaking } = useWebRTCSpeech("alloy");
-
-  // Native speech recognition hook
-  const { 
-    isListening: isNativeListening, 
-    transcript: nativeTranscript, 
-    startListening, 
-    stopListening,
-    isSupported: isSpeechSupported 
-  } = useNativeSpeechRecognition();
+  const { speakText: speakResponse, isSpeaking } = useWebRTCSpeech("alloy");
 
   // Reset audio to OFF when component mounts
   useEffect(() => {
     setIsAudioEnabled(false);
   }, []);
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
 
   const handleVoiceCommand = async (command: string, shouldSpeak?: boolean) => {
     if (!command.trim()) return;
@@ -114,39 +94,11 @@ export const VoiceRuleEditor = ({ ruleSetId, ruleSetName, gameName, currentRules
     }
   };
 
-  // Note: speakResponse is now provided by useWebRTCSpeech hook (line ~34)
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      setIsAudioEnabled(false);
-      handleTextSend();
-    }
-  };
-
-  const handleTextSend = () => {
-    if (!input.trim()) return;
-    setIsAudioEnabled(false);
-    const command = input;
-    setInput("");
-    handleVoiceCommand(command);
-  };
-
-  // Update input when native transcript changes
-  useEffect(() => {
-    if (nativeTranscript) {
-      setInput(nativeTranscript);
-    }
-  }, [nativeTranscript]);
-
-  const handleDictateToggle = async () => {
-    if (isNativeListening) {
-      await stopListening();
-      toast.success("Dictation stopped");
-    } else {
-      setIsAudioEnabled(false);
-      await startListening();
-    }
+  const handleSend = (messageOverride?: string, shouldSpeak?: boolean) => {
+    const message = messageOverride || input;
+    if (!message.trim()) return;
+    if (!messageOverride) setInput("");
+    handleVoiceCommand(message, shouldSpeak);
   };
 
   const startRealtimeChat = async () => {
@@ -178,7 +130,7 @@ Always remember you are editing "${ruleSetName}" - if the user refers to this ru
           if (event.type === 'conversation.item.input_audio_transcription.completed') {
             const transcript = event.transcript || "";
             if (transcript.trim()) {
-              setMessages(prev => [...prev, { role: 'user', content: transcript }]);
+              setRealtimeMessages(prev => [...prev, { role: 'user', content: transcript }]);
               // Process the command
               handleVoiceCommand(transcript, true);
             }
@@ -188,7 +140,7 @@ Always remember you are editing "${ruleSetName}" - if the user refers to this ru
             const delta = event.delta || "";
             currentAssistantMessage += delta;
             
-            setMessages(prev => {
+            setRealtimeMessages(prev => {
               const lastMsg = prev[prev.length - 1];
               if (lastMsg?.role === 'assistant') {
                 return [...prev.slice(0, -1), { role: 'assistant', content: currentAssistantMessage }];
@@ -222,6 +174,7 @@ Always remember you are editing "${ruleSetName}" - if the user refers to this ru
     realtimeChatRef.current?.disconnect();
     realtimeChatRef.current = null;
     setIsRealtimeConnected(false);
+    setRealtimeMessages([]);
     toast.success("Voice chat disconnected");
   };
 
@@ -262,157 +215,38 @@ Always remember you are editing "${ruleSetName}" - if the user refers to this ru
         </div>
         
         <div className="p-6">
-          {/* Audio is now handled by useWebRTCSpeech hook */}
-
-          {/* Big Voice Chat Button - Sound Wave Style */}
-          <div className="flex flex-col items-center py-6 mb-6">
-            <button
-              onClick={isRealtimeConnected ? endRealtimeChat : startRealtimeChat}
-              disabled={isProcessing || isNativeListening}
-              className={`w-32 h-32 rounded-full border-2 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed ${
-                isRealtimeConnected 
-                  ? "bg-primary border-primary" 
-                  : "bg-primary border-primary/50 hover:border-primary hover:shadow-lg hover:shadow-primary/30"
-              }`}
-            >
-              {/* Sound wave bars */}
-              <div className="flex items-center gap-1.5">
-                <div 
-                  className={`w-2 rounded-full bg-primary-foreground transition-all ${
-                    isRealtimeConnected ? "h-6 animate-pulse" : "h-6"
-                  }`}
-                  style={isRealtimeConnected ? { animation: 'soundWave 0.8s ease-in-out infinite' } : {}}
-                />
-                <div 
-                  className={`w-2 rounded-full bg-primary-foreground transition-all ${
-                    isRealtimeConnected ? "h-10 animate-pulse" : "h-10"
-                  }`}
-                  style={isRealtimeConnected ? { animation: 'soundWave 0.8s ease-in-out infinite 0.1s' } : {}}
-                />
-                <div 
-                  className={`w-2 rounded-full bg-primary-foreground transition-all ${
-                    isRealtimeConnected ? "h-14 animate-pulse" : "h-14"
-                  }`}
-                  style={isRealtimeConnected ? { animation: 'soundWave 0.8s ease-in-out infinite 0.2s' } : {}}
-                />
-                <div 
-                  className={`w-2 rounded-full bg-primary-foreground transition-all ${
-                    isRealtimeConnected ? "h-10 animate-pulse" : "h-10"
-                  }`}
-                  style={isRealtimeConnected ? { animation: 'soundWave 0.8s ease-in-out infinite 0.3s' } : {}}
-                />
-                <div 
-                  className={`w-2 rounded-full bg-primary-foreground transition-all ${
-                    isRealtimeConnected ? "h-6 animate-pulse" : "h-6"
-                  }`}
-                  style={isRealtimeConnected ? { animation: 'soundWave 0.8s ease-in-out infinite 0.4s' } : {}}
-                />
-              </div>
-            </button>
-            
-            <p className="mt-4 text-sm text-muted-foreground text-center">
-              Press to speak with House Rules AI.
-            </p>
-          </div>
-
-          {/* Speaking Indicator */}
-          {isSpeaking && (
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Volume2 className="h-5 w-5 text-primary animate-pulse" />
-              <span className="text-sm text-primary">Speaking...</span>
-            </div>
-          )}
-
-          {/* Response Area */}
-          {messages.length > 0 && (
-            <ScrollArea className="h-[200px] mb-4 border border-border rounded-lg" ref={scrollRef}>
-              <div className="space-y-4 p-4">
-                {messages.map((msg, idx) => (
-                  <div
-                    key={`msg-${idx}`}
-                    className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                  >
-                    <div
-                      className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                        msg.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-secondary text-secondary-foreground"
-                      }`}
-                    >
-                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                    </div>
+          <VoiceChatCore
+            messages={messages}
+            realtimeMessages={realtimeMessages}
+            input={input}
+            setInput={setInput}
+            onSend={handleSend}
+            isLoading={isProcessing}
+            isRealtimeConnected={isRealtimeConnected}
+            onStartRealtime={startRealtimeChat}
+            onEndRealtime={endRealtimeChat}
+            isSpeaking={isSpeaking}
+            isAudioEnabled={isAudioEnabled}
+            setIsAudioEnabled={setIsAudioEnabled}
+            placeholder="Or type your command here..."
+            footerContent={
+              <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-border">
+                <p className="text-sm font-semibold mb-3 text-foreground">Try these commands:</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
+                  <div className="space-y-1.5">
+                    <p>• "Add a rule: <span className="text-foreground/80">[your rule text]</span>"</p>
+                    <p>• "Change rule <span className="text-foreground/80">[number]</span> to <span className="text-foreground/80">[new text]</span>"</p>
+                    <p>• "Remove rule <span className="text-foreground/80">[number]</span>"</p>
                   </div>
-                ))}
+                  <div className="space-y-1.5">
+                    <p>• "Move rule <span className="text-foreground/80">[number]</span> to position <span className="text-foreground/80">[new position]</span>"</p>
+                    <p>• "Add <span className="text-foreground/80">[friend's name]</span> as an admin"</p>
+                    <p>• "What rules do we have?"</p>
+                  </div>
+                </div>
               </div>
-            </ScrollArea>
-          )}
-
-          {/* Text Input Area with Audio Toggle */}
-          <div className="space-y-2">
-            {/* Audio Response Toggle - Top Right above text input */}
-            <div className="flex items-center justify-end gap-2">
-              <span className={`text-xs font-medium ${isAudioEnabled ? "text-green-500" : "text-red-500"}`}>
-                Audio Response <span className="font-semibold">{isAudioEnabled ? "ON" : "OFF"}</span>
-              </span>
-              <Switch
-                checked={isAudioEnabled}
-                onCheckedChange={setIsAudioEnabled}
-                className={`h-5 w-9 ${isAudioEnabled ? "bg-green-500 data-[state=checked]:bg-green-500" : "bg-red-500 data-[state=unchecked]:bg-red-500"}`}
-              />
-            </div>
-
-            <div className="relative">
-              <Textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder="Or type your command here..."
-                className="resize-none pr-24 italic placeholder:italic border border-border"
-                rows={2}
-                disabled={isProcessing || isRealtimeConnected}
-              />
-              
-              <div className="absolute bottom-2 right-2 flex items-center gap-1">
-                <Button
-                  size="icon"
-                  variant={isNativeListening ? "default" : "ghost"}
-                  onClick={handleDictateToggle}
-                  disabled={isProcessing || isRealtimeConnected || !isSpeechSupported}
-                  className="rounded-full h-8 w-8"
-                  title={!isSpeechSupported ? "Speech recognition not supported" : undefined}
-                >
-                  {isNativeListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                </Button>
-                
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={handleTextSend}
-                  disabled={isProcessing || !input.trim() || isRealtimeConnected}
-                  className="rounded-full h-8 w-8"
-                >
-                  {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Try These Commands Section */}
-          <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-border">
-            <p className="text-sm font-semibold mb-3 text-foreground">Try these commands:</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
-              <div className="space-y-1.5">
-                <p>• "Add a rule: <span className="text-foreground/80">[your rule text]</span>"</p>
-                <p>• "Change rule <span className="text-foreground/80">[number]</span> to <span className="text-foreground/80">[new text]</span>"</p>
-                <p>• "Remove rule <span className="text-foreground/80">[number]</span>"</p>
-              </div>
-              <div className="space-y-1.5">
-                <p>• "Move rule <span className="text-foreground/80">[number]</span> to position <span className="text-foreground/80">[new position]</span>"</p>
-                <p>• "Add <span className="text-foreground/80">[friend's name]</span> as an admin"</p>
-                <p>• "What rules do we have?"</p>
-              </div>
-            </div>
-          </div>
+            }
+          />
         </div>
       </div>
     </PremiumGate>
