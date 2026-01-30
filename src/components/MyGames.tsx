@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Plus, Loader2, ArrowRight } from "lucide-react";
 import { Reorder } from "framer-motion";
 import SelectGameModal from "./SelectGameModal";
-import GameCardCircular from "./GameCardCircular";
+import GameCard from "./GameCard";
 import { useUserGames } from "@/hooks/useUserGames";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -116,7 +116,8 @@ const MyGames = () => {
                     className="flex-shrink-0"
                     style={{ pointerEvents: 'auto' }}
                   >
-                    <GameCardCircular
+                    <GameCard
+                      variant="circular"
                       id={game.games.slug}
                       title={game.games.name}
                       image={game.games.image_url || ""}
